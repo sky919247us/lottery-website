@@ -1,0 +1,930 @@
+/* === 詳情頁 — 查核報告風格 === */
+/* 白底報告書、斑馬紋表格、深藍重點、紅綠對比 */
+
+.detail {
+    padding-top: calc(var(--nav-height) + var(--spacing-2xl));
+    padding-bottom: var(--spacing-3xl);
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-lg);
+}
+
+.detail__loading {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: var(--spacing-md);
+    padding: var(--spacing-4xl);
+    min-height: 60vh;
+    color: var(--color-text-muted);
+}
+
+/* 頂部導覽 */
+.detail__top-bar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+
+.detail__back {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    color: #1E8449;
+    font-size: 0.85rem;
+    font-weight: 500;
+    transition: opacity var(--transition-fast);
+}
+
+.detail__back:hover {
+    opacity: 0.8;
+    color: #1E8449;
+}
+
+.detail__share-btn {
+    width: 36px;
+    height: 36px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+    background: #FFFFFF;
+    border: 1px solid var(--color-border);
+    color: var(--color-text-secondary);
+    transition: all var(--transition-fast);
+}
+
+.detail__share-btn:hover {
+    border-color: #0B192C;
+    color: #0B192C;
+}
+
+/* Header */
+.detail__header {
+    padding: var(--spacing-xl);
+}
+
+.detail__header-content {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: var(--spacing-md);
+    flex-wrap: wrap;
+}
+
+.detail__game-id {
+    font-size: 0.72rem;
+    color: var(--color-text-tertiary);
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    font-weight: 600;
+    margin-bottom: 4px;
+}
+
+.detail__title {
+    font-family: var(--font-display);
+    font-size: clamp(1.4rem, 3vw, 1.8rem);
+    font-weight: 800;
+    color: #0B192C;
+    letter-spacing: -0.02em;
+}
+
+.detail__tags {
+    display: flex;
+    gap: var(--spacing-sm);
+    flex-wrap: wrap;
+}
+
+.detail__tag {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    padding: 6px 14px;
+    border-radius: var(--radius-pill);
+    font-size: 0.78rem;
+    font-weight: 600;
+}
+
+.detail__tag--price {
+    background: #0B192C;
+    color: #FFFFFF;
+}
+
+.detail__tag--alert {
+    /* 多層霓虹紅光 */
+    background: linear-gradient(135deg, #FF1744, #D50000, #FF1744);
+    background-size: 200% 200%;
+    color: #FFFFFF;
+
+    /* 3D 微傾斜 */
+    transform: perspective(600px) rotateX(1deg) rotateY(-2deg);
+    transform-style: preserve-3d;
+
+    /* 多層霓虹發光 */
+    box-shadow:
+        0 0 6px rgba(255, 23, 68, 0.5),
+        0 0 14px rgba(255, 23, 68, 0.3),
+        0 0 28px rgba(255, 23, 68, 0.15),
+        inset 0 1px 0 rgba(255, 255, 255, 0.25);
+
+    /* 文字光暈 */
+    text-shadow: 0 0 6px rgba(255, 23, 68, 0.6);
+
+    /* 霓虹呼吸動畫 */
+    animation: neon-pulse 2.5s ease-in-out infinite;
+
+    /* 掃光 */
+    overflow: hidden;
+    position: relative;
+}
+
+.detail__tag--alert::before {
+    content: '';
+    position: absolute;
+    top: -50%;
+    left: -60%;
+    width: 40%;
+    height: 200%;
+    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.35), transparent);
+    transform: skewX(-20deg);
+    animation: badge-shimmer 3s ease-in-out infinite;
+    pointer-events: none;
+}
+
+/* neon-pulse 用同首頁的 keyframes（若未定義則加入） */
+@keyframes neon-pulse {
+
+    0%,
+    100% {
+        box-shadow:
+            0 0 6px rgba(255, 23, 68, 0.5),
+            0 0 14px rgba(255, 23, 68, 0.3),
+            0 0 28px rgba(255, 23, 68, 0.15),
+            inset 0 1px 0 rgba(255, 255, 255, 0.25);
+        background-position: 0% 50%;
+    }
+
+    50% {
+        box-shadow:
+            0 0 10px rgba(255, 23, 68, 0.7),
+            0 0 24px rgba(255, 23, 68, 0.45),
+            0 0 48px rgba(255, 23, 68, 0.2),
+            0 0 72px rgba(255, 23, 68, 0.08),
+            inset 0 1px 0 rgba(255, 255, 255, 0.35);
+        background-position: 100% 50%;
+    }
+}
+
+@keyframes badge-shimmer {
+    0% {
+        left: -60%;
+    }
+
+    50%,
+    100% {
+        left: 120%;
+    }
+}
+
+/* 三大指標 — 白卡 + 大數字 */
+.detail__metrics {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: var(--spacing-md);
+}
+
+.detail__metric {
+    padding: var(--spacing-lg);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    gap: 6px;
+}
+
+.detail__metric-icon {
+    width: 36px;
+    height: 36px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+    background: rgba(11, 25, 44, 0.06);
+    color: #0B192C;
+    margin-bottom: 2px;
+}
+
+.detail__metric--highlight .detail__metric-icon {
+    background: rgba(30, 132, 73, 0.1);
+    color: #1E8449;
+}
+
+.detail__metric-label {
+    font-size: 0.72rem;
+    color: var(--color-text-tertiary);
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    font-weight: 600;
+}
+
+.detail__metric-value {
+    font-family: var(--font-display);
+    font-size: 1.3rem;
+    font-weight: 800;
+    color: #0B192C;
+}
+
+.detail__metric--highlight .detail__metric-value {
+    color: #1E8449;
+}
+
+/* 即獎剩餘 */
+.detail__remaining {
+    padding: var(--spacing-lg);
+}
+
+.detail__remaining-header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    margin-bottom: var(--spacing-md);
+}
+
+.detail__remaining-label {
+    font-size: 0.78rem;
+    color: var(--color-text-tertiary);
+    font-weight: 500;
+    margin-bottom: 4px;
+}
+
+.detail__remaining-count strong {
+    font-family: var(--font-display);
+    font-size: 1.8rem;
+    font-weight: 800;
+}
+
+.detail__remaining-count span {
+    font-size: 0.95rem;
+    color: var(--color-text-tertiary);
+}
+
+.detail__hot-badge {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    padding: 6px 14px;
+    border-radius: var(--radius-pill);
+    background: rgba(211, 47, 47, 0.08);
+    color: #D32F2F;
+    font-size: 0.72rem;
+    font-weight: 600;
+}
+
+.detail__remaining-bar {
+    width: 100%;
+    height: 6px;
+    background: #E9ECEF;
+    border-radius: 3px;
+    overflow: hidden;
+    margin-bottom: var(--spacing-sm);
+}
+
+.detail__remaining-fill {
+    height: 100%;
+    border-radius: 3px;
+    background: #0B192C;
+    transition: width var(--transition-base);
+}
+
+.detail__remaining-info {
+    display: flex;
+    justify-content: space-between;
+    font-size: 0.72rem;
+    color: var(--color-text-tertiary);
+}
+
+/* 獨家特色 */
+.detail__section-title {
+    font-family: var(--font-display);
+    font-size: 1.05rem;
+    font-weight: 700;
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-sm);
+    margin-bottom: var(--spacing-md);
+    color: #0B192C;
+}
+
+.detail__section-title svg {
+    color: var(--color-warning);
+}
+
+.detail__features-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+    gap: var(--spacing-md);
+}
+
+.detail__feature-card {
+    padding: var(--spacing-lg);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    gap: 6px;
+}
+
+.detail__feature-icon {
+    width: 40px;
+    height: 40px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: var(--radius-md);
+    background: rgba(11, 25, 44, 0.06);
+    color: #0B192C;
+    margin-bottom: 4px;
+}
+
+.detail__feature-card strong {
+    font-size: 0.88rem;
+    color: #0B192C;
+}
+
+.detail__feature-card p {
+    font-size: 0.75rem;
+    color: var(--color-text-tertiary);
+    line-height: 1.5;
+}
+
+/* 獎金結構表 — 斑馬紋 */
+.detail__section {
+    padding: var(--spacing-xl);
+}
+
+.detail__table-wrap {
+    overflow-x: auto;
+}
+
+.detail__table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.88rem;
+}
+
+.detail__table th,
+.detail__table td {
+    padding: 12px var(--spacing-md);
+    text-align: left;
+}
+
+.detail__table thead {
+    background: #E2E8F0;
+}
+
+.detail__table th {
+    color: #0B192C;
+    font-size: 0.72rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+}
+
+/* 斑馬紋 — 奇數白 偶數報告白 */
+.detail__table tbody tr:nth-child(odd) {
+    background: #FFFFFF;
+}
+
+.detail__table tbody tr:nth-child(even) {
+    background: #F8F9FA;
+}
+
+.detail__table tr:hover {
+    background: rgba(11, 25, 44, 0.03);
+}
+
+.detail__amount {
+    font-family: var(--font-display);
+    font-weight: 600;
+    color: #1E8449;
+}
+
+.detail__remaining-count-cell {
+    color: var(--color-text-secondary);
+    font-size: 0.88rem;
+}
+
+.detail__table-note {
+    font-size: 0.72rem;
+    color: var(--color-text-muted);
+    margin-top: var(--spacing-sm);
+    text-align: right;
+}
+
+.detail__empty {
+    text-align: center;
+    padding: var(--spacing-xl);
+    color: var(--color-text-muted);
+}
+
+/* 殘值計算機（Detail 頁內嵌版） */
+.calculator {
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-md);
+}
+
+.calculator__label {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    font-size: 0.85rem;
+    font-weight: 500;
+    color: var(--color-text-secondary);
+}
+
+.calculator__input {
+    padding: 10px var(--spacing-md);
+    background: var(--color-bg-secondary);
+    border: 1.5px solid var(--color-border);
+    border-radius: var(--radius-md);
+    color: var(--color-text-primary);
+    font-family: var(--font-display);
+    font-size: 1rem;
+    font-weight: 600;
+    outline: none;
+    transition: border-color var(--transition-fast);
+}
+
+.calculator__input:focus {
+    border-color: #0B192C;
+}
+
+/* 計算機參數區 */
+.calculator__params {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+    gap: var(--spacing-md);
+    margin-bottom: var(--spacing-lg);
+}
+
+.calculator__params .calculator__label {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.calculator__params .calculator__label span {
+    font-size: 0.72rem;
+    color: var(--color-text-tertiary);
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    font-weight: 500;
+}
+
+.calculator__params .calculator__label strong {
+    font-family: var(--font-display);
+    font-size: 1.05rem;
+    font-weight: 700;
+    color: var(--color-text-primary);
+}
+
+.calculator__params .calculator__input {
+    margin-top: 0;
+    font-family: var(--font-display);
+    font-size: 1.05rem;
+    font-weight: 700;
+}
+
+.calculator__hint {
+    font-size: 0.72rem;
+    color: var(--color-text-muted);
+}
+
+/* 每本獎項分佈表 */
+.calculator__book-table-wrap {
+    overflow-x: auto;
+    margin-bottom: var(--spacing-lg);
+    border-radius: var(--radius-md);
+    border: 1px solid var(--color-border);
+}
+
+.calculator__book-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.85rem;
+}
+
+.calculator__book-table thead {
+    background: #0B192C;
+    color: #FFFFFF;
+}
+
+.calculator__book-table th {
+    padding: 10px 12px;
+    text-align: center;
+    font-weight: 600;
+    font-size: 0.78rem;
+    white-space: nowrap;
+}
+
+.calculator__book-table td {
+    padding: 8px 12px;
+    text-align: center;
+    border-top: 1px solid var(--color-border);
+}
+
+.calculator__book-table tbody tr:hover {
+    background: rgba(11, 25, 44, 0.02);
+}
+
+.calculator__per-book {
+    font-family: var(--font-mono, monospace);
+    font-weight: 600;
+    color: #0B192C;
+}
+
+/* 已開出張數輸入框 */
+.calculator__opened-input {
+    width: 60px;
+    padding: 4px 6px;
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-sm);
+    font-family: var(--font-mono, monospace);
+    font-size: 0.85rem;
+    text-align: center;
+    transition: border-color var(--transition-fast);
+}
+
+.calculator__opened-input:focus {
+    outline: none;
+    border-color: #0B192C;
+}
+
+/* 未中獎行 */
+.calculator__zero-row {
+    background: var(--color-bg-secondary);
+    color: var(--color-text-tertiary);
+    font-style: italic;
+}
+
+/* 實務返還率拉桿 */
+.calculator__slider-section {
+    margin-bottom: var(--spacing-lg);
+    padding: var(--spacing-md);
+    border-radius: var(--radius-md);
+    background: var(--color-bg-secondary);
+    border: 1px solid var(--color-border);
+}
+
+.calculator__slider-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: var(--spacing-sm);
+}
+
+.calculator__slider-label {
+    font-size: 0.82rem;
+    font-weight: 600;
+    color: var(--color-text-primary);
+}
+
+.calculator__slider-header strong {
+    font-family: var(--font-display);
+    font-size: 1.2rem;
+    font-weight: 700;
+}
+
+.calculator__slider {
+    width: 100%;
+    height: 6px;
+    -webkit-appearance: none;
+    appearance: none;
+    background: var(--color-border);
+    border-radius: 3px;
+    outline: none;
+    cursor: pointer;
+}
+
+.calculator__slider::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    background: #0B192C;
+    cursor: pointer;
+    border: 3px solid #FFFFFF;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2);
+}
+
+.calculator__slider::-moz-range-thumb {
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    background: #0B192C;
+    cursor: pointer;
+    border: 3px solid #FFFFFF;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2);
+}
+
+.calculator__slider-range {
+    display: flex;
+    justify-content: space-between;
+    margin-top: 4px;
+    font-size: 0.7rem;
+    color: var(--color-text-muted);
+}
+
+.calculator__slider-hint {
+    margin-top: var(--spacing-sm);
+    font-size: 0.75rem;
+    color: var(--color-text-tertiary);
+    line-height: 1.4;
+}
+
+.calculator__results {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+    gap: var(--spacing-md);
+}
+
+.calculator__stat {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    padding: var(--spacing-md);
+    border-radius: var(--radius-md);
+    background: var(--color-bg-secondary);
+    border: 1px solid var(--color-border);
+}
+
+.calculator__stat span {
+    font-size: 0.72rem;
+    color: var(--color-text-tertiary);
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    font-weight: 500;
+}
+
+.calculator__stat strong {
+    font-family: var(--font-display);
+    font-size: 1.15rem;
+    font-weight: 700;
+}
+
+/* 影片嵌入播放器 */
+.detail__video-embed {
+    border-radius: var(--radius-lg);
+    overflow: hidden;
+    background: #121A2F;
+    padding: var(--spacing-sm);
+    box-shadow: 0 4px 24px rgba(0, 0, 0, 0.15);
+}
+
+.detail__video-iframe {
+    width: 100%;
+    aspect-ratio: 16 / 9;
+    border: none;
+    display: block;
+    border-radius: var(--radius-md);
+}
+
+/* 日期資訊 */
+.detail__dates {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+    gap: var(--spacing-md);
+    padding: var(--spacing-lg);
+}
+
+.detail__date-item {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.detail__date-item svg {
+    color: var(--color-text-tertiary);
+}
+
+.detail__date-item span {
+    font-size: 0.72rem;
+    color: var(--color-text-tertiary);
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    font-weight: 500;
+}
+
+.detail__date-item strong {
+    font-size: 0.88rem;
+    color: var(--color-text-primary);
+    font-weight: 600;
+}
+
+/* 輔助色彩 */
+.text-muted {
+    color: var(--color-text-muted);
+}
+
+/* RWD */
+@media (max-width: 768px) {
+    .detail {
+        padding-bottom: 80px;
+    }
+}
+
+@media (max-width: 640px) {
+    .detail {
+        padding-top: calc(var(--nav-height) + var(--spacing-md));
+        gap: var(--spacing-md);
+    }
+
+    .detail__header {
+        padding: var(--spacing-md);
+    }
+
+    .detail__header-content {
+        flex-direction: column;
+    }
+
+    .detail__metrics {
+        grid-template-columns: repeat(3, 1fr);
+        gap: var(--spacing-sm);
+    }
+
+    .detail__metric {
+        padding: var(--spacing-md);
+    }
+
+    .detail__metric-value {
+        font-size: 1.05rem;
+    }
+
+    .detail__section {
+        padding: var(--spacing-md);
+    }
+
+    .detail__features-grid {
+        grid-template-columns: repeat(2, 1fr);
+    }
+
+    .calculator__params {
+        grid-template-columns: 1fr 1fr;
+    }
+
+    .calculator__opened-input {
+        width: 50px;
+    }
+
+    .calculator__results {
+        grid-template-columns: repeat(2, 1fr);
+    }
+
+    .detail__dates {
+        grid-template-columns: repeat(2, 1fr);
+        gap: var(--spacing-sm);
+    }
+}
+
+/* === 附近有貨店家 === */
+.detail__nearby-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 12px 28px;
+    border: none;
+    border-radius: var(--radius-pill);
+    background: linear-gradient(135deg, #1E8449, #27ae60);
+    color: #fff;
+    font-size: 0.9rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+    box-shadow: 0 2px 12px rgba(30, 132, 73, 0.3);
+}
+
+.detail__nearby-btn:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 18px rgba(30, 132, 73, 0.4);
+}
+
+.detail__nearby-btn:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+}
+
+.detail__nearby-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+}
+
+.detail__nearby-store {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0.75rem 1rem;
+    background: #F8FAFC;
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-md);
+    gap: 1rem;
+    transition: border-color 0.15s;
+}
+
+.detail__nearby-store:hover {
+    border-color: #1E8449;
+}
+
+.detail__nearby-store-info {
+    display: flex;
+    flex-direction: column;
+    gap: 0.2rem;
+    flex: 1;
+}
+
+.detail__nearby-store-name {
+    font-size: 0.9rem;
+    color: #0B192C;
+}
+
+.detail__pro-badge {
+    display: inline-flex;
+    align-items: center;
+    font-size: 0.6rem;
+    padding: 0.1rem 0.35rem;
+    border-radius: 4px;
+    background: linear-gradient(135deg, #d4af37, #b8962e);
+    color: #fff;
+    font-weight: 700;
+    margin-left: 0.35rem;
+    vertical-align: middle;
+}
+
+.detail__nearby-store-address {
+    font-size: 0.78rem;
+    color: var(--color-text-secondary);
+}
+
+.detail__nearby-store-distance {
+    font-size: 0.72rem;
+    color: var(--color-text-tertiary);
+    font-weight: 500;
+}
+
+.detail__nearby-store-actions {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    flex-shrink: 0;
+}
+
+.detail__nearby-status {
+    font-size: 0.78rem;
+    font-weight: 700;
+    padding: 0.2rem 0.6rem;
+    border-radius: var(--radius-pill);
+}
+
+.detail__nearby-status--green {
+    background: rgba(34, 197, 94, 0.1);
+    color: #16a34a;
+}
+
+.detail__nearby-status--yellow {
+    background: rgba(234, 179, 8, 0.1);
+    color: #b45309;
+}
+
+.detail__nearby-nav {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 0.78rem;
+    font-weight: 600;
+    color: #1E8449;
+    padding: 0.3rem 0.6rem;
+    border-radius: var(--radius-sm);
+    border: 1px solid rgba(30, 132, 73, 0.2);
+    transition: all 0.15s;
+}
+
+.detail__nearby-nav:hover {
+    background: rgba(30, 132, 73, 0.08);
+    color: #1E8449;
+}
+
+@media (max-width: 640px) {
+    .detail__nearby-store {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+
+    .detail__nearby-store-actions {
+        width: 100%;
+        justify-content: space-between;
+        margin-top: 0.5rem;
+    }
+}

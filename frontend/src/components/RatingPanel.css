@@ -1,0 +1,269 @@
+/* === 評分面板 — 修正全部 CSS 變數名稱對齊全域主題 === */
+
+.rating-panel__overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.6);
+    backdrop-filter: blur(4px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+    padding: 1rem;
+}
+
+.rating-panel {
+    /* 使用不透明白底，確保面板內容清晰可讀 */
+    background: #FFFFFF;
+    border: 1px solid var(--color-border, #DEE2E6);
+    border-radius: 1rem;
+    padding: 2rem;
+    max-width: 480px;
+    width: 100%;
+    max-height: 85vh;
+    overflow-y: auto;
+    position: relative;
+    box-shadow: 0 16px 48px rgba(0, 0, 0, 0.3);
+}
+
+.rating-panel__close {
+    position: absolute;
+    top: 1rem;
+    right: 1rem;
+    background: none;
+    border: none;
+    color: var(--color-text-secondary, #5A6268);
+    cursor: pointer;
+    padding: 0.25rem;
+    border-radius: 0.25rem;
+    transition: color 0.2s;
+}
+
+.rating-panel__close:hover {
+    color: var(--color-text-primary, #0B192C);
+}
+
+.rating-panel__title {
+    font-size: 1.2rem;
+    color: var(--color-text-primary, #0B192C);
+    margin-bottom: 1.25rem;
+}
+
+/* 星等 */
+.rating-panel__stars {
+    display: flex;
+    align-items: center;
+    gap: 0.25rem;
+    margin-bottom: 1.5rem;
+}
+
+.rating-panel__star {
+    background: none;
+    border: none;
+    cursor: pointer;
+    color: var(--color-border, #DEE2E6);
+    transition: transform 0.15s, color 0.15s;
+    padding: 0;
+}
+
+.rating-panel__star:hover {
+    transform: scale(1.2);
+}
+
+.rating-panel__star--active {
+    color: #d4af37;
+}
+
+.rating-panel__rating-text {
+    margin-left: 0.5rem;
+    font-size: 0.9rem;
+    color: var(--color-text-secondary, #5A6268);
+}
+
+/* 區塊 */
+.rating-panel__section {
+    margin-bottom: 1.25rem;
+}
+
+.rating-panel__section h4 {
+    font-size: 0.9rem;
+    color: var(--color-text-primary, #0B192C);
+    margin-bottom: 0.5rem;
+    display: flex;
+    align-items: center;
+    gap: 0.35rem;
+}
+
+.rating-panel__crowd-badge {
+    font-size: 0.65rem;
+    padding: 0.1rem 0.4rem;
+    border-radius: 1rem;
+    background: rgba(212, 175, 55, 0.15);
+    color: #d4af37;
+    font-weight: 600;
+}
+
+/* 標籤 */
+.rating-panel__tags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.35rem;
+}
+
+.rating-panel__tag {
+    padding: 0.35rem 0.65rem;
+    border: 1px solid var(--color-border, #DEE2E6);
+    border-radius: 2rem;
+    background: transparent;
+    color: var(--color-text-secondary, #5A6268);
+    font-size: 0.8rem;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.rating-panel__tag:hover {
+    border-color: #d4af37;
+    color: #d4af37;
+}
+
+.rating-panel__tag--active {
+    background: rgba(212, 175, 55, 0.15);
+    border-color: #d4af37;
+    color: #d4af37;
+}
+
+/* 評論 */
+.rating-panel__comment {
+    width: 100%;
+    padding: 0.75rem;
+    border: 1px solid var(--color-border, #DEE2E6);
+    border-radius: 0.5rem;
+    background: #FFFFFF;
+    color: var(--color-text-primary, #0B192C);
+    font-size: 0.85rem;
+    resize: none;
+    outline: none;
+    transition: border-color 0.2s;
+    font-family: inherit;
+}
+
+.rating-panel__comment:focus {
+    border-color: #d4af37;
+}
+
+.rating-panel__char-count {
+    display: block;
+    text-align: right;
+    font-size: 0.7rem;
+    color: var(--color-text-secondary, #5A6268);
+    margin-top: 0.25rem;
+}
+
+/* 錯誤 */
+.rating-panel__error {
+    color: #ef4444;
+    font-size: 0.85rem;
+    margin-bottom: 0.75rem;
+    text-align: center;
+}
+
+/* 送出 */
+.rating-panel__submit {
+    width: 100%;
+    padding: 0.75rem;
+    border: none;
+    border-radius: 0.5rem;
+    background: linear-gradient(135deg, #d4af37, #b8860b);
+    color: #1a1a2e;
+    font-size: 1rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: transform 0.15s, box-shadow 0.15s;
+}
+
+.rating-panel__submit:hover:not(:disabled) {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(212, 175, 55, 0.3);
+}
+
+.rating-panel__submit:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+.rating-panel__hint {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.25rem;
+    font-size: 0.7rem;
+    color: var(--color-text-secondary, #5A6268);
+    margin-top: 0.75rem;
+}
+
+/* 成功 */
+.rating-panel__success {
+    text-align: center;
+    padding: 2rem 0;
+}
+
+.rating-panel__success-icon {
+    font-size: 3rem;
+    display: block;
+    margin-bottom: 1rem;
+}
+
+.rating-panel__success h3 {
+    color: var(--color-text-primary, #0B192C);
+    margin-bottom: 0.5rem;
+}
+
+.rating-panel__success p {
+    color: #d4af37;
+    font-weight: 600;
+}
+
+/* 登入提示 */
+.rating-panel__login-prompt {
+    text-align: center;
+    padding: 2rem 0;
+}
+
+.rating-panel__login-prompt h3 {
+    color: var(--color-text-primary, #0B192C);
+    margin-bottom: 0.5rem;
+}
+
+.rating-panel__login-prompt p {
+    color: var(--color-text-secondary, #5A6268);
+    margin-bottom: 1.5rem;
+}
+
+.rating-panel__line-btn {
+    padding: 0.65rem 2rem;
+    border: none;
+    border-radius: 0.5rem;
+    background: #06c755;
+    color: #fff;
+    font-size: 1rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background 0.2s;
+}
+
+.rating-panel__line-btn:hover {
+    background: #05a847;
+}
+
+/* RWD */
+@media (max-width: 480px) {
+    .rating-panel {
+        padding: 1.25rem;
+        border-radius: 0.75rem;
+    }
+
+    .rating-panel__star svg {
+        width: 28px;
+        height: 28px;
+    }
+}

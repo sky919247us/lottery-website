@@ -1,0 +1,1579 @@
+/**
+ * 社群地圖頁面樣式
+ * 財神到 — 黑金招財風格
+ */
+
+/* === Hero 區塊 === */
+.community-map__hero {
+    background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
+    padding: 3rem 1.5rem 2.5rem;
+    text-align: center;
+    position: relative;
+    overflow: hidden;
+}
+
+.community-map__hero::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: radial-gradient(circle at 50% 0%, rgba(212, 175, 55, 0.15) 0%, transparent 60%);
+    pointer-events: none;
+}
+
+.community-map__hero-content {
+    position: relative;
+    z-index: 1;
+}
+
+.community-map__title {
+    font-size: 2rem;
+    font-weight: 800;
+    color: #fff;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    margin-bottom: 0.5rem;
+}
+
+.community-map__title svg {
+    color: #d4af37;
+}
+
+.community-map__subtitle {
+    color: rgba(255, 255, 255, 0.7);
+    font-size: 1rem;
+}
+
+/* === 內容區 === */
+.community-map__content {
+    padding: 1.5rem 0 3rem;
+}
+
+/* === 搜尋列 === */
+.community-map__search-section {
+    margin-bottom: 1.5rem;
+}
+
+.community-map__search-bar {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    background: var(--bg-card, #fff);
+    border: 2px solid var(--border-subtle, #e2e8f0);
+    border-radius: 12px;
+    padding: 0.75rem 1rem;
+    margin-bottom: 0.75rem;
+    transition: border-color 0.2s;
+}
+
+.community-map__search-bar:focus-within {
+    border-color: #d4af37;
+}
+
+.community-map__search-bar svg {
+    color: var(--text-muted, #94a3b8);
+    flex-shrink: 0;
+}
+
+.community-map__search-bar input {
+    flex: 1;
+    border: none;
+    background: transparent;
+    font-size: 1rem;
+    color: var(--text-primary, #1e293b);
+    outline: none;
+}
+
+.community-map__clear-btn {
+    background: var(--bg-muted, #f1f5f9);
+    border: none;
+    border-radius: 50%;
+    width: 28px;
+    height: 28px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    color: var(--text-muted, #94a3b8);
+}
+
+/* === 篩選行 === */
+.community-map__filter-row {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+}
+
+.community-map__source-tabs {
+    display: flex;
+    gap: 0.25rem;
+}
+
+.community-map__source-tab {
+    padding: 0.4rem 0.75rem;
+    border: 1px solid var(--border-subtle, #e2e8f0);
+    background: var(--bg-card, #fff);
+    border-radius: 8px;
+    font-size: 0.85rem;
+    cursor: pointer;
+    transition: all 0.2s;
+    color: var(--text-secondary, #64748b);
+}
+
+.community-map__source-tab--active {
+    background: linear-gradient(135deg, #d4af37, #b8962e);
+    color: #fff;
+    border-color: #d4af37;
+    font-weight: 600;
+}
+
+.community-map__filter-btn,
+.community-map__checkin-toggle {
+    padding: 0.4rem 0.75rem;
+    border: 1px solid var(--border-subtle, #e2e8f0);
+    background: var(--bg-card, #fff);
+    border-radius: 8px;
+    font-size: 0.85rem;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 0.35rem;
+    color: var(--text-secondary, #64748b);
+    transition: all 0.2s;
+    margin-left: auto;
+}
+
+.community-map__checkin-toggle {
+    margin-left: 0;
+    background: linear-gradient(135deg, #e74c3c, #c0392b);
+    color: #fff;
+    border-color: #e74c3c;
+}
+
+.community-map__filter-btn:hover,
+.community-map__checkin-toggle:hover {
+    transform: translateY(-1px);
+}
+
+.rotate-180 {
+    transform: rotate(180deg);
+    transition: transform 0.2s;
+}
+
+/* === 縣市篩選面板 === */
+.community-map__city-filter {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.35rem;
+    padding: 1rem 0;
+    overflow: hidden;
+}
+
+.community-map__city-chip {
+    padding: 0.35rem 0.65rem;
+    border: 1px solid var(--border-subtle, #e2e8f0);
+    background: var(--bg-card, #fff);
+    border-radius: 20px;
+    font-size: 0.8rem;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 0.3rem;
+    transition: all 0.2s;
+    color: var(--text-secondary, #64748b);
+}
+
+.community-map__city-chip--active {
+    background: linear-gradient(135deg, #1a1a2e, #16213e);
+    color: #d4af37;
+    border-color: #d4af37;
+    font-weight: 600;
+}
+
+.community-map__city-count {
+    background: var(--bg-muted, #f1f5f9);
+    border-radius: 10px;
+    padding: 0 0.4rem;
+    font-size: 0.7rem;
+    font-weight: 600;
+    color: var(--text-muted, #94a3b8);
+}
+
+.community-map__city-chip--active .community-map__city-count {
+    background: rgba(212, 175, 55, 0.3);
+    color: #d4af37;
+}
+
+/* === 打卡表單 === */
+.community-map__checkin-form {
+    padding: 1rem;
+    margin-top: 0.75rem;
+    overflow: hidden;
+}
+
+.community-map__checkin-form h3 {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    margin-bottom: 0.75rem;
+    font-size: 1rem;
+    color: var(--text-primary, #1e293b);
+}
+
+.community-map__form-row {
+    display: flex;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+}
+
+.community-map__form-row select,
+.community-map__form-row input {
+    flex: 1;
+    min-width: 140px;
+    padding: 0.5rem 0.75rem;
+    border: 1px solid var(--border-subtle, #e2e8f0);
+    border-radius: 8px;
+    font-size: 0.9rem;
+    background: var(--bg-base, #f8fafc);
+    color: var(--text-primary, #1e293b);
+}
+
+.community-map__submit-btn {
+    padding: 0.5rem 1rem;
+    background: linear-gradient(135deg, #d4af37, #b8962e);
+    color: #fff;
+    border: none;
+    border-radius: 8px;
+    font-weight: 600;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    white-space: nowrap;
+    transition: transform 0.2s;
+}
+
+.community-map__submit-btn:hover:not(:disabled) {
+    transform: translateY(-1px);
+}
+
+.community-map__submit-btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+/* === 統計摘要 === */
+.community-map__stats-row {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 0.75rem;
+    margin-bottom: 1.5rem;
+}
+
+.community-map__stat {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 1rem;
+}
+
+.community-map__stat svg {
+    color: #d4af37;
+    flex-shrink: 0;
+}
+
+.community-map__stat span {
+    font-size: 0.8rem;
+    color: var(--text-muted, #94a3b8);
+    display: block;
+}
+
+.community-map__stat strong {
+    font-size: 1.25rem;
+    color: var(--text-primary, #1e293b);
+    display: block;
+}
+
+/* === 主要佈局 === */
+.community-map__main-layout {
+    display: grid;
+    grid-template-columns: 1fr 320px;
+    gap: 1.5rem;
+    align-items: start;
+}
+
+/* === 經銷商列表 === */
+.community-map__list-header {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    margin-bottom: 1rem;
+}
+
+.community-map__list-title-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    width: 100%;
+}
+
+.community-map__view-toggled {
+    display: flex;
+    background: var(--bg-muted, #f1f5f9);
+    padding: 0.2rem;
+    border-radius: 8px;
+    gap: 0.2rem;
+}
+
+.community-map__view-btn {
+    display: flex;
+    align-items: center;
+    gap: 0.35rem;
+    padding: 0.4rem 0.75rem;
+    border-radius: 6px;
+    font-size: 0.85rem;
+    color: var(--text-secondary, #64748b);
+    cursor: pointer;
+    transition: all 0.2s;
+    background: transparent;
+    border: none;
+}
+
+.community-map__view-btn:hover {
+    color: var(--text-primary, #1e293b);
+}
+
+.community-map__view-btn.active {
+    background: #fff;
+    color: #0B192C;
+    font-weight: 600;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+.community-map__list-header h2 {
+    font-size: 1.25rem;
+    color: var(--text-primary, #1e293b);
+}
+
+.community-map__result-count {
+    font-size: 0.85rem;
+    color: var(--text-muted, #94a3b8);
+}
+
+.community-map__retailer-grid {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 0.5rem;
+}
+
+.community-map__retailer-card {
+    padding: 1rem;
+    transition: transform 0.2s, box-shadow 0.2s;
+    cursor: default;
+}
+
+.community-map__retailer-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+}
+
+.community-map__retailer-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 0.4rem;
+}
+
+.community-map__retailer-name {
+    font-size: 1rem;
+    font-weight: 600;
+    color: var(--text-primary, #1e293b);
+}
+
+.community-map__retailer-source {
+    font-size: 0.75rem;
+    padding: 0.15rem 0.5rem;
+    border-radius: 12px;
+    white-space: nowrap;
+}
+
+.community-map__retailer-source--lottery {
+    background: rgba(212, 175, 55, 0.15);
+    color: #b8962e;
+}
+
+.community-map__retailer-source--sport {
+    background: rgba(46, 204, 113, 0.15);
+    color: #27ae60;
+}
+
+.community-map__retailer-address {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.35rem;
+    font-size: 0.85rem;
+    color: var(--text-secondary, #64748b);
+    margin-bottom: 0.5rem;
+    line-height: 1.4;
+}
+
+.community-map__retailer-address svg {
+    flex-shrink: 0;
+    margin-top: 2px;
+    color: #d4af37;
+}
+
+.community-map__retailer-meta {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.community-map__retailer-district {
+    font-size: 0.8rem;
+    color: var(--text-muted, #94a3b8);
+}
+
+.community-map__map-link {
+    display: flex;
+    align-items: center;
+    gap: 0.3rem;
+    font-size: 0.8rem;
+    color: #3b82f6;
+    text-decoration: none;
+    font-weight: 500;
+    transition: color 0.2s;
+}
+
+.community-map__map-link:hover {
+    color: #2563eb;
+}
+
+/* === 載入更多 === */
+.community-map__load-more {
+    width: 100%;
+    padding: 0.75rem;
+    margin-top: 1rem;
+    background: var(--bg-card, #fff);
+    border: 2px dashed var(--border-subtle, #e2e8f0);
+    border-radius: 10px;
+    font-size: 0.9rem;
+    color: var(--text-secondary, #64748b);
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.community-map__load-more:hover {
+    border-color: #d4af37;
+    color: #d4af37;
+}
+
+/* === 載入中 / 空白狀態 === */
+.community-map__loading,
+.community-map__empty {
+    text-align: center;
+    padding: 3rem 1rem;
+    color: var(--text-muted, #94a3b8);
+}
+
+.community-map__loading .spinner {
+    margin: 0 auto 1rem;
+}
+
+.community-map__empty svg {
+    margin-bottom: 0.75rem;
+    opacity: 0.4;
+}
+
+/* === 側邊欄 === */
+.community-map__sidebar {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+    position: sticky;
+    top: 80px;
+}
+
+.community-map__heatmap,
+.community-map__recent {
+    padding: 1rem;
+}
+
+.community-map__heatmap h3,
+.community-map__recent h3 {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    font-size: 1rem;
+    margin-bottom: 0.75rem;
+    color: var(--text-primary, #1e293b);
+}
+
+.community-map__heatmap-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 0.35rem;
+}
+
+.community-map__heat-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0.4rem 0.6rem;
+    border-radius: 6px;
+    font-size: 0.8rem;
+    cursor: pointer;
+    transition: background 0.2s;
+    color: var(--text-muted, #94a3b8);
+}
+
+.community-map__heat-item:hover {
+    background: var(--bg-muted, #f1f5f9);
+}
+
+.community-map__heat-item--active {
+    background: rgba(212, 175, 55, 0.1);
+    color: var(--text-primary, #1e293b);
+}
+
+.community-map__heat-item--active strong {
+    color: #d4af37;
+    font-size: 0.8rem;
+}
+
+.community-map__heat-empty {
+    opacity: 0.3;
+}
+
+/* === 最新打卡 === */
+.community-map__checkin-item {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    padding: 0.4rem 0;
+    font-size: 0.85rem;
+    border-bottom: 1px solid var(--border-subtle, #f1f5f9);
+}
+
+.community-map__checkin-item:last-child {
+    border-bottom: none;
+}
+
+.community-map__checkin-item svg {
+    color: #d4af37;
+    flex-shrink: 0;
+}
+
+.community-map__checkin-city {
+    font-weight: 600;
+    color: var(--text-primary, #1e293b);
+}
+
+.community-map__checkin-amount {
+    color: #e74c3c;
+    font-weight: 600;
+    margin-left: auto;
+}
+
+.community-map__checkin-game {
+    font-size: 0.75rem;
+    color: var(--text-muted, #94a3b8);
+    background: var(--bg-muted, #f1f5f9);
+    padding: 0.1rem 0.4rem;
+    border-radius: 4px;
+}
+
+/* === Karma 徽章 === */
+.community-map__karma-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    margin-top: 0.75rem;
+    padding: 0.35rem 0.85rem;
+    background: rgba(255, 255, 255, 0.1);
+    border: 1px solid rgba(212, 175, 55, 0.3);
+    border-radius: 20px;
+    font-size: 0.85rem;
+    color: rgba(255, 255, 255, 0.8);
+}
+
+.community-map__karma-title {
+    font-weight: 600;
+}
+
+.community-map__karma-pts {
+    font-size: 0.75rem;
+    opacity: 0.7;
+}
+
+/* === 設施標籤篩選 === */
+.community-map__filter-btn--active {
+    background: linear-gradient(135deg, #d4af37, #b8962e);
+    color: #fff;
+    border-color: #d4af37;
+    font-weight: 600;
+}
+
+.community-map__tag-filter {
+    padding: 0.75rem 0;
+    overflow: hidden;
+}
+
+.community-map__tag-chips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.35rem;
+}
+
+.community-map__tag-chip {
+    padding: 0.35rem 0.65rem;
+    border: 1px solid var(--border-subtle, #e2e8f0);
+    background: var(--bg-card, #fff);
+    border-radius: 20px;
+    font-size: 0.8rem;
+    cursor: pointer;
+    transition: all 0.2s;
+    color: var(--text-secondary, #64748b);
+}
+
+.community-map__tag-chip--active {
+    background: linear-gradient(135deg, #3b82f6, #2563eb);
+    color: #fff;
+    border-color: #3b82f6;
+    font-weight: 600;
+}
+
+.community-map__tag-clear {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.25rem;
+    margin-top: 0.5rem;
+    padding: 0.25rem 0.6rem;
+    border: none;
+    background: var(--bg-muted, #f1f5f9);
+    border-radius: 6px;
+    font-size: 0.8rem;
+    color: var(--text-muted, #94a3b8);
+    cursor: pointer;
+}
+
+/* === 認證徽章 === */
+.community-map__badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.2rem;
+    font-size: 0.65rem;
+    padding: 0.1rem 0.4rem;
+    border-radius: 4px;
+    font-weight: 600;
+    margin-left: 0.4rem;
+    vertical-align: middle;
+}
+
+.community-map__badge--verified {
+    background: rgba(34, 197, 94, 0.15);
+    color: #16a34a;
+}
+
+.community-map__badge--pro {
+    background: rgba(212, 175, 55, 0.15);
+    color: #d4af37;
+    animation: shimmer 2s infinite;
+}
+
+@keyframes shimmer {
+
+    0%,
+    100% {
+        opacity: 1;
+    }
+
+    50% {
+        opacity: 0.7;
+    }
+}
+
+/* === 臨時公告 === */
+.community-map__announcement {
+    display: flex;
+    align-items: center;
+    gap: 0.35rem;
+    padding: 0.4rem 0.6rem;
+    background: rgba(234, 179, 8, 0.1);
+    border: 1px solid rgba(234, 179, 8, 0.25);
+    border-radius: 6px;
+    font-size: 0.8rem;
+    color: #b45309;
+    margin-bottom: 0.4rem;
+}
+
+.community-map__announcement svg {
+    flex-shrink: 0;
+    color: #eab308;
+}
+
+/* === 庫存燈號 === */
+.community-map__inventory-lights {
+    display: flex;
+    gap: 0.35rem;
+    margin-bottom: 0.5rem;
+    flex-wrap: wrap;
+}
+
+.community-map__inv-dot {
+    font-size: 0.7rem;
+    padding: 0.15rem 0.45rem;
+    border-radius: 10px;
+    font-weight: 600;
+}
+
+.community-map__inv-dot--green {
+    background: rgba(34, 197, 94, 0.15);
+    color: #16a34a;
+}
+
+.community-map__inv-dot--yellow {
+    background: rgba(234, 179, 8, 0.15);
+    color: #b45309;
+}
+
+.community-map__inv-dot--red {
+    background: rgba(239, 68, 68, 0.15);
+    color: #dc2626;
+}
+
+/* === 經銷商卡片動作列 === */
+.community-map__retailer-actions {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.community-map__report-btn {
+    display: flex;
+    align-items: center;
+    gap: 0.25rem;
+    font-size: 0.8rem;
+    color: #3b82f6;
+    background: none;
+    border: 1px solid rgba(59, 130, 246, 0.3);
+    border-radius: 6px;
+    padding: 0.2rem 0.5rem;
+    cursor: pointer;
+    transition: all 0.2s;
+    font-weight: 500;
+}
+
+.community-map__report-btn:hover {
+    background: rgba(59, 130, 246, 0.1);
+    border-color: #3b82f6;
+}
+
+/* === 頭獎店家標章特效 === */
+.community-map__badge--jackpot {
+    background: linear-gradient(135deg, #FFD700 0%, #FFA500 100%);
+    color: #4A3500;
+    box-shadow: 0 2px 8px rgba(255, 215, 0, 0.4);
+    animation: goldShine 3s infinite ease-in-out;
+}
+
+.popup-jackpot-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.2rem;
+    font-size: 0.75rem;
+    padding: 0.15rem 0.4rem;
+    border-radius: 4px;
+    background: linear-gradient(135deg, #FFD700 0%, #FFA500 100%);
+    color: #4A3500;
+    font-weight: 700;
+    box-shadow: 0 2px 6px rgba(255, 215, 0, 0.4);
+    animation: goldShine 3s infinite ease-in-out;
+    margin-right: 4px;
+}
+
+@keyframes goldShine {
+    0% { filter: brightness(1); box-shadow: 0 2px 8px rgba(255, 215, 0, 0.4); }
+    50% { filter: brightness(1.1); box-shadow: 0 4px 12px rgba(255, 215, 0, 0.6); }
+    100% { filter: brightness(1); box-shadow: 0 2px 8px rgba(255, 215, 0, 0.4); }
+}
+
+/* === 庫存回報 Modal === */
+.community-map__modal-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.5);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+    padding: 1rem;
+}
+
+.community-map__modal {
+    width: 100%;
+    max-width: 420px;
+    padding: 1.5rem;
+}
+
+.community-map__modal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 0.75rem;
+}
+
+.community-map__modal-header h3 {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    font-size: 1.1rem;
+    color: var(--text-primary, #1e293b);
+}
+
+.community-map__modal-header button {
+    background: none;
+    border: none;
+    color: var(--text-muted, #94a3b8);
+    cursor: pointer;
+    padding: 0.25rem;
+    border-radius: 6px;
+}
+
+.community-map__modal-header button:hover {
+    background: var(--bg-muted, #f1f5f9);
+}
+
+.community-map__modal-store {
+    display: flex;
+    align-items: center;
+    gap: 0.35rem;
+    font-size: 0.9rem;
+    color: var(--text-secondary, #64748b);
+    margin-bottom: 1rem;
+    padding-bottom: 0.75rem;
+    border-bottom: 1px solid var(--border-subtle, #e2e8f0);
+}
+
+.community-map__modal-store svg {
+    color: #d4af37;
+}
+
+.community-map__modal-section {
+    margin-bottom: 1rem;
+}
+
+.community-map__modal-section label {
+    display: block;
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: var(--text-primary, #1e293b);
+    margin-bottom: 0.4rem;
+}
+
+.community-map__modal-options {
+    display: flex;
+    gap: 0.35rem;
+    flex-wrap: wrap;
+}
+
+.community-map__modal-opt {
+    padding: 0.4rem 0.75rem;
+    border: 1px solid var(--border-subtle, #e2e8f0);
+    background: var(--bg-card, #fff);
+    border-radius: 8px;
+    font-size: 0.85rem;
+    cursor: pointer;
+    transition: all 0.2s;
+    color: var(--text-secondary, #64748b);
+}
+
+.community-map__modal-opt--active {
+    background: var(--bg-muted, #f0f9ff);
+    border-color: #3b82f6;
+    color: #1d4ed8;
+    font-weight: 600;
+}
+
+.community-map__modal-submit {
+    width: 100%;
+    padding: 0.65rem;
+    background: linear-gradient(135deg, #d4af37, #b8962e);
+    color: #fff;
+    border: none;
+    border-radius: 8px;
+    font-weight: 600;
+    font-size: 0.95rem;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.4rem;
+    transition: transform 0.2s;
+}
+
+.community-map__modal-submit:hover:not(:disabled) {
+    transform: translateY(-1px);
+}
+
+.community-map__modal-submit:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+.community-map__modal-hint {
+    text-align: center;
+    font-size: 0.75rem;
+    color: var(--text-muted, #94a3b8);
+    margin-top: 0.5rem;
+}
+
+/* === 節慶 Banner === */
+.community-map__festival-banner {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0.75rem 1.5rem;
+    background: linear-gradient(135deg, #b91c1c 0%, #dc2626 30%, #ef4444 60%, #f97316 100%);
+    color: #fff;
+    font-size: 0.9rem;
+    position: relative;
+    overflow: hidden;
+}
+
+.community-map__festival-banner::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: repeating-linear-gradient(45deg,
+            transparent,
+            transparent 10px,
+            rgba(255, 255, 255, 0.05) 10px,
+            rgba(255, 255, 255, 0.05) 20px);
+    pointer-events: none;
+}
+
+.community-map__festival-info {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    position: relative;
+    z-index: 1;
+}
+
+.community-map__festival-info strong {
+    font-size: 1rem;
+    white-space: nowrap;
+}
+
+.community-map__festival-info span {
+    opacity: 0.9;
+    font-size: 0.85rem;
+}
+
+.community-map__festival-flame {
+    animation: flicker 1.5s ease-in-out infinite;
+    color: #fbbf24;
+}
+
+@keyframes flicker {
+
+    0%,
+    100% {
+        opacity: 1;
+        transform: scale(1);
+    }
+
+    50% {
+        opacity: 0.6;
+        transform: scale(1.1);
+    }
+}
+
+/* === 自訂地圖標記 === */
+
+/* 清除 Leaflet divIcon 預設框線背景 */
+.compound-marker-wrapper,
+.single-marker-wrapper {
+    background: transparent !important;
+    border: none !important;
+}
+
+/* 單色標記 Pin */
+.single-marker {
+    position: relative;
+    width: 30px;
+    height: 30px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 14px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+    border: 2px solid #fff;
+}
+
+.single-marker__tail {
+    position: absolute;
+    bottom: -8px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 0;
+    height: 0;
+    border-left: 6px solid transparent;
+    border-right: 6px solid transparent;
+    border-top: 8px solid;
+}
+
+/* 複合型膠囊標記（上黃下紅） */
+.compound-marker {
+    position: relative;
+    width: 32px;
+    height: 36px;
+    border-radius: 16px;
+    overflow: hidden;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.35);
+    border: 2px solid #fff;
+    display: flex;
+    flex-direction: column;
+}
+
+.compound-marker__lottery {
+    flex: 1;
+    background: #F5A623;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 11px;
+    line-height: 1;
+}
+
+.compound-marker__sport {
+    flex: 1;
+    background: #E74C3C;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 11px;
+    line-height: 1;
+}
+
+.compound-marker__tail {
+    position: absolute;
+    bottom: -8px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 0;
+    height: 0;
+    border-left: 6px solid transparent;
+    border-right: 6px solid transparent;
+    border-top: 8px solid #E74C3C;
+}
+
+/* === 叢集金色主題覆寫 === */
+.marker-cluster--gold {
+    background: rgba(212, 175, 55, 0.25) !important;
+}
+
+.marker-cluster--gold div {
+    background: linear-gradient(135deg, #d4af37, #b8962e) !important;
+    color: #fff !important;
+    font-weight: 700 !important;
+    font-size: 13px !important;
+    width: 32px !important;
+    height: 32px !important;
+    margin-left: 4px !important;
+    margin-top: 4px !important;
+    border-radius: 50% !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    box-shadow: 0 2px 8px rgba(212, 175, 55, 0.4) !important;
+}
+
+.marker-cluster-medium.marker-cluster--gold {
+    background: rgba(212, 175, 55, 0.35) !important;
+}
+
+.marker-cluster-large.marker-cluster--gold {
+    background: rgba(212, 175, 55, 0.45) !important;
+}
+
+/* === 複合型 Popup 資訊窗 === */
+.compound-popup {
+    padding: 4px;
+    min-width: 220px;
+}
+
+.compound-popup__address {
+    font-size: 12px;
+    color: #5A6268;
+    margin-bottom: 8px;
+    padding-bottom: 6px;
+    border-bottom: 1px solid #eee;
+}
+
+.compound-popup__section {
+    padding: 6px 0;
+}
+
+.compound-popup__header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 8px;
+    margin-bottom: 6px;
+}
+
+.compound-popup__name {
+    font-size: 14px;
+    color: #0B192C;
+    line-height: 1.3;
+}
+
+.compound-popup__source-tag {
+    font-size: 11px;
+    padding: 2px 8px;
+    border-radius: 10px;
+    white-space: nowrap;
+    font-weight: 600;
+    flex-shrink: 0;
+}
+
+.compound-popup__actions {
+    display: flex;
+    gap: 6px;
+    margin-top: 6px;
+    flex-wrap: wrap;
+}
+
+.compound-popup__btn {
+    padding: 4px 8px;
+    font-size: 11px;
+    border: 1px solid #DEE2E6;
+    border-radius: 4px;
+    background: #fff;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 3px;
+    transition: background 0.15s;
+}
+
+.compound-popup__btn:hover {
+    background: #f8f9fa;
+}
+
+.compound-popup__nav-btn {
+    padding: 4px 8px;
+    font-size: 11px;
+    background: #d4af37;
+    color: #fff;
+    border-radius: 4px;
+    text-decoration: none;
+    font-weight: bold;
+    display: flex;
+    align-items: center;
+    gap: 3px;
+    transition: transform 0.15s;
+}
+
+.compound-popup__nav-btn:hover {
+    transform: translateY(-1px);
+}
+
+.compound-popup__divider {
+    height: 1px;
+    background: linear-gradient(90deg, transparent, #d4af37, transparent);
+    margin: 4px 0;
+}
+
+/* === RWD === */
+@media (max-width: 1024px) {
+    .community-map__main-layout {
+        grid-template-columns: 1fr;
+    }
+
+    .community-map__sidebar {
+        position: static;
+    }
+}
+
+@media (max-width: 768px) {
+    .community-map__stats-row {
+        grid-template-columns: repeat(2, 1fr);
+    }
+
+    .community-map__filter-row {
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .community-map__source-tabs {
+        width: 100%;
+    }
+
+    .community-map__source-tab {
+        flex: 1;
+        text-align: center;
+    }
+
+    .community-map__filter-btn,
+    .community-map__checkin-toggle {
+        margin-left: 0;
+        justify-content: center;
+    }
+
+    .community-map__form-row {
+        flex-direction: column;
+    }
+
+    .community-map__heatmap-grid {
+        grid-template-columns: repeat(3, 1fr);
+    }
+
+    .community-map__title {
+        font-size: 1.5rem;
+    }
+
+    .community-map__modal {
+        max-width: 100%;
+    }
+
+    .community-map__modal-options {
+        flex-direction: column;
+    }
+}
+
+/* ============================
+   PRO 店家專業版樣式
+   ============================ */
+
+/* --- Pro 卡片金色邊框 + 光暈效果 --- */
+.community-map__retailer-card--pro {
+    border: 2px solid rgba(212, 175, 55, 0.5);
+    background: linear-gradient(135deg, rgba(212, 175, 55, 0.05) 0%, transparent 100%);
+    position: relative;
+    overflow: hidden;
+}
+
+.community-map__retailer-card--pro::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    right: 0;
+    width: 60px;
+    height: 60px;
+    background: radial-gradient(circle at top right, rgba(212, 175, 55, 0.2), transparent 70%);
+    pointer-events: none;
+}
+
+.community-map__retailer-card--pro:hover {
+    box-shadow: 0 4px 24px rgba(212, 175, 55, 0.2);
+    border-color: #d4af37;
+}
+
+/* --- Pro 設施標籤列（列表卡片內） --- */
+.community-map__facility-tags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.3rem;
+    margin-bottom: 0.5rem;
+}
+
+.community-map__facility-tag {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.2rem;
+    font-size: 0.7rem;
+    padding: 0.15rem 0.45rem;
+    border-radius: 12px;
+    background: rgba(212, 175, 55, 0.1);
+    color: #92700c;
+    border: 1px solid rgba(212, 175, 55, 0.2);
+    font-weight: 500;
+}
+
+/* --- Pro 地圖標記：金色光暈 + 皇冠 --- */
+.marker--pro .single-marker,
+.marker--pro .compound-marker {
+    filter: drop-shadow(0 0 6px rgba(212, 175, 55, 0.6))
+            drop-shadow(0 0 12px rgba(212, 175, 55, 0.3));
+}
+
+.marker-pro-crown {
+    position: absolute;
+    top: -14px;
+    left: 50%;
+    transform: translateX(-50%);
+    font-size: 14px;
+    line-height: 1;
+    z-index: 10;
+    filter: drop-shadow(0 1px 2px rgba(0,0,0,0.3));
+    animation: crown-bounce 2s ease-in-out infinite;
+}
+
+@keyframes crown-bounce {
+    0%, 100% { transform: translateX(-50%) translateY(0); }
+    50% { transform: translateX(-50%) translateY(-2px); }
+}
+
+/* --- Popup 內的 Pro 區段 --- */
+.compound-popup__section--pro {
+    border-left: 3px solid #d4af37;
+    padding-left: 0.5rem;
+    background: linear-gradient(90deg, rgba(212, 175, 55, 0.05), transparent);
+}
+
+/* ============================
+   頭獎店家 Jackpot 樣式
+   ============================ */
+
+/* --- 頭獎 地圖標記：橘紅光暈 + 獎盃 --- */
+.marker--jackpot .single-marker,
+.marker--jackpot .compound-marker {
+    filter: drop-shadow(0 0 6px rgba(255, 87, 34, 0.6))
+            drop-shadow(0 0 12px rgba(255, 87, 34, 0.3));
+}
+
+/* 當同時是 pro 與 jackpot 時，綜合疊加光暈 */
+.marker--pro.marker--jackpot .single-marker,
+.marker--pro.marker--jackpot .compound-marker {
+    filter: drop-shadow(0 0 8px rgba(212, 175, 55, 0.8))
+            drop-shadow(0 0 12px rgba(255, 87, 34, 0.5));
+}
+
+.marker-jackpot-badge {
+    position: absolute;
+    top: -14px;
+    right: -12px;
+    font-size: 14px;
+    line-height: 1;
+    z-index: 10;
+    filter: drop-shadow(0 1px 2px rgba(0,0,0,0.3));
+    animation: jackpot-bounce 2s ease-in-out infinite 0.5s; /* 錯開動畫時間 */
+}
+
+@keyframes jackpot-bounce {
+    0%, 100% { transform: translateY(0) scale(1); }
+    50% { transform: translateY(-3px) scale(1.1); }
+}
+
+/* Popup 與 List 卡片內的頭獎徽章 */
+.popup-jackpot-badge,
+.community-map__badge--jackpot {
+    background: linear-gradient(135deg, #fff3cd 0%, #ffdf7e 100%);
+    color: #b7791f;
+    border: 1px solid #ffeeba;
+    padding: 2px 6px;
+    border-radius: 4px;
+    font-size: 0.75rem;
+    font-weight: bold;
+    margin-left: 6px;
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+}
+
+
+.popup-pro-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.15rem;
+    font-size: 0.6rem;
+    padding: 0.1rem 0.35rem;
+    border-radius: 4px;
+    background: linear-gradient(135deg, #d4af37, #b8962e);
+    color: #fff;
+    font-weight: 700;
+    margin-left: 0.35rem;
+    vertical-align: middle;
+    letter-spacing: 0.5px;
+}
+
+.popup-verified-badge {
+    margin-left: 0.25rem;
+    vertical-align: middle;
+    font-size: 0.75rem;
+}
+
+.popup-announcement {
+    font-size: 0.75rem;
+    padding: 0.3rem 0.5rem;
+    margin: 0.3rem 0;
+    background: rgba(234, 179, 8, 0.12);
+    border: 1px solid rgba(234, 179, 8, 0.3);
+    border-radius: 6px;
+    color: #92400e;
+    line-height: 1.4;
+}
+
+.popup-facilities {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.25rem;
+    margin: 0.3rem 0;
+}
+
+.popup-facility-tag {
+    display: inline-block;
+    font-size: 0.85rem;
+    width: 24px;
+    height: 24px;
+    line-height: 24px;
+    text-align: center;
+    border-radius: 6px;
+    background: rgba(212, 175, 55, 0.12);
+    cursor: help;
+    transition: transform 0.15s;
+}
+
+.popup-facility-tag:hover {
+    transform: scale(1.2);
+    background: rgba(212, 175, 55, 0.25);
+}
+
+/* --- 商家官方庫存樣式 --- */
+.popup-official-inventory {
+    margin-top: 0.75rem;
+    padding-top: 0.75rem;
+    border-top: 1px dashed rgba(0,0,0,0.1);
+}
+
+.popup-official-inventory__header {
+    display: flex;
+    align-items: center;
+    gap: 0.3rem;
+    font-size: 0.75rem;
+    font-weight: 700;
+    color: #856404;
+    margin-bottom: 0.5rem;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.popup-official-inventory__grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0.4rem;
+}
+
+.official-inventory-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0.25rem 0.5rem;
+    background: #fff;
+    border: 1px solid rgba(212, 175, 55, 0.2);
+    border-radius: 4px;
+    font-size: 0.7rem;
+}
+
+.official-item-name {
+    color: #4b5563;
+    font-weight: 500;
+}
+
+.official-item-status {
+    font-weight: 700;
+}
+
+.official-item-status.status--green { color: #16a34a; }
+.official-item-status.status--yellow { color: #d97706; }
+.official-item-status.status--red { color: #dc2626; }
+
+/* === 庫存回報搜尋 === */
+.community-map__report-search {
+    width: 100%;
+    padding: 10px 14px;
+    border: 1.5px solid rgba(212, 175, 55, 0.3);
+    border-radius: 8px;
+    font-size: 0.85rem;
+    font-family: inherit;
+    background: #f8f9fa;
+    color: #1a1a2e;
+    outline: none;
+    transition: border-color 0.2s;
+    margin-top: 0.5rem;
+}
+
+.community-map__report-search:focus {
+    border-color: #d4af37;
+    background: #fff;
+}
+
+.community-map__report-results {
+    max-height: 200px;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    margin-top: 0.5rem;
+}
+
+.community-map__report-loading,
+.community-map__report-empty {
+    text-align: center;
+    padding: 1rem;
+    font-size: 0.8rem;
+    color: #6b7280;
+}
+
+.community-map__report-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 8px 12px;
+    border: 1px solid rgba(0, 0, 0, 0.08);
+    border-radius: 8px;
+    background: #fff;
+    cursor: pointer;
+    transition: all 0.15s;
+    text-align: left;
+    font-family: inherit;
+}
+
+.community-map__report-item:hover {
+    border-color: #d4af37;
+    background: rgba(212, 175, 55, 0.04);
+}
+
+.community-map__report-item--active {
+    border-color: #d4af37;
+    background: rgba(212, 175, 55, 0.1);
+    box-shadow: 0 0 0 2px rgba(212, 175, 55, 0.2);
+}
+
+.community-map__report-item-img {
+    width: 36px;
+    height: 36px;
+    border-radius: 6px;
+    object-fit: contain;
+    flex-shrink: 0;
+}
+
+.community-map__report-item-info {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    min-width: 0;
+}
+
+.community-map__report-item-name {
+    font-size: 0.82rem;
+    font-weight: 600;
+    color: #1a1a2e;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.community-map__report-item-meta {
+    font-size: 0.7rem;
+    color: #6b7280;
+}
+

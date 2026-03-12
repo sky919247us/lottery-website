@@ -1,0 +1,374 @@
+/**
+ * 店家管理後台樣式
+ */
+
+/* === Hero === */
+.merchant__hero {
+    background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
+    padding: 3rem 1.5rem 2.5rem;
+    text-align: center;
+    margin-bottom: 1.5rem;
+    position: relative;
+}
+
+.merchant__hero::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: radial-gradient(circle at 50% 0%, rgba(212, 175, 55, 0.12) 0%, transparent 60%);
+    pointer-events: none;
+}
+
+.merchant__title {
+    font-size: 2rem;
+    font-weight: 800;
+    color: #fff;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    margin-bottom: 0.4rem;
+}
+
+.merchant__title svg {
+    color: #d4af37;
+}
+
+.merchant__subtitle {
+    color: rgba(255, 255, 255, 0.6);
+    font-size: 1rem;
+}
+
+/* === Karma Bar === */
+.merchant__karma-bar {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    padding: 1rem;
+    margin-bottom: 1.5rem;
+}
+
+.merchant__karma-badge {
+    display: flex;
+    align-items: center;
+    gap: 0.3rem;
+    border: 2px solid;
+    border-radius: 20px;
+    padding: 0.25rem 0.6rem;
+    font-weight: 700;
+    font-size: 0.85rem;
+}
+
+.merchant__karma-points {
+    font-size: 0.8rem;
+    color: var(--text-muted, #94a3b8);
+    margin-left: 0.5rem;
+}
+
+.merchant__karma-progress {
+    flex: 1;
+    height: 6px;
+    background: var(--bg-muted, #e2e8f0);
+    border-radius: 3px;
+    overflow: hidden;
+}
+
+.merchant__karma-fill {
+    height: 100%;
+    border-radius: 3px;
+    transition: width 0.3s;
+}
+
+/* === Toast === */
+.merchant__toast {
+    background: #059669;
+    color: #fff;
+    padding: 0.6rem 1rem;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    margin-bottom: 1rem;
+    font-size: 0.9rem;
+}
+
+/* === 搜尋 === */
+.merchant__search-section h2 {
+    margin-bottom: 1rem;
+    font-size: 1.25rem;
+}
+
+.merchant__search-input {
+    width: 100%;
+    padding: 0.75rem 1rem;
+    border: 2px solid var(--border-subtle, #e2e8f0);
+    border-radius: 10px;
+    font-size: 1rem;
+    margin-bottom: 1rem;
+    transition: border-color 0.2s;
+    background: var(--bg-card, #fff);
+    color: var(--text-primary);
+}
+
+.merchant__search-input:focus {
+    border-color: #d4af37;
+    outline: none;
+}
+
+.merchant__search-results {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+.merchant__search-item {
+    padding: 0.75rem 1rem;
+    cursor: pointer;
+    transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.merchant__search-item:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08);
+}
+
+.merchant__search-name {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    font-weight: 600;
+    margin-bottom: 0.25rem;
+}
+
+.merchant__claimed-badge {
+    font-size: 0.7rem;
+    background: rgba(212, 175, 55, 0.2);
+    color: #d4af37;
+    padding: 0.1rem 0.4rem;
+    border-radius: 4px;
+    font-weight: 600;
+}
+
+.merchant__search-address {
+    display: flex;
+    align-items: center;
+    gap: 0.3rem;
+    font-size: 0.85rem;
+    color: var(--text-muted, #94a3b8);
+}
+
+/* === Dashboard === */
+.merchant__store-info {
+    padding: 1rem;
+    margin-bottom: 1rem;
+}
+
+.merchant__store-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 0.5rem;
+}
+
+.merchant__store-header h2 {
+    font-size: 1.25rem;
+}
+
+.merchant__back-btn {
+    background: none;
+    border: 1px solid var(--border-subtle, #e2e8f0);
+    border-radius: 6px;
+    padding: 0.3rem 0.6rem;
+    font-size: 0.85rem;
+    cursor: pointer;
+    color: var(--text-secondary);
+}
+
+.merchant__store-source {
+    font-size: 0.85rem;
+    color: var(--text-muted, #94a3b8);
+}
+
+/* === 認領 === */
+.merchant__claim-section {
+    padding: 1rem;
+    margin-bottom: 1rem;
+    border-left: 4px solid #d4af37;
+}
+
+.merchant__claim-section h3 {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    margin-bottom: 0.5rem;
+}
+
+.merchant__claim-section p {
+    font-size: 0.85rem;
+    color: var(--text-muted, #94a3b8);
+    margin-bottom: 0.75rem;
+}
+
+.merchant__claim-btn {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    padding: 0.6rem 1.2rem;
+    background: linear-gradient(135deg, #d4af37, #b8962e);
+    color: #fff;
+    border: none;
+    border-radius: 8px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: transform 0.2s;
+}
+
+.merchant__claim-btn:hover:not(:disabled) {
+    transform: translateY(-2px);
+}
+
+.merchant__claim-btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+/* === 面板 === */
+.merchant__panels {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1rem;
+    margin-bottom: 1rem;
+}
+
+.merchant__panel {
+    padding: 1rem;
+}
+
+.merchant__panel h3 {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    margin-bottom: 0.75rem;
+    font-size: 1rem;
+}
+
+/* 營業狀態切換 */
+.merchant__status-toggle {
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+    width: 100%;
+    padding: 1.25rem;
+    border: 2px solid;
+    border-radius: 12px;
+    font-size: 1.2rem;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all 0.2s;
+    justify-content: center;
+}
+
+.merchant__status-toggle--open {
+    background: rgba(16, 185, 129, 0.1);
+    border-color: #10b981;
+    color: #059669;
+}
+
+.merchant__status-toggle--closed {
+    background: rgba(239, 68, 68, 0.1);
+    border-color: #ef4444;
+    color: #dc2626;
+}
+
+/* 公告 */
+.merchant__announcement-input {
+    width: 100%;
+    min-height: 80px;
+    padding: 0.75rem;
+    border: 1px solid var(--border-subtle, #e2e8f0);
+    border-radius: 8px;
+    font-size: 0.9rem;
+    resize: vertical;
+    margin-bottom: 0.75rem;
+    background: var(--bg-base, #f8fafc);
+    color: var(--text-primary);
+}
+
+.merchant__save-btn {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    padding: 0.5rem 1rem;
+    background: linear-gradient(135deg, #3b82f6, #2563eb);
+    color: #fff;
+    border: none;
+    border-radius: 8px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: transform 0.2s;
+}
+
+.merchant__save-btn:hover:not(:disabled) {
+    transform: translateY(-1px);
+}
+
+.merchant__save-btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+/* === 標籤 === */
+.merchant__tags-section {
+    padding: 1rem;
+    margin-bottom: 1.5rem;
+}
+
+.merchant__tags-section h3 {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    margin-bottom: 1rem;
+}
+
+.merchant__tags-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1.5rem;
+    margin-bottom: 1rem;
+}
+
+.merchant__tags-group h4 {
+    margin-bottom: 0.5rem;
+    font-size: 0.9rem;
+    color: var(--text-secondary, #64748b);
+}
+
+.merchant__tag-toggle {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.35rem 0;
+    font-size: 0.9rem;
+    cursor: pointer;
+}
+
+.merchant__tag-toggle input[type="checkbox"] {
+    width: 18px;
+    height: 18px;
+    accent-color: #d4af37;
+}
+
+/* === RWD === */
+@media (max-width: 768px) {
+    .merchant__panels {
+        grid-template-columns: 1fr;
+    }
+
+    .merchant__tags-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .merchant__title {
+        font-size: 1.5rem;
+    }
+}

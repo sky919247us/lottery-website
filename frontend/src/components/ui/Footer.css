@@ -1,0 +1,45 @@
+/* === Footer — Executive Style === */
+
+.footer {
+    margin-top: auto;
+    padding: var(--spacing-xl) 0;
+    border-top: 1px solid var(--color-border);
+    position: relative;
+}
+
+/* 頂部金屬光條 */
+.footer::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 15%;
+    right: 15%;
+    height: 1px;
+    background: linear-gradient(90deg, transparent, rgba(201, 168, 76, 0.12), rgba(232, 212, 139, 0.18), rgba(201, 168, 76, 0.12), transparent);
+    pointer-events: none;
+}
+
+.footer__inner {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: var(--spacing-sm);
+    text-align: center;
+}
+
+.footer__text {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    color: var(--color-text-tertiary);
+    font-size: 0.78rem;
+}
+
+.footer__heart {
+    color: var(--color-gold-primary);
+}
+
+.footer__sub {
+    color: var(--color-text-muted);
+    font-size: 0.7rem;
+}

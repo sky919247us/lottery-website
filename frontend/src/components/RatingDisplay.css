@@ -1,0 +1,159 @@
+/* === 評分顯示元件 — 修正 CSS 變數名稱對齊全域主題 === */
+
+.rating-display {
+    margin-top: 0.5rem;
+}
+
+.rating-display--compact {
+    display: flex;
+    align-items: center;
+    gap: 0.3rem;
+    margin-top: 0;
+}
+
+.rating-display--empty {
+    margin-top: 0.25rem;
+}
+
+.rating-display__no-data {
+    font-size: 0.75rem;
+    color: var(--color-text-secondary, #5A6268);
+}
+
+.rating-display__header {
+    display: flex;
+    align-items: center;
+    gap: 0.35rem;
+    margin-bottom: 0.5rem;
+}
+
+.rating-display__stars {
+    display: flex;
+    gap: 1px;
+}
+
+.rating-display__avg {
+    font-size: 0.85rem;
+    font-weight: 700;
+    color: #d4af37;
+}
+
+.rating-display__count {
+    font-size: 0.75rem;
+    color: var(--color-text-secondary, #5A6268);
+}
+
+/* 標籤統計 */
+.rating-display__tags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.3rem;
+    margin-bottom: 0.5rem;
+}
+
+.rating-display__tag-stat {
+    font-size: 0.7rem;
+    padding: 0.2rem 0.5rem;
+    border-radius: 1rem;
+    background: rgba(212, 175, 55, 0.08);
+    color: var(--color-text-secondary, #5A6268);
+    display: flex;
+    align-items: center;
+    gap: 0.25rem;
+}
+
+.rating-display__tag-pct {
+    color: #d4af37;
+    font-weight: 600;
+}
+
+/* 評論切換 */
+.rating-display__toggle-reviews {
+    display: flex;
+    align-items: center;
+    gap: 0.25rem;
+    padding: 0.3rem 0;
+    border: none;
+    background: none;
+    color: var(--color-text-secondary, #5A6268);
+    font-size: 0.75rem;
+    cursor: pointer;
+    transition: color 0.2s;
+}
+
+.rating-display__toggle-reviews:hover {
+    color: #d4af37;
+}
+
+/* 評論列表 */
+.rating-display__reviews {
+    margin-top: 0.5rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+.rating-display__review {
+    padding: 0.5rem;
+    border-radius: 0.5rem;
+    background: rgba(248, 249, 250, 0.8);
+    border: 1px solid var(--color-border, #DEE2E6);
+}
+
+.rating-display__review-header {
+    display: flex;
+    align-items: center;
+    gap: 0.35rem;
+    margin-bottom: 0.25rem;
+}
+
+.rating-display__review-avatar {
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    object-fit: cover;
+}
+
+.rating-display__review-name {
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: var(--color-text-primary, #0B192C);
+}
+
+.rating-display__review-level {
+    font-size: 0.6rem;
+    color: #d4af37;
+    margin-left: 0.2rem;
+}
+
+.rating-display__verified {
+    color: #06c755;
+    flex-shrink: 0;
+}
+
+.rating-display__review-stars {
+    margin-left: auto;
+    display: flex;
+    gap: 1px;
+}
+
+.rating-display__review-text {
+    font-size: 0.8rem;
+    color: var(--color-text-secondary, #5A6268);
+    line-height: 1.4;
+    margin: 0.25rem 0;
+}
+
+.rating-display__review-tags {
+    display: flex;
+    gap: 0.2rem;
+    flex-wrap: wrap;
+}
+
+.rating-display__mini-tag {
+    font-size: 0.65rem;
+    padding: 0.1rem 0.35rem;
+    border-radius: 1rem;
+    background: rgba(212, 175, 55, 0.08);
+    color: var(--color-text-secondary, #5A6268);
+}

@@ -1,0 +1,346 @@
+/* === PnL Dashboard — 科技感圖表 === */
+
+.pnl {
+    padding-top: calc(var(--nav-height) + var(--spacing-2xl));
+    padding-bottom: var(--spacing-3xl);
+}
+
+.pnl__title {
+    font-family: var(--font-display);
+    font-size: clamp(1.5rem, 4vw, 2.2rem);
+    font-weight: 700;
+    letter-spacing: -0.03em;
+    color: var(--color-text-primary);
+    margin-bottom: var(--spacing-xl);
+}
+
+.pnl__summary {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+    gap: var(--spacing-md);
+    margin-bottom: var(--spacing-xl);
+}
+
+.pnl__stat {
+    padding: var(--spacing-lg);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: var(--spacing-sm);
+    text-align: center;
+}
+
+.pnl__stat span {
+    font-size: 0.72rem;
+    color: var(--color-text-tertiary);
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    font-weight: 500;
+}
+
+.pnl__stat strong {
+    font-family: var(--font-display);
+    font-size: 1.4rem;
+    font-weight: 600;
+}
+
+.pnl__stat-icon--spent {
+    color: var(--color-danger);
+}
+
+.pnl__stat-icon--won {
+    color: var(--color-success);
+}
+
+.pnl__stat--profit strong {
+    color: var(--color-success);
+}
+
+.pnl__stat--loss strong {
+    color: var(--color-danger);
+}
+
+/* === 圖表區域 === */
+.pnl__charts {
+    display: grid;
+    grid-template-columns: 1fr auto;
+    gap: var(--spacing-md);
+    margin-bottom: var(--spacing-xl);
+    align-items: stretch;
+}
+
+/* 累計損益折線圖 */
+.pnl__chart {
+    padding: var(--spacing-lg);
+    min-height: 180px;
+}
+
+.pnl__chart h2 {
+    font-size: 0.88rem;
+    font-weight: 600;
+    margin-bottom: var(--spacing-md);
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    color: var(--color-text-primary);
+}
+
+.pnl__chart h2 svg {
+    color: var(--color-slate);
+}
+
+.pnl__line-svg {
+    width: 100%;
+    height: 140px;
+    overflow: visible;
+}
+
+/* 折線描繪動畫 */
+.pnl__polyline {
+    animation: draw-line 1.2s ease-out forwards;
+    stroke-dasharray: 2000;
+    stroke-dashoffset: 2000;
+}
+
+@keyframes draw-line {
+    to {
+        stroke-dashoffset: 0;
+    }
+}
+
+/* 填充區域淡入 */
+.pnl__area-path {
+    opacity: 0;
+    animation: fade-area 0.8s ease-out 0.6s forwards;
+}
+
+@keyframes fade-area {
+    to {
+        opacity: 1;
+    }
+}
+
+/* 投報率圓環指標 */
+.pnl__gauge {
+    padding: var(--spacing-lg);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 150px;
+}
+
+.pnl__gauge-svg {
+    width: 120px;
+    height: 120px;
+}
+
+/* 圓環描繪動畫 */
+.pnl__gauge-circle {
+    animation: draw-gauge 1.5s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+    stroke-dashoffset: 999;
+}
+
+@keyframes draw-gauge {
+    from {
+        stroke-dashoffset: 301.59;
+        /* = 2 * PI * 48 = 完整圓周 */
+    }
+}
+
+/* === 表單 === */
+.pnl__form {
+    padding: var(--spacing-xl);
+    margin-bottom: var(--spacing-lg);
+}
+
+.pnl__form h2 {
+    font-size: 1rem;
+    font-weight: 600;
+    margin-bottom: var(--spacing-md);
+}
+
+.pnl__form-row {
+    display: flex;
+    gap: var(--spacing-sm);
+    flex-wrap: wrap;
+}
+
+.pnl__form-row input {
+    flex: 1;
+    min-width: 120px;
+    padding: 10px var(--spacing-md);
+    background: var(--color-bg-tertiary);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-md);
+    color: var(--color-text-primary);
+    font-family: inherit;
+    font-size: 0.88rem;
+    outline: none;
+    transition: all var(--transition-fast);
+}
+
+.pnl__form-row input:focus {
+    border-color: #0B192C;
+    box-shadow: 0 0 0 3px rgba(11, 25, 44, 0.08);
+}
+
+.pnl__add-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 10px var(--spacing-xl);
+    background: #0B192C;
+    color: #FFFFFF;
+    font-weight: 700;
+    font-size: 0.88rem;
+    border-radius: var(--radius-pill);
+    transition: opacity var(--transition-fast);
+    letter-spacing: 0.01em;
+}
+
+.pnl__add-btn:hover {
+    opacity: 0.9;
+}
+
+/* === 紀錄列表 === */
+.pnl__list {
+    padding: var(--spacing-xl);
+}
+
+.pnl__list h2 {
+    font-size: 1rem;
+    font-weight: 600;
+    margin-bottom: var(--spacing-md);
+}
+
+.pnl__record {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-md);
+    padding: var(--spacing-sm) 0;
+    border-bottom: 1px solid var(--color-separator);
+}
+
+.pnl__record:last-child {
+    border-bottom: none;
+}
+
+.pnl__record-info {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    min-width: 80px;
+}
+
+.pnl__record-name {
+    font-weight: 600;
+    font-size: 0.88rem;
+}
+
+.pnl__record-date {
+    font-size: 0.72rem;
+    color: var(--color-text-muted);
+}
+
+/* 小型比例條 */
+.pnl__record-bar-wrap {
+    width: 60px;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    flex-shrink: 0;
+}
+
+.pnl__record-bar {
+    height: 3px;
+    border-radius: 2px;
+    transition: width var(--transition-base);
+    min-width: 2px;
+}
+
+.pnl__record-bar--spent {
+    background: var(--color-danger);
+}
+
+.pnl__record-bar--won {
+    background: var(--color-success);
+}
+
+.pnl__record-numbers {
+    display: flex;
+    gap: var(--spacing-md);
+    font-family: var(--font-display);
+    font-size: 0.85rem;
+}
+
+.pnl__record-spent {
+    color: var(--color-danger);
+}
+
+.pnl__record-won {
+    color: var(--color-success);
+}
+
+.pnl__delete {
+    color: var(--color-text-muted);
+    padding: 4px;
+    transition: color var(--transition-fast);
+}
+
+.pnl__delete:hover {
+    color: var(--color-danger);
+}
+
+/* === RWD === */
+@media (max-width: 640px) {
+    .pnl {
+        padding-top: calc(var(--nav-height) + var(--spacing-lg));
+    }
+
+    .pnl__summary {
+        grid-template-columns: repeat(2, 1fr);
+        gap: var(--spacing-sm);
+    }
+
+    .pnl__stat {
+        padding: var(--spacing-md);
+    }
+
+    .pnl__stat strong {
+        font-size: 1.15rem;
+    }
+
+    /* 圖表區直排 */
+    .pnl__charts {
+        grid-template-columns: 1fr;
+    }
+
+    .pnl__gauge {
+        min-width: unset;
+    }
+
+    .pnl__form {
+        padding: var(--spacing-md);
+    }
+
+    .pnl__form-row {
+        flex-direction: column;
+    }
+
+    .pnl__form-row input {
+        min-width: 0;
+    }
+
+    .pnl__list {
+        padding: var(--spacing-md);
+    }
+
+    .pnl__record {
+        flex-wrap: wrap;
+        gap: var(--spacing-sm);
+    }
+
+    .pnl__record-bar-wrap {
+        display: none;
+    }
+}

@@ -1,0 +1,533 @@
+/* === 殘值計算機 — 查核報告風格（金融終端機操作感） === */
+
+.calc-page {
+    padding-top: calc(var(--nav-height) + var(--spacing-2xl));
+    padding-bottom: var(--spacing-3xl);
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-lg);
+}
+
+.calc-page__title {
+    font-family: var(--font-display);
+    font-size: clamp(1.4rem, 3vw, 1.8rem);
+    font-weight: 700;
+    letter-spacing: -0.02em;
+    text-align: center;
+    color: #0B192C;
+}
+
+.calc-page__desc {
+    text-align: center;
+    color: var(--color-text-tertiary);
+    font-size: 0.85rem;
+    margin: -8px 0 var(--spacing-sm);
+}
+
+/* 選擇器 */
+.calc-page__selector {
+    padding: var(--spacing-lg);
+    position: relative;
+}
+
+.calc-page__label {
+    font-size: 0.78rem;
+    color: var(--color-text-tertiary);
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    font-weight: 600;
+    display: block;
+    margin-bottom: var(--spacing-sm);
+}
+
+.calc-page__dropdown {
+    width: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 12px var(--spacing-md);
+    background: #FFFFFF;
+    border: 1.5px solid var(--color-border);
+    border-radius: var(--radius-md);
+    color: var(--color-text-primary);
+    font-size: 0.92rem;
+    font-family: inherit;
+    cursor: pointer;
+    transition: border-color var(--transition-fast);
+}
+
+.calc-page__dropdown:hover {
+    border-color: #0B192C;
+}
+
+.calc-page__chevron {
+    transition: transform var(--transition-fast);
+    color: var(--color-text-tertiary);
+}
+
+.calc-page__chevron--open {
+    transform: rotate(180deg);
+}
+
+.calc-page__dropdown-list {
+    position: absolute;
+    left: 0;
+    right: 0;
+    top: 100%;
+    max-height: 300px;
+    overflow-y: auto;
+    background: #FFFFFF;
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-md);
+    box-shadow: var(--shadow-lg);
+    z-index: 50;
+    margin-top: 4px;
+}
+
+.calc-page__dropdown-item {
+    width: 100%;
+    display: flex;
+    justify-content: space-between;
+    padding: 10px var(--spacing-md);
+    background: none;
+    border: none;
+    border-bottom: 1px solid var(--color-separator);
+    color: var(--color-text-secondary);
+    font-family: inherit;
+    font-size: 0.85rem;
+    cursor: pointer;
+    transition: background var(--transition-fast);
+}
+
+.calc-page__dropdown-item:hover,
+.calc-page__dropdown-item--active {
+    background: rgba(11, 25, 44, 0.04);
+    color: #0B192C;
+}
+
+.calc-page__dropdown-name {
+    flex: 1;
+    text-align: left;
+}
+
+.calc-page__dropdown-price {
+    color: #1E8449;
+    font-weight: 600;
+    font-family: var(--font-display);
+}
+
+/* 基本資訊四宮格 — 微邊框 */
+.calc-page__info-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: var(--spacing-sm);
+}
+
+.calc-page__info-card {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+    padding: var(--spacing-md);
+    text-align: center;
+    border: 1px solid #DEE2E6;
+}
+
+.calc-page__info-card svg {
+    color: #0B192C;
+    margin-bottom: 2px;
+}
+
+.calc-page__info-label {
+    font-size: 0.68rem;
+    color: var(--color-text-tertiary);
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+}
+
+.calc-page__info-card strong {
+    font-family: var(--font-display);
+    font-size: 0.95rem;
+    font-weight: 700;
+    color: #0B192C;
+}
+
+/* 每本張數設定 */
+.calc-page__sheets-setting {
+    padding: var(--spacing-lg);
+}
+
+.calc-page__sheets-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: var(--spacing-md);
+    font-size: 0.92rem;
+    font-weight: 500;
+    color: #0B192C;
+}
+
+.calc-page__sheets-btns {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.calc-page__sheets-btns button {
+    width: 36px;
+    height: 36px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: var(--radius-sm);
+    background: #FFFFFF;
+    border: 1.5px solid var(--color-border);
+    color: var(--color-text-secondary);
+    cursor: pointer;
+    transition: all var(--transition-fast);
+}
+
+/* 減號按鈕 — 灰色外框 */
+.calc-page__sheets-btns button:first-child:hover {
+    border-color: #5A6268;
+    color: #5A6268;
+}
+
+/* 加號按鈕 — 淡綠外框 */
+.calc-page__sheets-btns button:last-child:hover {
+    border-color: #1E8449;
+    color: #1E8449;
+}
+
+.calc-page__sheets-input {
+    width: 64px;
+    text-align: center;
+    padding: 6px 8px;
+    background: #FFFFFF;
+    border: 1.5px solid var(--color-border);
+    border-radius: var(--radius-sm);
+    color: #0B192C;
+    font-family: var(--font-display);
+    font-size: 0.95rem;
+    font-weight: 600;
+    outline: none;
+}
+
+.calc-page__sheets-input:focus {
+    border-color: #0B192C;
+}
+
+.calc-page__sheets-summary {
+    display: flex;
+    gap: var(--spacing-lg);
+    font-size: 0.78rem;
+    color: var(--color-text-tertiary);
+}
+
+.calc-page__sheets-summary strong {
+    color: #0B192C;
+    font-family: var(--font-display);
+}
+
+/* 獎項分配表 */
+.calc-page__prize-table {
+    padding: var(--spacing-lg);
+}
+
+.calc-page__prize-table-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: var(--spacing-md);
+}
+
+.calc-page__prize-table-header h2 {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-sm);
+    font-size: 1rem;
+    font-weight: 600;
+    color: #0B192C;
+}
+
+.calc-page__prize-table-header h2 svg {
+    color: var(--color-warning);
+}
+
+.calc-page__reset-btn {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    padding: 6px 12px;
+    background: transparent;
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-pill);
+    color: var(--color-text-tertiary);
+    font-size: 0.72rem;
+    font-family: inherit;
+    cursor: pointer;
+    transition: all var(--transition-fast);
+}
+
+.calc-page__reset-btn:hover {
+    border-color: #0B192C;
+    color: #0B192C;
+}
+
+/* 表頭 */
+.calc-page__table-head {
+    display: grid;
+    grid-template-columns: 1.2fr 1fr 1.2fr 0.8fr;
+    gap: 8px;
+    padding: 8px var(--spacing-sm);
+    font-size: 0.68rem;
+    color: #0B192C;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    font-weight: 600;
+    background: #E2E8F0;
+    border-radius: var(--radius-sm);
+    margin-bottom: 2px;
+}
+
+/* 獎項列 — 斑馬紋 */
+.calc-page__table-row {
+    display: grid;
+    grid-template-columns: 1.2fr 1fr 1.2fr 0.8fr;
+    gap: 8px;
+    align-items: center;
+    padding: 10px var(--spacing-sm);
+    border-bottom: 1px solid var(--color-separator);
+    transition: background var(--transition-fast);
+}
+
+.calc-page__table-row:nth-child(odd) {
+    background: #FFFFFF;
+}
+
+.calc-page__table-row:nth-child(even) {
+    background: #F8F9FA;
+}
+
+.calc-page__table-row:hover {
+    background: rgba(11, 25, 44, 0.03);
+}
+
+.calc-page__table-row--zero {
+    color: var(--color-text-muted);
+    font-style: italic;
+}
+
+.calc-page__prize-amount {
+    font-family: var(--font-display);
+    font-weight: 600;
+    color: #1E8449;
+    font-size: 0.88rem;
+}
+
+.calc-page__per-book {
+    font-size: 0.82rem;
+    color: var(--color-text-secondary);
+}
+
+/* 計數器 — 大按鈕 */
+.calc-page__counter {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+}
+
+.calc-page__counter button {
+    width: 32px;
+    height: 32px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: var(--radius-sm);
+    background: #FFFFFF;
+    border: 1.5px solid var(--color-border);
+    color: var(--color-text-secondary);
+    cursor: pointer;
+    transition: all var(--transition-fast);
+}
+
+/* 減號灰邊 */
+.calc-page__counter button:first-child:hover:not(:disabled) {
+    border-color: #5A6268;
+    color: #5A6268;
+}
+
+/* 加號綠邊 */
+.calc-page__counter button:last-child:hover:not(:disabled) {
+    border-color: #1E8449;
+    color: #1E8449;
+}
+
+.calc-page__counter button:disabled {
+    opacity: 0.3;
+    cursor: not-allowed;
+}
+
+.calc-page__counter-value {
+    min-width: 24px;
+    text-align: center;
+    font-family: var(--font-display);
+    font-weight: 600;
+    font-size: 0.92rem;
+    animation: numberTick 0.2s ease;
+}
+
+.calc-page__remaining {
+    font-size: 0.82rem;
+    color: var(--color-text-muted);
+}
+
+.calc-page__remaining--has {
+    color: #1E8449;
+    font-weight: 600;
+}
+
+.calc-page__zero-note {
+    text-align: center;
+}
+
+/* 殘值結算 — 動態邊條 */
+.calc-page__result {
+    padding: var(--spacing-lg);
+    border-left: 4px solid var(--color-border);
+    transition: border-color var(--transition-base);
+}
+
+/* 剩餘獎金為正數時，左側邊條綠色 */
+.calc-page__result:has(.text-green) {
+    border-left-color: #1E8449;
+}
+
+/* 剩餘獎金為負數時，左側邊條紅色 */
+.calc-page__result:has(.text-red) {
+    border-left-color: #D32F2F;
+}
+
+.calc-page__result-title {
+    font-size: 1rem;
+    font-weight: 600;
+    margin-bottom: var(--spacing-md);
+    color: #0B192C;
+}
+
+.calc-page__result-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: var(--spacing-md);
+}
+
+.calc-page__result-item {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    padding: var(--spacing-md);
+    border-radius: var(--radius-md);
+    background: #F8F9FA;
+    border: 1px solid #DEE2E6;
+}
+
+.calc-page__result-item span {
+    font-size: 0.72rem;
+    color: var(--color-text-tertiary);
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    font-weight: 500;
+}
+
+.calc-page__result-item strong {
+    font-family: var(--font-display);
+    font-size: 1.2rem;
+    font-weight: 700;
+    animation: numberTick 0.2s ease;
+}
+
+.calc-page__result-item--highlight {
+    background: rgba(30, 132, 73, 0.05);
+    border-color: rgba(30, 132, 73, 0.15);
+}
+
+/* 高額獎項提示 — 警戒黃底條 + 呼吸燈 */
+.calc-page__tip {
+    margin-top: var(--spacing-md);
+    padding: var(--spacing-md);
+    border-radius: var(--radius-md);
+    background: #F39C12;
+    color: #0B192C;
+    font-size: 0.82rem;
+    font-weight: 500;
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 6px;
+    animation: breathe 2s ease-in-out infinite;
+}
+
+.calc-page__tip-tag {
+    display: inline-flex;
+    padding: 2px 10px;
+    border-radius: var(--radius-pill);
+    background: rgba(11, 25, 44, 0.12);
+    color: #0B192C;
+    font-weight: 700;
+    font-family: var(--font-display);
+    font-size: 0.78rem;
+}
+
+.text-gold {
+    color: var(--color-warning);
+}
+
+.text-green {
+    color: #1E8449;
+}
+
+.text-red {
+    color: #D32F2F;
+}
+
+/* RWD */
+@media (max-width: 768px) {
+    .calc-page {
+        padding-bottom: 80px;
+    }
+}
+
+@media (max-width: 640px) {
+    .calc-page {
+        padding-top: calc(var(--nav-height) + var(--spacing-md));
+        gap: var(--spacing-md);
+    }
+
+    .calc-page__info-grid {
+        grid-template-columns: repeat(2, 1fr);
+    }
+
+    .calc-page__sheets-summary {
+        flex-wrap: wrap;
+        gap: var(--spacing-sm);
+    }
+
+    .calc-page__table-head,
+    .calc-page__table-row {
+        grid-template-columns: 1fr 0.8fr 1.2fr 0.6fr;
+        font-size: 0.78rem;
+    }
+
+    .calc-page__prize-amount {
+        font-size: 0.78rem;
+    }
+
+    .calc-page__counter button {
+        width: 28px;
+        height: 28px;
+    }
+
+    .calc-page__result-item strong {
+        font-size: 1rem;
+    }
+}

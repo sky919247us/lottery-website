@@ -1,0 +1,300 @@
+/* === 影片列表 — 播放清單分類設計 === */
+/* 手風琴式展開收合、分類標籤、嵌入播放器 */
+
+.videos {
+    padding-top: calc(var(--nav-height) + var(--spacing-2xl));
+    padding-bottom: var(--spacing-3xl);
+}
+
+/* 頁面標題區 */
+.videos__page-header {
+    text-align: center;
+    margin-bottom: var(--spacing-2xl);
+}
+
+.videos__page-title {
+    font-family: var(--font-display);
+    font-size: clamp(1.4rem, 3vw, 1.8rem);
+    font-weight: 700;
+    letter-spacing: -0.02em;
+    color: #0B192C;
+    margin-bottom: var(--spacing-sm);
+}
+
+.videos__page-desc {
+    color: var(--color-text-secondary);
+    font-size: 0.92rem;
+    margin-bottom: var(--spacing-md);
+}
+
+.videos__yt-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 8px 20px;
+    background: #FF0000;
+    color: #FFFFFF;
+    font-weight: 600;
+    font-size: 0.82rem;
+    border-radius: var(--radius-pill);
+    text-decoration: none;
+    transition: opacity var(--transition-fast);
+}
+
+.videos__yt-btn:hover {
+    opacity: 0.85;
+    color: #FFFFFF;
+}
+
+/* 播放清單列表 */
+.videos__playlists {
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-md);
+}
+
+/* 播放清單卡片 */
+.playlist-card {
+    background: #FFFFFF;
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-xl);
+    overflow: hidden;
+    transition: all var(--transition-base);
+}
+
+.playlist-card:hover {
+    box-shadow: var(--shadow-md);
+}
+
+.playlist-card--expanded {
+    box-shadow: var(--shadow-lg);
+    border-color: rgba(11, 25, 44, 0.15);
+}
+
+/* 會員限定卡片 — 特殊底紋 */
+.playlist-card--member {
+    background: linear-gradient(135deg, #FFFFFF 0%, #F8F9FA 100%);
+    border-style: dashed;
+}
+
+/* 卡片標頭 */
+.playlist-card__header {
+    width: 100%;
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-md);
+    padding: var(--spacing-lg) var(--spacing-xl);
+    background: none;
+    border: none;
+    font-family: inherit;
+    cursor: pointer;
+    text-align: left;
+    color: inherit;
+    transition: background var(--transition-fast);
+}
+
+.playlist-card__header:hover {
+    background: rgba(11, 25, 44, 0.02);
+}
+
+/* 分類標籤 */
+.playlist-card__tag {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 4px 12px;
+    border-radius: var(--radius-pill);
+    color: #FFFFFF;
+    font-size: 0.72rem;
+    font-weight: 700;
+    white-space: nowrap;
+    flex-shrink: 0;
+}
+
+/* 清單標題 */
+.playlist-card__title {
+    flex: 1;
+    font-family: var(--font-display);
+    font-size: 0.95rem;
+    font-weight: 600;
+    color: #0B192C;
+    line-height: 1.4;
+}
+
+/* 箭頭 */
+.playlist-card__chevron {
+    color: var(--color-text-tertiary);
+    flex-shrink: 0;
+    transition: transform var(--transition-fast);
+}
+
+.playlist-card__chevron--open {
+    transform: rotate(180deg);
+}
+
+/* 卡片展開內容 */
+.playlist-card__body {
+    overflow: hidden;
+    padding: 0 var(--spacing-xl) var(--spacing-xl);
+}
+
+/* 清單說明 */
+.playlist-card__desc {
+    font-size: 0.88rem;
+    color: var(--color-text-secondary);
+    line-height: 1.8;
+    margin-bottom: var(--spacing-md);
+    padding: 0 var(--spacing-sm);
+    border-left: 3px solid var(--color-border);
+    padding-left: var(--spacing-md);
+}
+
+/* 會員限定通知 */
+.playlist-card__member-notice {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-sm);
+    padding: var(--spacing-md);
+    border-radius: var(--radius-md);
+    background: rgba(90, 98, 104, 0.06);
+    color: #5A6268;
+    font-size: 0.78rem;
+    font-weight: 500;
+    margin-bottom: var(--spacing-md);
+}
+
+.playlist-card__member-notice svg {
+    flex-shrink: 0;
+}
+
+/* 行動按鈕 */
+.playlist-card__actions {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-md);
+    flex-wrap: wrap;
+    margin-bottom: var(--spacing-md);
+}
+
+/* 播放按鈕 */
+.playlist-card__play-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 10px 24px;
+    border-radius: var(--radius-pill);
+    background: #0B192C;
+    color: #FFFFFF;
+    font-weight: 600;
+    font-size: 0.85rem;
+    font-family: inherit;
+    border: none;
+    cursor: pointer;
+    transition: all var(--transition-fast);
+}
+
+.playlist-card__play-btn:hover {
+    opacity: 0.85;
+    transform: translateY(-1px);
+}
+
+.playlist-card__play-btn--member {
+    background: #5A6268;
+}
+
+/* YouTube 連結 */
+.playlist-card__yt-link {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 10px 20px;
+    border-radius: var(--radius-pill);
+    background: transparent;
+    border: 1px solid var(--color-border);
+    color: var(--color-text-secondary);
+    font-size: 0.82rem;
+    font-weight: 500;
+    text-decoration: none;
+    transition: all var(--transition-fast);
+}
+
+.playlist-card__yt-link:hover {
+    border-color: #0B192C;
+    color: #0B192C;
+}
+
+/* 嵌入播放器 */
+.playlist-card__player {
+    border-radius: var(--radius-lg);
+    overflow: hidden;
+    background: #121A2F;
+    padding: var(--spacing-sm);
+    box-shadow: 0 4px 24px rgba(0, 0, 0, 0.15);
+}
+
+.playlist-card__iframe {
+    width: 100%;
+    aspect-ratio: 16 / 9;
+    border: none;
+    display: block;
+    border-radius: var(--radius-md);
+}
+
+/* 載入中 */
+.videos__loading {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: var(--spacing-md);
+    padding: var(--spacing-3xl);
+    color: var(--color-text-muted);
+    min-height: 60vh;
+}
+
+/* RWD */
+@media (max-width: 768px) {
+    .videos {
+        padding-bottom: 80px;
+    }
+}
+
+@media (max-width: 640px) {
+    .videos {
+        padding-top: calc(var(--nav-height) + var(--spacing-md));
+    }
+
+    .playlist-card__header {
+        padding: var(--spacing-md);
+        gap: var(--spacing-sm);
+        flex-wrap: wrap;
+    }
+
+    .playlist-card__title {
+        font-size: 0.85rem;
+        order: 3;
+        width: 100%;
+    }
+
+    .playlist-card__body {
+        padding: 0 var(--spacing-md) var(--spacing-md);
+    }
+
+    .playlist-card__desc {
+        font-size: 0.82rem;
+    }
+
+    .playlist-card__actions {
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .playlist-card__play-btn,
+    .playlist-card__yt-link {
+        justify-content: center;
+    }
+
+    .playlist-card__player {
+        padding: var(--spacing-xs);
+    }
+}

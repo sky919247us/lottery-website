@@ -1,0 +1,121 @@
+/* === NavBar — 查核報告風格 === */
+/* 純白背景、深藍文字、綠色 Active 底線 */
+
+.navbar {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: var(--nav-height);
+    background: #FFFFFF;
+    border-bottom: 1px solid rgba(90, 98, 104, 0.2);
+    z-index: 100;
+    backdrop-filter: none;
+}
+
+.navbar__inner {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    height: 100%;
+}
+
+.navbar__logo {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-family: var(--font-display);
+    font-weight: 700;
+    font-size: 1.05rem;
+    color: #0B192C;
+    text-decoration: none;
+    letter-spacing: -0.01em;
+}
+
+.navbar__logo svg {
+    color: #0B192C;
+}
+
+.navbar__links {
+    display: flex;
+    align-items: center;
+    list-style: none;
+    gap: 4px;
+    height: 100%;
+}
+
+.navbar__link {
+    display: flex;
+    align-items: center;
+    height: 100%;
+    padding: 0 16px;
+    font-size: 0.85rem;
+    font-weight: 500;
+    color: #5A6268;
+    text-decoration: none;
+    position: relative;
+    transition: color var(--transition-fast);
+    border-bottom: 3px solid transparent;
+}
+
+.navbar__link:hover {
+    color: #0B192C;
+}
+
+.navbar__link--active {
+    color: #0B192C;
+    font-weight: 600;
+    border-bottom: 3px solid #1E8449;
+}
+
+.navbar__actions {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+}
+
+.navbar__toggle {
+    display: none;
+    background: none;
+    border: none;
+    color: #0B192C;
+    padding: 4px;
+}
+
+/* Mobile */
+@media (max-width: 768px) {
+    .navbar__links {
+        position: absolute;
+        top: var(--nav-height);
+        left: 0;
+        right: 0;
+        flex-direction: column;
+        background: #FFFFFF;
+        border-bottom: 1px solid var(--color-border);
+        box-shadow: var(--shadow-lg);
+        padding: var(--spacing-sm) 0;
+        display: none;
+        height: auto;
+    }
+
+    .navbar__links--open {
+        display: flex;
+    }
+
+    .navbar__link {
+        width: 100%;
+        height: auto;
+        padding: 12px var(--spacing-lg);
+        border-bottom: none;
+    }
+
+    .navbar__link--active {
+        background: rgba(30, 132, 73, 0.06);
+        border-bottom: none;
+        border-left: 3px solid #1E8449;
+    }
+
+    .navbar__toggle {
+        display: flex;
+    }
+}
