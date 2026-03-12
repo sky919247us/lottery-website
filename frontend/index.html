@@ -1,0 +1,107 @@
+<!doctype html>
+<html lang="zh-TW">
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="icon" type="image/svg+xml" href="/vite.svg" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+    <!-- SEO 基礎 Meta Tags -->
+    <title>刮刮樂情報站 | 台灣刮刮樂中獎率、殘值計算、經銷商地圖</title>
+    <meta name="description" content="全台最完整的刮刮樂情報平台。即時中獎率分析、殘值計算機、全台經銷商地圖、庫存查詢，幫助你做出最聰明的購買決策。" />
+    <meta name="keywords" content="刮刮樂,台灣彩券,中獎率,殘值計算,經銷商,彩券行,刮刮樂攻略,頭獎,地圖" />
+    <meta name="robots" content="index, follow" />
+    <meta name="author" content="刮刮樂情報站" />
+    <link rel="canonical" href="https://scratch.tw/" />
+
+    <!-- Open Graph (Facebook/LINE/社群分享) -->
+    <meta property="og:type" content="website" />
+    <meta property="og:title" content="刮刮樂情報站 | 台灣刮刮樂中獎率・殘值計算・地圖" />
+    <meta property="og:description" content="全台最完整的刮刮樂情報平台。即時分析中獎率、頭獎剩餘、殘值計算，一鍵查詢附近經銷商庫存。" />
+    <meta property="og:url" content="https://scratch.tw/" />
+    <meta property="og:site_name" content="刮刮樂情報站" />
+    <meta property="og:locale" content="zh_TW" />
+
+    <!-- Twitter Card -->
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="刮刮樂情報站 | 中獎率分析 × 殘值計算機" />
+    <meta name="twitter:description" content="全台最完整刮刮樂數據平台。即時頭獎追蹤、殘值計算、附近經銷商庫存查詢。" />
+
+    <!-- GEO 地理位置標記 -->
+    <meta name="geo.region" content="TW" />
+    <meta name="geo.placename" content="台灣" />
+
+    <!-- JSON-LD 結構化資料 (AEO/GEO 優化) -->
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "WebApplication",
+      "name": "刮刮樂情報站",
+      "url": "https://scratch.tw",
+      "description": "全台最完整的刮刮樂情報平台，提供即時中獎率分析、殘值計算機、全台經銷商地圖與庫存查詢服務。",
+      "applicationCategory": "FinanceApplication",
+      "operatingSystem": "Web",
+      "inLanguage": "zh-TW",
+      "offers": {
+        "@type": "Offer",
+        "price": "0",
+        "priceCurrency": "TWD"
+      },
+      "author": {
+        "@type": "Organization",
+        "name": "刮刮樂情報站"
+      }
+    }
+    </script>
+
+    <!-- FAQ 結構化資料 (AEO 優化：對話引擎友善) -->
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "FAQPage",
+      "mainEntity": [
+        {
+          "@type": "Question",
+          "name": "刮刮樂中獎率怎麼算？",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "中獎率 = 有獎張數 ÷ 總發行張數。本站會自動從台灣彩券公布的獎金結構表計算每款刮刮樂的精確中獎率，並即時更新頭獎剩餘數量。"
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "殘值計算機是什麼？",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "殘值計算機可以幫你計算一本刮刮樂刮到一半時，剩下的張數還剩多少預期獎金。將已開出的獎項輸入後，系統自動計算剩餘殘值與投報率，幫助你判斷是否值得繼續刮。"
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "哪裡可以買到特定款式的刮刮樂？",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "本站提供全台經銷商地圖與庫存查詢功能。在刮刮樂詳情頁中點擊「查詢附近有貨店家」，即可根據你的 GPS 位置找到最近有存貨的彩券行。"
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "刮刮樂的兌獎期限怎麼看？",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "每款刮刮樂有不同的兌獎截止日，通常自發行日起約 1-3 年。你可在本站各款刮刮樂的詳情頁看到上市日、下市日和兌獎截止日，逾期無法兌獎。"
+          }
+        }
+      ]
+    }
+    </script>
+
+    <!-- Google Fonts: Inter + Noto Sans TC -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Noto+Sans+TC:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
+</html>
