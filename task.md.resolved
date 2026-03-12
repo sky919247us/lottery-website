@@ -1,0 +1,34 @@
+# 刮刮樂資訊與分析網站 - 任務清單
+
+- [/] **Phase 1: 專案基礎建設 (Infrastructure)**
+  - [x] 1.1 建立後端 `backend` 目錄與 Python `uv` 環境
+  - [/] 1.2 安裝 FastAPI、Uvicorn 等相關依賴，建立基本 `main.py`
+  - [ ] 1.3 建立前端 `frontend` 目錄 (採用 React + TS + Vite)
+  - [ ] 1.4 設定前端全域 CSS 樣式 (定義色彩變數、暗黑模式、基礎重置與動畫類別)
+
+- [ ] **Phase 2: 後端爬蟲、資料庫與 API 開發**
+  - [ ] 2.1 建立 SQLAlchemy Models 與 SQLite 資料庫設定 (`database.py`，新增 `Checkin` 紀錄表)
+  - [ ] 2.2 實作 `crawler_service.py` 全新爬蟲並計算「紅色警戒」高勝率邏輯，寫入 DB
+  - [ ] 2.3 實作 Google Sheet 讀取功能，拉取 YouTube 影片網址
+  - [ ] 2.4 開發 `/api/scratchcards` (包含高勝率屬性), `/api/videos` API 端點
+  - [ ] 2.5 開發 `/api/map` 相關的中獎打卡 (Checkin) 新增與讀取 API 端點
+  - [ ] 2.6 實作每天早上 8 點的 APScheduler 定時更新 DB 任務
+
+- [ ] **Phase 3: 前端頁面與元件開發**
+  - [ ] 3.1 建立共用 UI 元件 (響應式 NavBar, Footer, 精美卡片 Card, Button 等)
+  - [ ] 3.2 建立前端資料層 Hook (`useScratchcard.ts`) 與 API 封裝
+  - [ ] 3.3 開發「首頁」：列表展示各種刮刮樂，實作「熱門」與「頭獎未開出」標籤
+  - [ ] 3.4 開發「詳情頁」：顯示該款式的所有獎項結構與剩餘數量
+
+- [ ] **Phase 4: 核心業務與全新增強功能 (Advanced Features)**
+  - [ ] 4.1 核心邏輯：開發 `useCalculator.ts` 殘值與保底計算機，實作於詳情頁
+  - [ ] 4.2 影片頁面：開發「開箱影片」列表與 iframe 播放區塊
+  - [ ] 4.3 亮點功能：首頁實作 **大獎「紅色警戒」** 3D 霓虹紅光徽章元件
+  - [ ] 4.4 亮點功能：開發 **「我的錢包」(PnL Dashboard)**，結合 LocalStorage 與科技感圖表
+  - [ ] 4.5 亮點功能：開發 **中獎地圖/運勢打卡 (Winner's Map)** 頁面與互動表單
+  - [ ] 4.6 RWD 手機版介面微調與使用者體驗優化 (UX/UI Polish)
+
+- [ ] **Phase 5: 測試與驗證**
+  - [ ] 5.1 驗證資料同步是否正確
+  - [ ] 5.2 驗證各種螢幕尺寸下的顯示效果，確保符合 Modern 現代風（流線排版、3D 漸層、科技感）
+  - [ ] 5.3 手動測試計算機的數值準確性
