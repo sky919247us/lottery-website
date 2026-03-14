@@ -53,6 +53,8 @@ app.add_middleware(
         "http://localhost:5173",
         "http://127.0.0.1:5173",
         "https://lottery-website-3lu.pages.dev",
+        "https://i168.win",
+        "https://www.i168.win",
     ],
     allow_credentials=True,
     allow_methods=["*"],
