@@ -64,49 +64,7 @@ def submit_claim(data: MerchantClaimCreate, db: Session = Depends(get_db)):
     return claim
 
 
-@router.get("/claims", response_model=list[MerchantClaimResponse])
-def get_claims(
-    status: str | None = None,
-    db: Session = Depends(get_db),
-):
-    """取得認領申請列表（管理員用）"""
-    query = db.query(MerchantClaim)
-    if status:
-        query = query.filter(MerchantClaim.status == status)
-    return query.order_by(MerchantClaim.createdAt.desc()).all()
 
-
-@router.put("/claims/{claim_id}/approve")
-def approve_claim(claim_id: int, db: Session = Depends(get_db)):
-    """核准認領（管理員操作）"""
-    claim = db.query(MerchantClaim).filter(MerchantClaim.id == claim_id).first()
-    if not claim:
-        raise HTTPException(status_code=404, detail="認領申請不存在")
-
-    claim.status = "approved"
-    claim.approvedAt = datetime.utcnow()
-
-    # 更新經銷商狀態
-    retailer = db.query(Retailer).filter(Retailer.id == claim.retailerId).first()
-    if retailer:
-        retailer.isClaimed = True
-        retailer.merchantTier = claim.tier
-
-    db.commit()
-    return {"status": "ok", "message": "已核准認領"}
-
-
-@router.put("/claims/{claim_id}/reject")
-def reject_claim(claim_id: int, reason: str = "", db: Session = Depends(get_db)):
-    """駁回認領（管理員操作）"""
-    claim = db.query(MerchantClaim).filter(MerchantClaim.id == claim_id).first()
-    if not claim:
-        raise HTTPException(status_code=404, detail="認領申請不存在")
-
-    claim.status = "rejected"
-    claim.rejectReason = reason
-    db.commit()
-    return {"status": "ok", "message": "已駁回認領"}
 
 
 @router.put("/{retailer_id}/tags")
