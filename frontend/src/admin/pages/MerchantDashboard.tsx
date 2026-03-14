@@ -12,11 +12,9 @@ import {
   Skeleton,
   Chip,
 } from '@mui/material'
-import {
-  Storefront as StorefrontIcon,
-  LocationOn as LocationIcon,
-  WorkspacePremium as WorkspacePremiumIcon,
-} from '@mui/icons-material'
+import StorefrontIcon from '@mui/icons-material/Storefront'
+import LocationIcon from '@mui/icons-material/LocationOn'
+import WorkspacePremiumIcon from '@mui/icons-material/WorkspacePremium'
 import { fetchMyStore, createPaymentOrder } from '../api'
 import { useSnackbar } from 'notistack'
 

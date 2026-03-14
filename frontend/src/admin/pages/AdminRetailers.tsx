@@ -25,7 +25,8 @@ import {
   Alert,
 } from '@mui/material'
 import { DataGrid, type GridColDef } from '@mui/x-data-grid'
-import { Search as SearchIcon, Edit as EditIcon } from '@mui/icons-material'
+import SearchIcon from '@mui/icons-material/Search'
+import EditIcon from '@mui/icons-material/Edit'
 import { fetchRetailers, updateRetailer, bulkUpdateRetailerStatus, type RetailerItem } from '../api'
 import RetailerLocationPicker from '../components/RetailerLocationPicker'
 import 'leaflet/dist/leaflet.css'

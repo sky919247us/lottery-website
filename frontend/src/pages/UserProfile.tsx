@@ -1,6 +1,9 @@
 import { useState } from 'react'
 import { Box, Typography, Card, LinearProgress, Avatar, Tabs, Tab, List, ListItem, ListItemText, ListItemAvatar, CircularProgress } from '@mui/material'
-import { CardGiftcard, LocalMall, Star, VerifiedUser } from '@mui/icons-material'
+import CardGiftcard from '@mui/icons-material/CardGiftcard'
+import LocalMall from '@mui/icons-material/LocalMall'
+import Star from '@mui/icons-material/Star'
+import VerifiedUser from '@mui/icons-material/VerifiedUser'
 import { useQuery } from '@tanstack/react-query'
 import { fetchAuthMe, fetchKarmaLogs } from '../hooks/api'
 

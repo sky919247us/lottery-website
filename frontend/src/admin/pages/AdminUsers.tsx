@@ -24,7 +24,9 @@ import {
   Tabs,
 } from '@mui/material'
 import { DataGrid, type GridColDef } from '@mui/x-data-grid'
-import { Search as SearchIcon, History as HistoryIcon, Edit as EditIcon } from '@mui/icons-material'
+import SearchIcon from '@mui/icons-material/Search'
+import HistoryIcon from '@mui/icons-material/History'
+import EditIcon from '@mui/icons-material/Edit'
 import {
   fetchCommunityUsers,
   fetchCommunityUserHistory,

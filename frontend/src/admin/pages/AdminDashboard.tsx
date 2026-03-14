@@ -10,18 +10,16 @@ import {
   Typography,
   Skeleton,
 } from '@mui/material'
-import {
-  Storefront as StorefrontIcon,
-  ConfirmationNumber as TicketIcon,
-  People as PeopleIcon,
-  Assessment as AssessmentIcon,
-  Verified as VerifiedIcon,
-  Inventory as InventoryIcon,
-  Public as PublicIcon,
-  Link as LinkIcon,
-  TrendingUp as TrendingUpIcon,
-  Description as DescriptionIcon,
-} from '@mui/icons-material'
+import StorefrontIcon from '@mui/icons-material/Storefront'
+import TicketIcon from '@mui/icons-material/ConfirmationNumber'
+import PeopleIcon from '@mui/icons-material/People'
+import AssessmentIcon from '@mui/icons-material/Assessment'
+import VerifiedIcon from '@mui/icons-material/Verified'
+import InventoryIcon from '@mui/icons-material/Inventory'
+import PublicIcon from '@mui/icons-material/Public'
+import LinkIcon from '@mui/icons-material/Link'
+import TrendingUpIcon from '@mui/icons-material/TrendingUp'
+import DescriptionIcon from '@mui/icons-material/Description'
 import {
   AreaChart,
   Area,

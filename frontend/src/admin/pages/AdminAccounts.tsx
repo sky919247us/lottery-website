@@ -19,7 +19,8 @@ import {
   MenuItem,
 } from '@mui/material'
 import { DataGrid, type GridColDef } from '@mui/x-data-grid'
-import { Add as AddIcon, Delete as DeleteIcon } from '@mui/icons-material'
+import AddIcon from '@mui/icons-material/Add'
+import DeleteIcon from '@mui/icons-material/Delete'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useSnackbar } from 'notistack'
 import { fetchAdminUsers, createAdminUser, deleteAdminUser } from '../api'

@@ -33,20 +33,18 @@ import {
   Alert,
   Snackbar,
 } from '@mui/material'
-import {
-  Menu as MenuIcon,
-  Dashboard as DashboardIcon,
-  Storefront as StorefrontIcon,
-  ConfirmationNumber as TicketIcon,
-  People as PeopleIcon,
-  Inventory as InventoryIcon,
-  Settings as SettingsIcon,
-  Logout as LogoutIcon,
-  ChevronLeft as ChevronLeftIcon,
-  LockReset as LockResetIcon,
-  Refresh as RefreshIcon,
-  AssignmentTurnedIn as AssignmentTurnedInIcon,
-} from '@mui/icons-material'
+import MenuIcon from '@mui/icons-material/Menu'
+import DashboardIcon from '@mui/icons-material/Dashboard'
+import StorefrontIcon from '@mui/icons-material/Storefront'
+import TicketIcon from '@mui/icons-material/ConfirmationNumber'
+import PeopleIcon from '@mui/icons-material/People'
+import InventoryIcon from '@mui/icons-material/Inventory'
+import SettingsIcon from '@mui/icons-material/Settings'
+import LogoutIcon from '@mui/icons-material/Logout'
+import ChevronLeftIcon from '@mui/icons-material/ChevronLeft'
+import LockResetIcon from '@mui/icons-material/LockReset'
+import RefreshIcon from '@mui/icons-material/Refresh'
+import AssignmentTurnedInIcon from '@mui/icons-material/AssignmentTurnedIn'
 import { useAdminAuth } from './AdminAuthContext'
 import { changeAdminPassword, triggerJackpotSync } from './api'
 

@@ -14,10 +14,6 @@ export default function AuthCallback() {
     const [error, setError] = useState('')
     const [nickname, setNicknameInput] = useState('')
 
-    useEffect(() => {
-        processCallback()
-    }, [])
-
     async function processCallback() {
         const params = new URLSearchParams(window.location.search)
         const code = params.get('code')
@@ -55,6 +51,10 @@ export default function AuthCallback() {
             setError(err instanceof Error ? err.message : '登入失敗')
         }
     }
+
+    useEffect(() => {
+        processCallback()
+    }, [])
 
     /** 儲存暱稱並導回 */
     async function handleSaveNickname() {

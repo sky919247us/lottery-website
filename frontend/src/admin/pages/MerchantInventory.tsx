@@ -19,13 +19,11 @@ import {
   CircularProgress,
   Avatar,
 } from '@mui/material'
-import {
-  Save as SaveIcon,
-  Add as AddIcon,
-  Delete as DeleteIcon,
-  AccessTime as ClockIcon,
-  Search as SearchIcon,
-} from '@mui/icons-material'
+import SaveIcon from '@mui/icons-material/Save'
+import AddIcon from '@mui/icons-material/Add'
+import DeleteIcon from '@mui/icons-material/Delete'
+import ClockIcon from '@mui/icons-material/AccessTime'
+import SearchIcon from '@mui/icons-material/Search'
 import {
   fetchMerchantInventory,
   updateMerchantInventory,

@@ -16,11 +16,9 @@ import {
   InputAdornment,
   IconButton,
 } from '@mui/material'
-import {
-  Visibility,
-  VisibilityOff,
-  Lock as LockIcon,
-} from '@mui/icons-material'
+import Visibility from '@mui/icons-material/Visibility'
+import VisibilityOff from '@mui/icons-material/VisibilityOff'
+import LockIcon from '@mui/icons-material/Lock'
 import { useAdminAuth } from '../AdminAuthContext'
 
 export default function AdminLogin() {

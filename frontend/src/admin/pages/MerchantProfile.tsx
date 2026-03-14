@@ -14,7 +14,7 @@ import {
   Switch,
   Divider,
 } from '@mui/material'
-import { Save as SaveIcon } from '@mui/icons-material'
+import SaveIcon from '@mui/icons-material/Save'
 import { fetchMyStore, updateMyStore } from '../api'
 
 /** 設施標籤元資料 */

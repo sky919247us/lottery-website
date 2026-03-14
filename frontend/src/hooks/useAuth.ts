@@ -13,7 +13,7 @@ import {
 
 const TOKEN_KEY = 'scratchcard_auth_token'
 const LINE_CHANNEL_ID = '2009324271'
-const LINE_REDIRECT_URI = 'http://localhost:5173/auth/callback'
+const LINE_REDIRECT_URI = window.location.origin + '/auth/callback'
 
 /**
  * LINE 認證 Hook
