@@ -23,7 +23,7 @@ import {
   Tab,
   Tabs,
 } from '@mui/material'
-import { DataGrid, type GridColDef } from '@mui/x-data-grid'
+import { DataGrid, type GridColDef, type GridRowSelectionModel } from '@mui/x-data-grid'
 import SearchIcon from '@mui/icons-material/Search'
 import HistoryIcon from '@mui/icons-material/History'
 import EditIcon from '@mui/icons-material/Edit'
@@ -67,7 +67,7 @@ export default function AdminUsers() {
   const [pageSize, setPageSize] = useState(20)
   const [search, setSearch] = useState('')
   const [searchTimer, setSearchTimer] = useState<ReturnType<typeof setTimeout> | null>(null)
-  const [selectionModel, setSelectionModel] = useState<number[]>([])
+  const [selectionModel, setSelectionModel] = useState<GridRowSelectionModel>({ type: 'include', ids: new Set() })
   const [actionLoading, setActionLoading] = useState(false)
 
   // 歷史紀錄 Dialog 狀態
@@ -173,14 +173,15 @@ export default function AdminUsers() {
 
   // 批量封禁/解封
   const handleBulkBan = async (isBanned: boolean) => {
-    if (selectionModel.length === 0) return
-    if (!window.confirm(`確定要將選取的 ${selectionModel.length} 名使用者${isBanned ? '封禁' : '解封'}？`)) return
+    const selectedIds = Array.from(selectionModel.ids).map(Number)
+    if (selectedIds.length === 0) return
+    if (!window.confirm(`確定要將選取的 ${selectedIds.length} 名使用者${isBanned ? '封禁' : '解封'}？`)) return
     
     setActionLoading(true)
     try {
-      await bulkBanCommunityUsers(selectionModel, isBanned)
-      toast.success(`已成功${isBanned ? '封禁' : '解封'} ${selectionModel.length} 名使用者`)
-      setSelectionModel([])
+      await bulkBanCommunityUsers(selectedIds, isBanned)
+      toast.success(`已成功${isBanned ? '封禁' : '解封'} ${selectedIds.length} 名使用者`)
+      setSelectionModel({ type: 'include', ids: new Set() })
       queryClient.invalidateQueries({ queryKey: ['communityUsers'] })
     } finally {
       setActionLoading(false)
@@ -248,7 +249,7 @@ export default function AdminUsers() {
           <Button
             variant="contained"
             color="error"
-            disabled={selectionModel.length === 0 || actionLoading}
+            disabled={selectionModel.ids.size === 0 || actionLoading}
             onClick={() => handleBulkBan(true)}
           >
             批量封禁
@@ -256,7 +257,7 @@ export default function AdminUsers() {
           <Button
             variant="outlined"
             color="success"
-            disabled={selectionModel.length === 0 || actionLoading}
+            disabled={selectionModel.ids.size === 0 || actionLoading}
             onClick={() => handleBulkBan(false)}
           >
             批量解封
@@ -297,9 +298,9 @@ export default function AdminUsers() {
           disableRowSelectionOnClick
           checkboxSelection
           onRowSelectionModelChange={(newSelection) => {
-            setSelectionModel(newSelection as any)
+            setSelectionModel(newSelection)
           }}
-          rowSelectionModel={selectionModel as any}
+          rowSelectionModel={selectionModel}
         />
       </Card>
 

@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Box, Typography, Card, Chip, Button, Dialog, DialogContent, DialogTitle, Stack } from '@mui/material'
+import { Box, Typography, Card, Chip, Button, Dialog, DialogContent, DialogTitle, Stack, Alert } from '@mui/material'
 import { DataGrid } from '@mui/x-data-grid'
 import type { GridColDef, GridRenderCellParams } from '@mui/x-data-grid'
 import Visibility from '@mui/icons-material/Visibility'
@@ -20,10 +20,11 @@ export default function AdminClaims() {
   const { enqueueSnackbar } = useSnackbar()
   const [imageDialog, setImageDialog] = useState<{ open: boolean, url: string, title: string }>({ open: false, url: '', title: '' })
   
-  // 載入列表
-  const { data: claims = [], isLoading } = useQuery({
+  // 載入列表（retry: false 避免 404 時重複呼叫）
+  const { data: claims = [], isLoading, isError } = useQuery({
     queryKey: ['adminClaims'],
-    queryFn: () => fetchMerchantClaims()
+    queryFn: () => fetchMerchantClaims(),
+    retry: false,
   })
 
   // 核准 Mutation
@@ -130,6 +131,12 @@ export default function AdminClaims() {
     <Box sx={{ p: 2, height: '100%', display: 'flex', flexDirection: 'column' }}>
       <Typography variant="h5" fontWeight={700} mb={3}>認領申請審核</Typography>
       
+      {isError && (
+        <Alert severity="error" sx={{ mb: 2 }}>
+          無法載入認領申請資料，請確認後端服務是否正常運作。
+        </Alert>
+      )}
+
       <Card sx={{ flex: 1, minHeight: 500, width: '100%' }}>
         <DataGrid
           rows={claims}

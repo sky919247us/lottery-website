@@ -24,7 +24,7 @@ import {
   InputLabel,
   Alert,
 } from '@mui/material'
-import { DataGrid, type GridColDef } from '@mui/x-data-grid'
+import { DataGrid, type GridColDef, type GridRowSelectionModel } from '@mui/x-data-grid'
 import SearchIcon from '@mui/icons-material/Search'
 import EditIcon from '@mui/icons-material/Edit'
 import { fetchRetailers, updateRetailer, bulkUpdateRetailerStatus, type RetailerItem } from '../api'
@@ -56,7 +56,7 @@ export default function AdminRetailers() {
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
 
-  const [selectionModel, setSelectionModel] = useState<any>([])
+  const [selectionModel, setSelectionModel] = useState<GridRowSelectionModel>({ type: 'include', ids: new Set() })
   const [actionLoading, setActionLoading] = useState(false)
 
   const { data, isLoading: loading } = useQuery({
@@ -123,14 +123,15 @@ export default function AdminRetailers() {
 
   // 批量更新營業狀態
   const handleBulkStatus = async (isActive: boolean) => {
-    if (selectionModel.length === 0) return
-    if (!window.confirm(`確定要將選取的 ${selectionModel.length} 家彩券行設為${isActive ? '營業中' : '停業'}？`)) return
+    const selectedIds = Array.from(selectionModel.ids).map(Number)
+    if (selectedIds.length === 0) return
+    if (!window.confirm(`確定要將選取的 ${selectedIds.length} 家彩券行設為${isActive ? '營業中' : '停業'}？`)) return
     
     setActionLoading(true)
     try {
-      await bulkUpdateRetailerStatus(selectionModel, isActive)
-      toast.success(`已將 ${selectionModel.length} 家彩券行設為${isActive ? '營業中' : '停業'}`)
-      setSelectionModel([])
+      await bulkUpdateRetailerStatus(selectedIds, isActive)
+      toast.success(`已將 ${selectedIds.length} 家彩券行設為${isActive ? '營業中' : '停業'}`)
+      setSelectionModel({ type: 'include', ids: new Set() })
       queryClient.invalidateQueries({ queryKey: ['retailers'] })
     } finally {
       setActionLoading(false)
@@ -216,7 +217,7 @@ export default function AdminRetailers() {
           <Button
             variant="contained"
             color="success"
-            disabled={selectionModel.length === 0 || actionLoading}
+            disabled={selectionModel.ids.size === 0 || actionLoading}
             onClick={() => handleBulkStatus(true)}
           >
             設為營業中
@@ -224,7 +225,7 @@ export default function AdminRetailers() {
           <Button
             variant="outlined"
             color="error"
-            disabled={selectionModel.length === 0 || actionLoading}
+            disabled={selectionModel.ids.size === 0 || actionLoading}
             onClick={() => handleBulkStatus(false)}
           >
             設為停業
@@ -285,8 +286,8 @@ export default function AdminRetailers() {
           pageSizeOptions={[10, 20, 50]}
           disableRowSelectionOnClick
           checkboxSelection
-          onRowSelectionModelChange={(newSelection) => setSelectionModel(newSelection as any)}
-          rowSelectionModel={selectionModel as any}
+          onRowSelectionModelChange={(newSelection) => setSelectionModel(newSelection)}
+          rowSelectionModel={selectionModel}
           autoHeight
           sx={{
             border: 'none',
