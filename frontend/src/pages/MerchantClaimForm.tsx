@@ -130,14 +130,17 @@ export default function MerchantClaimForm() {
         </form>
       </Card>
       
-      <Box sx={{ mt: 3, pt: 3, borderTop: '1px solid #eee', textAlign: 'center' }}>
-        <Typography variant="body2" color="text.secondary" mb={1}>
-          需要提供進一步證明文件或遇到問題？
-        </Typography>
-        <Button variant="contained" color="success" onClick={() => window.open('https://line.me/R/ti/p/@907dlyso', '_blank')}>
-          聯絡官方 LINE 客服
-        </Button>
-      </Box>
+      {/* 僅當表單填寫完畢才顯示 LINE 客服，避免被濫用 */}
+      {(contactName.trim() && contactPhone.trim() && licenseImage && idCardImage) ? (
+        <Box sx={{ mt: 3, pt: 3, borderTop: '1px solid #eee', textAlign: 'center' }}>
+          <Typography variant="body2" color="text.secondary" mb={1}>
+            需要提供進一步證明文件或遇到問題？
+          </Typography>
+          <Button variant="contained" color="success" onClick={() => window.open('https://line.me/R/ti/p/@907dlyso', '_blank')}>
+            聯絡官方 LINE 客服
+          </Button>
+        </Box>
+      ) : null}
     </Box>
   )
 }
