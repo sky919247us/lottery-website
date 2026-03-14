@@ -146,7 +146,7 @@ export default function AdminClaims() {
         <DialogContent sx={{ display: 'flex', justifyContent: 'center', p: 2 }}>
           {imageDialog.url ? (
             <img 
-              src={`${import.meta.env.VITE_API_URL || 'http://localhost:8000'}${imageDialog.url}`} 
+              src={`${import.meta.env.VITE_API_BASE || 'http://localhost:8000'}${imageDialog.url}`} 
               alt={imageDialog.title} 
               style={{ maxWidth: '100%', maxHeight: '70vh', objectFit: 'contain' }} 
               onError={(e) => {

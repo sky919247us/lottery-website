@@ -5,7 +5,9 @@
 import axios from 'axios'
 import { toast } from '../utils/toast'
 
-const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:8000/api/admin'
+const API_BASE = import.meta.env.VITE_API_BASE
+  ? `${import.meta.env.VITE_API_BASE}/api/admin`
+  : 'http://localhost:8000/api/admin'
 const ADMIN_TOKEN_KEY = 'admin_auth_token'
 
 /** 建立帶有 Auth Header 的 axios 實例 */
