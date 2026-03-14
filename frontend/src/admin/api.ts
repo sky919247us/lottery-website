@@ -174,7 +174,7 @@ export async function fetchDashboardStats(): Promise<DashboardStats> {
 
 /** 取得流量統計 (Cloudflare) */
 export async function fetchTrafficAnalytics(): Promise<TrafficAnalytics> {
-  const res = await adminApi.get('/analytics/traffic')
+  const res = await adminApi.get('/dashboard/traffic')
   return res.data
 }
 
