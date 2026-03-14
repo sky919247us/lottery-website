@@ -129,22 +129,55 @@
     min-width: 150px;
 }
 
-.pnl__gauge-svg {
-    width: 120px;
-    height: 120px;
+/* Recharts 容器微調 */
+.pnl__chart {
+    padding: var(--spacing-lg);
+    min-height: 220px;
+    display: flex;
+    flex-direction: column;
 }
 
-/* 圓環描繪動畫 */
-.pnl__gauge-circle {
-    animation: draw-gauge 1.5s cubic-bezier(0.4, 0, 0.2, 1) forwards;
-    stroke-dashoffset: 999;
+.pnl__chart--empty {
+    justify-content: center;
+    align-items: center;
+    color: var(--color-text-muted);
+    font-size: 0.85rem;
 }
 
-@keyframes draw-gauge {
-    from {
-        stroke-dashoffset: 301.59;
-        /* = 2 * PI * 48 = 完整圓周 */
-    }
+.pnl__chart-footer {
+    margin-top: auto;
+    text-align: right;
+    font-size: 0.72rem;
+    font-family: var(--font-display);
+}
+
+.recharts-cartesian-grid-horizontal line {
+    stroke-opacity: 0.1;
+}
+
+.pnl__gauge-center {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+}
+
+.pnl__gauge-value {
+    font-family: var(--font-display);
+    font-size: 1.4rem;
+    font-weight: 800;
+    line-height: 1;
+}
+
+.pnl__gauge-label {
+    font-size: 0.65rem;
+    color: var(--color-text-tertiary);
+    font-weight: 500;
+    margin-top: 2px;
 }
 
 /* === 表單 === */

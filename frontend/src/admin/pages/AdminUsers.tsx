@@ -196,10 +196,10 @@ export default function AdminUsers() {
       minWidth: 150,
       renderCell: (params) => (
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-          {params.row.pictureUrl && (
+          {params.row?.pictureUrl && (
             <img src={params.row.pictureUrl} alt="avatar" style={{ width: 24, height: 24, borderRadius: '50%' }} />
           )}
-          {params.value || params.row.customNickname || '未提供'}
+          {params.value || params.row?.customNickname || '未提供'}
         </Box>
       )
     },

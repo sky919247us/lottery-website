@@ -546,6 +546,13 @@
     gap: var(--spacing-lg);
 }
 
+@media (max-width: 640px) {
+    .home__grid {
+        grid-template-columns: 1fr;
+        gap: var(--spacing-md);
+    }
+}
+
 /* 卡片 */
 .scratch-card {
     border-radius: var(--radius-xl);

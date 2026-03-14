@@ -139,6 +139,11 @@ button {
   font-family: inherit;
   border: none;
   background: none;
+  transition: transform var(--transition-fast), filter var(--transition-fast);
+}
+
+button:active {
+  transform: scale(0.96);
 }
 
 /* === 容器 === */
@@ -269,20 +274,21 @@ button {
 
 /* === 滾動條 === */
 ::-webkit-scrollbar {
-  width: 5px;
+  width: 6px;
 }
 
 ::-webkit-scrollbar-track {
-  background: transparent;
+  background: var(--color-bg-secondary);
 }
 
 ::-webkit-scrollbar-thumb {
-  background: var(--color-slate-lighter);
-  border-radius: 3px;
+  background: var(--color-border);
+  border-radius: 10px;
+  border: 1px solid var(--color-bg-secondary);
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: var(--color-slate);
+  background: var(--color-slate-lighter);
 }
 
 /* === RWD === */

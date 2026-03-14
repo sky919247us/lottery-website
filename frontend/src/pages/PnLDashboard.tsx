@@ -7,6 +7,10 @@ import { useState, useEffect } from 'react'
 import { motion } from 'framer-motion'
 import { Plus, Trash2, Wallet, TrendingUp, TrendingDown, BarChart3 } from 'lucide-react'
 import { Autocomplete, TextField, CircularProgress } from '@mui/material'
+import {
+    ResponsiveContainer, AreaChart, Area, XAxis, YAxis,
+    CartesianGrid, Tooltip, PieChart, Pie, Cell
+} from 'recharts'
 import SeoHead from '../components/SeoHead'
 import { searchScratchcardsPublic, type ScratchcardSearchItem as ScratchcardOption } from '../hooks/api'
 import './PnLDashboard.css'
@@ -35,177 +39,128 @@ function saveRecords(records: PnLRecord[]) {
 }
 
 /**
- * 累計 PnL 折線圖 — 純 SVG
- * 將每筆紀錄的累計損益繪製為帶漸層填充的折線
+ * 累計 PnL 折線圖 — 使用 Recharts
  */
 function PnLLineChart({ records }: { records: PnLRecord[] }) {
-    if (records.length < 2) return null
-
-    const width = 400
-    const height = 140
-    const paddingX = 32
-    const paddingY = 20
+    if (records.length < 2) return (
+        <div className="pnl__chart glass-card pnl__chart--empty">
+            <p>需至少 2 筆紀錄才可顯示走勢圖</p>
+        </div>
+    )
 
     // 計算累計損益序列（從舊到新）
     const reversed = [...records].reverse()
-    const cumPnl: number[] = []
-    reversed.reduce((acc, r) => {
-        const next = acc + (r.won - r.spent)
-        cumPnl.push(next)
-        return next
-    }, 0)
-
-    const maxVal = Math.max(...cumPnl, 0)
-    const minVal = Math.min(...cumPnl, 0)
-    const range = maxVal - minVal || 1
-
-    const chartW = width - paddingX * 2
-    const chartH = height - paddingY * 2
-
-    const points = cumPnl.map((val, i) => {
-        const x = paddingX + (i / (cumPnl.length - 1)) * chartW
-        const y = paddingY + (1 - (val - minVal) / range) * chartH
-        return { x, y, val }
+    let cumulative = 0
+    const data = reversed.map((r, i) => {
+        cumulative += (r.won - r.spent)
+        return {
+            index: i + 1,
+            game: r.gameName,
+            pnl: cumulative,
+            date: r.date
+        }
     })
 
-    const polyline = points.map(p => `${p.x},${p.y}`).join(' ')
-
-    // 填充區域路徑
-    const lastPnl = cumPnl[cumPnl.length - 1]
+    const lastPnl = data[data.length - 1].pnl
     const isProfit = lastPnl >= 0
-    const fillColor = isProfit ? '#1E8449' : '#D32F2F'
-    const areaPath = `M${points[0].x},${height - paddingY} ${points.map(p => `L${p.x},${p.y}`).join(' ')} L${points[points.length - 1].x},${height - paddingY} Z`
-
-    // 零線 Y 座標
-    const zeroY = paddingY + (1 - (0 - minVal) / range) * chartH
+    const mainColor = isProfit ? '#1E8449' : '#D32F2F'
 
     return (
         <div className="pnl__chart glass-card">
             <h2>
                 <BarChart3 size={16} />
-                累計損益走勢
+                損益累積趨勢
             </h2>
-            <svg
-                className="pnl__line-svg"
-                viewBox={`0 0 ${width} ${height}`}
-                preserveAspectRatio="none"
-            >
-                <defs>
-                    {/* 漸層填充 */}
-                    <linearGradient id="pnl-fill" x1="0" x2="0" y1="0" y2="1">
-                        <stop offset="0%" stopColor={fillColor} stopOpacity="0.25" />
-                        <stop offset="100%" stopColor={fillColor} stopOpacity="0.02" />
-                    </linearGradient>
-                </defs>
-
-                {/* 零線 */}
-                {minVal < 0 && maxVal > 0 && (
-                    <line
-                        x1={paddingX} y1={zeroY}
-                        x2={width - paddingX} y2={zeroY}
-                        stroke="var(--color-border)" strokeWidth="1"
-                        strokeDasharray="4,4"
-                    />
-                )}
-
-                {/* 填充區域 */}
-                <path d={areaPath} fill="url(#pnl-fill)" className="pnl__area-path" />
-
-                {/* 折線 */}
-                <polyline
-                    points={polyline}
-                    fill="none"
-                    stroke={fillColor}
-                    strokeWidth="2.5"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    className="pnl__polyline"
-                />
-
-                {/* 最後一個點 — 圓點 */}
-                <circle
-                    cx={points[points.length - 1].x}
-                    cy={points[points.length - 1].y}
-                    r="4"
-                    fill={fillColor}
-                    stroke="#FFFFFF"
-                    strokeWidth="2"
-                />
-
-                {/* 最後數值標註 */}
-                <text
-                    x={points[points.length - 1].x}
-                    y={points[points.length - 1].y - 10}
-                    textAnchor="end"
-                    fill={fillColor}
-                    fontSize="11"
-                    fontWeight="700"
-                    fontFamily="var(--font-display)"
-                >
-                    {lastPnl >= 0 ? '+' : ''}{lastPnl.toLocaleString()}
-                </text>
-            </svg>
+            <div style={{ width: '100%', height: 160 }}>
+                <ResponsiveContainer>
+                    <AreaChart data={data} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
+                        <defs>
+                            <linearGradient id="colorPnl" x1="0" y1="0" x2="0" y2="1">
+                                <stop offset="5%" stopColor={mainColor} stopOpacity={0.3} />
+                                <stop offset="95%" stopColor={mainColor} stopOpacity={0} />
+                            </linearGradient>
+                        </defs>
+                        <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="rgba(255,255,255,0.05)" />
+                        <XAxis dataKey="index" hide />
+                        <YAxis 
+                            orientation="right" 
+                            fontSize={10} 
+                            tickFormatter={(val) => `$${val}`}
+                            stroke="rgba(255,255,255,0.3)"
+                        />
+                        <Tooltip
+                            contentStyle={{ 
+                                backgroundColor: 'rgba(11, 25, 44, 0.95)', 
+                                border: '1px solid rgba(255,255,255,0.1)',
+                                borderRadius: '8px',
+                                fontSize: '12px'
+                            }}
+                            itemStyle={{ color: '#fff' }}
+                            formatter={(value: any) => [`$${Number(value).toLocaleString()}`, '累計損益']}
+                            labelFormatter={(label) => `第 ${label} 筆`}
+                        />
+                        <Area
+                            type="monotone"
+                            dataKey="pnl"
+                            stroke={mainColor}
+                            strokeWidth={3}
+                            fillOpacity={1}
+                            fill="url(#colorPnl)"
+                            animationDuration={1500}
+                        />
+                    </AreaChart>
+                </ResponsiveContainer>
+            </div>
+            <div className="pnl__chart-footer">
+                <span style={{ color: mainColor, fontWeight: 700 }}>
+                    目前：{isProfit ? '+' : ''}{lastPnl.toLocaleString()}
+                </span>
+            </div>
         </div>
     )
 }
 
 /**
- * 投報率圓環指標 — SVG circle + stroke-dasharray
+ * 投報率圓環指標 — 使用 Recharts PieChart
  */
 function ROIGauge({ spent, won }: { spent: number; won: number }) {
     if (spent === 0) return null
 
     const roi = Math.round((won / spent) * 100)
-    const displayRoi = Math.min(roi, 200) // 上限 200% 避免溢出
-    const radius = 48
-    const circumference = 2 * Math.PI * radius
-    const progress = Math.min(displayRoi / 200, 1) // 200% = 滿圓
-    const dashOffset = circumference * (1 - progress)
     const isProfit = roi >= 100
+    const mainColor = isProfit ? '#1E8449' : '#D32F2F'
+    
+    // PieChart 資料：進度與剩餘
+    const data = [
+        { name: 'ROI', value: Math.min(roi, 100) },
+        { name: 'Remaining', value: Math.max(0, 100 - roi) }
+    ]
 
     return (
         <div className="pnl__gauge glass-card">
-            <svg className="pnl__gauge-svg" viewBox="0 0 120 120">
-                {/* 背景圓環 */}
-                <circle
-                    cx="60" cy="60" r={radius}
-                    fill="none"
-                    stroke="var(--color-separator)"
-                    strokeWidth="8"
-                />
-                {/* 進度圓環 */}
-                <circle
-                    cx="60" cy="60" r={radius}
-                    fill="none"
-                    stroke={isProfit ? '#1E8449' : '#D32F2F'}
-                    strokeWidth="8"
-                    strokeLinecap="round"
-                    strokeDasharray={circumference}
-                    strokeDashoffset={dashOffset}
-                    transform="rotate(-90 60 60)"
-                    className="pnl__gauge-circle"
-                />
-                {/* 中心數值 */}
-                <text
-                    x="60" y="56"
-                    textAnchor="middle"
-                    fill={isProfit ? '#1E8449' : '#D32F2F'}
-                    fontSize="22"
-                    fontWeight="800"
-                    fontFamily="var(--font-display)"
-                >
-                    {roi}%
-                </text>
-                <text
-                    x="60" y="72"
-                    textAnchor="middle"
-                    fill="var(--color-text-tertiary)"
-                    fontSize="9"
-                    fontWeight="500"
-                >
-                    投報率
-                </text>
-            </svg>
+            <div style={{ position: 'relative', width: 120, height: 120 }}>
+                <ResponsiveContainer>
+                    <PieChart>
+                        <Pie
+                            data={data}
+                            innerRadius={42}
+                            outerRadius={50}
+                            paddingAngle={0}
+                            dataKey="value"
+                            startAngle={90}
+                            endAngle={-270}
+                            stroke="none"
+                        >
+                            <Cell fill={mainColor} />
+                            <Cell fill="rgba(255,255,255,0.05)" />
+                        </Pie>
+                    </PieChart>
+                </ResponsiveContainer>
+                <div className="pnl__gauge-center">
+                    <span className="pnl__gauge-value" style={{ color: mainColor }}>{roi}%</span>
+                    <span className="pnl__gauge-label">投報率</span>
+                </div>
+            </div>
         </div>
     )
 }
@@ -245,8 +200,8 @@ export default function PnLDashboard() {
     }, [records])
 
     /** 統計數據 */
-    const totalSpent = records.reduce((s, r) => s + r.spent, 0)
-    const totalWon = records.reduce((s, r) => s + r.won, 0)
+    const totalSpent = records.reduce((s: number, r: PnLRecord) => s + r.spent, 0)
+    const totalWon = records.reduce((s: number, r: PnLRecord) => s + r.won, 0)
     const totalPnL = totalWon - totalSpent
 
     function handleAdd() {
@@ -325,7 +280,7 @@ export default function PnLDashboard() {
                         options={options}
                         getOptionLabel={(option) => typeof option === 'string' ? option : `${option.gameId} ${option.name}`}
                         value={selectedGame}
-                        onChange={(_, newValue) => {
+                        onChange={(_: any, newValue: any) => {
                             if (typeof newValue === 'string') {
                                 setSelectedGame(null)
                                 setInputValue(newValue)
@@ -334,9 +289,9 @@ export default function PnLDashboard() {
                             }
                         }}
                         inputValue={inputValue}
-                        onInputChange={(_, newInputValue) => setInputValue(newInputValue)}
+                        onInputChange={(_: any, newInputValue: string) => setInputValue(newInputValue)}
                         loading={loading}
-                        renderInput={(params) => (
+                        renderInput={(params: any) => (
                             <TextField
                                 {...params}
                                 placeholder="款式名稱（可搜尋）"
@@ -378,7 +333,7 @@ export default function PnLDashboard() {
             {records.length > 0 && (
                 <div className="pnl__list glass-card">
                     <h2>歷史紀錄</h2>
-                    {records.map((r) => (
+                    {records.map((r: PnLRecord) => (
                         <div key={r.id} className="pnl__record">
                             <div className="pnl__record-info">
                                 <span className="pnl__record-name">{r.gameName}</span>

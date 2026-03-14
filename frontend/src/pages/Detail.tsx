@@ -7,7 +7,7 @@ import { motion } from 'framer-motion'
 import {
     ArrowLeft, Calculator, Trophy, Calendar, DollarSign,
     TrendingUp, Share2, Percent, Target, Sparkles, Play,
-    MapPin, Store, Navigation
+    MapPin, Store, Navigation, AlertTriangle
 } from 'lucide-react'
 import {
     fetchScratchcardDetail, fetchNearbyStock, recordRetailerExposure,
@@ -289,9 +289,12 @@ export default function Detail() {
                                 <DollarSign size={14} />
                                 NT$ {detail.price.toLocaleString()}
                             </span>
-                            {detail.isHighWinRate && (
-                                <span className="detail__tag detail__tag--alert">🔥 高勝率預警</span>
-                            )}
+                            {detail.isHighWinRate || (detail.grandPrizeUnclaimed > 0 && detail.salesRateValue > 85) ? (
+                                <span className="detail__tag detail__tag--alert">
+                                    <AlertTriangle size={14} style={{ marginRight: '4px' }} />
+                                    {detail.isHighWinRate ? '🔥 高勝率預警' : '💰 頭獎仍在'}
+                                </span>
+                            ) : null}
                         </div>
                     </div>
                 </header>

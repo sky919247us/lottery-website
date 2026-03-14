@@ -31,9 +31,9 @@ def get_scratchcard_list(
     high_win_only: bool = Query(False, description="僅顯示紅色警戒款式"),
     db: Session = Depends(get_db),
 ):
-    """取得刮刮樂列表（支援排序與篩選）"""
-    # NOTE: eager load prizes 以計算中獎率
-    query = db.query(Scratchcard).options(joinedload(Scratchcard.prizes))
+    """取得刮刮樂列表（輕量版，不含獎金結構詳情）"""
+    # [OPTIMIZE] 移除 joinedload 避免列表 Payload 過大導致 9s 載入延遲
+    query = db.query(Scratchcard)
 
     # 篩選
     if price is not None:
@@ -48,16 +48,16 @@ def get_scratchcard_list(
     else:
         query = query.order_by(sort_column.asc())
 
-    # NOTE: 次要排序 — 同名彩券依發行日期降序（最新在前）
+    # 次要排序
     if sort_by != "issueDate":
         query = query.order_by(Scratchcard.issueDate.desc())
 
     items = query.all()
 
-    # NOTE: 補算中獎率（爬蟲未抓取時從 prizes 計算）
+    # NOTE: 列表頁面直接回傳資料庫中的 overallWinRate，不再動態計算，若空白則顯示為 "—"
     for item in items:
         if not item.overallWinRate:
-            item.overallWinRate = _compute_win_rate(item)
+            item.overallWinRate = "—"
 
     return items
 

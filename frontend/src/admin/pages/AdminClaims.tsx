@@ -74,7 +74,7 @@ export default function AdminClaims() {
       field: 'createdAt',
       headerName: '申請時間',
       width: 180,
-      renderCell: (params: GridRenderCellParams) => new Date(params.value as string).toLocaleString()
+      renderCell: (params: GridRenderCellParams) => params.value ? new Date(params.value as string).toLocaleString() : '—'
     },
     {
       field: 'documents',

@@ -616,6 +616,15 @@
     font-weight: 600;
 }
 
+.community-map__filter-btn--active-jackpot {
+    background: linear-gradient(135deg, #FFD700, #FFA500);
+    color: #4A3500;
+    border-color: #FFD700;
+    font-weight: 700;
+    box-shadow: 0 0 12px rgba(255, 215, 0, 0.4);
+    animation: goldShine 3s infinite ease-in-out;
+}
+
 .community-map__tag-filter {
     padding: 0.75rem 0;
     overflow: hidden;

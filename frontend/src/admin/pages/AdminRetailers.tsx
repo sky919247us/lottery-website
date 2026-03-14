@@ -173,13 +173,13 @@ export default function AdminRetailers() {
       field: 'lat',
       headerName: '緯度',
       width: 100,
-      renderCell: (params) => (params.value !== null && params.value !== undefined) ? Number(params.value).toFixed(5) : '—',
+      renderCell: (params) => (params && params.value !== null && params.value !== undefined) ? Number(params.value).toFixed(5) : '—',
     },
     {
       field: 'lng',
       headerName: '經度',
       width: 100,
-      renderCell: (params) => (params.value !== null && params.value !== undefined) ? Number(params.value).toFixed(5) : '—',
+      renderCell: (params) => (params && params.value !== null && params.value !== undefined) ? Number(params.value).toFixed(5) : '—',
     },
     {
       field: 'actions',

@@ -550,11 +550,11 @@ export default function Home() {
                                                 )}
                                             </div>
 
-                                            {/* 紅色警戒徽章 */}
-                                            {card.isHighWinRate && (
+                                            {/* 紅色警戒徽章 — 依高勝率或頭獎殘值判定 */}
+                                            {(card.isHighWinRate || (card.grandPrizeUnclaimed > 0 && card.salesRateValue > 85)) && (
                                                 <div className="scratch-card__badge">
                                                     <AlertTriangle size={14} />
-                                                    <span>高勝率預警</span>
+                                                    <span>{card.isHighWinRate ? '高勝率預警' : '頭獎仍在'}</span>
                                                 </div>
                                             )}
 

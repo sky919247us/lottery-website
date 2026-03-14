@@ -15,7 +15,7 @@ import { motion, AnimatePresence } from 'framer-motion'
 import {
     MapPin, Search, Send, Store, Navigation,
     Filter, X, ChevronDown, Flame, ExternalLink,
-    Shield, Star, Megaphone, Package, PartyPopper, Map as MapIcon, List
+    Shield, Star, Megaphone, Package, PartyPopper, Map as MapIcon, List, Trophy
 } from 'lucide-react'
 import { Link } from 'react-router-dom'
 import {
@@ -473,6 +473,7 @@ export default function CommunityMap() {
     const [displayCount, setDisplayCount] = useState(PAGE_SIZE)
     const [viewMode, setViewMode] = useState<'list' | 'map'>('list')
     const [heatmapPoints, setHeatmapPoints] = useState<HeatmapPoint[]>([])
+    const [showOnlyJackpot, setShowOnlyJackpot] = useState(false)
 
     // 點擊次數追蹤
     const handleRetailerClick = useCallback((retailerId: number) => {
@@ -603,8 +604,13 @@ export default function CommunityMap() {
             return bPro - aPro
         })
 
+        // 僅顯示頭獎商家
+        if (showOnlyJackpot) {
+            result = result.filter(r => (r.jackpotCount || 0) > 0)
+        }
+
         return result
-    }, [retailers, search, filterCity, filterDistrict, filterSource, activeTags])
+    }, [retailers, search, filterCity, filterDistrict, filterSource, activeTags, showOnlyJackpot])
 
     /** 各縣市統計 */
     const cityStats = useMemo(() => {
@@ -839,6 +845,14 @@ export default function CommunityMap() {
                             <Filter size={16} />
                             縣市篩選
                             <ChevronDown size={14} className={showFilters ? 'rotate-180' : ''} />
+                        </button>
+
+                        {/* 頭獎篩選 */}
+                        <button
+                            className={`community-map__filter-btn ${showOnlyJackpot ? 'community-map__filter-btn--active-jackpot' : ''}`}
+                            onClick={() => setShowOnlyJackpot(!showOnlyJackpot)}
+                        >
+                            <Trophy size={14} /> 僅頭獎
                         </button>
 
                         {/* 設施篩選 */}

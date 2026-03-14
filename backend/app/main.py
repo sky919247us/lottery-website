@@ -8,6 +8,7 @@ import logging
 
 import os
 import sentry_sdk
+from datetime import datetime
 from sentry_sdk.integrations.fastapi import FastApiIntegration
 from apscheduler.schedulers.background import BackgroundScheduler
 from apscheduler.triggers.cron import CronTrigger
@@ -160,6 +161,23 @@ def on_shutdown():
 def health_check():
     """健康檢查端點"""
     return {"status": "ok", "service": "scratchcard-api"}
+
+
+@app.get("/api/stats/public", tags=["系統"])
+def public_stats():
+    """公開的資料統計端點 (用於驗證同步結果)"""
+    from app.model.database import Scratchcard, Retailer
+    db = SessionLocal()
+    try:
+        scratchcard_count = db.query(Scratchcard).count()
+        retailer_count = db.query(Retailer).count()
+        return {
+            "scratchcards": scratchcard_count,
+            "retailers": retailer_count,
+            "timestamp": datetime.now().isoformat()
+        }
+    finally:
+        db.close()
 
 
 @app.post("/api/admin/crawl", tags=["管理"])

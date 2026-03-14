@@ -43,7 +43,9 @@ def get_retailers(
         )
 
     if has_coords:
-        query = query.filter(Retailer.lat.isnot(None), Retailer.lng.isnot(None))
+        # [FIX] 確保 lat/lng 存在且非零 (避免經緯度為 0 顯示異常)
+        query = query.filter(Retailer.lat.is_not(None), Retailer.lng.is_not(None))
+        query = query.filter(Retailer.lat != 0, Retailer.lng != 0)
 
     return query.order_by(Retailer.city, Retailer.district, Retailer.name).all()
 
