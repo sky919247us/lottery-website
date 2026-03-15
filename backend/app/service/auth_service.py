@@ -41,7 +41,7 @@ async def exchange_code_for_token(code: str) -> dict:
     用授權碼向 LINE 換取 access_token
     回傳包含 access_token, id_token 等的回應字典
     """
-    async with httpx.AsyncClient() as client:
+    async with httpx.AsyncClient(timeout=8.0) as client:
         response = await client.post(
             "https://api.line.me/oauth2/v2.1/token",
             data={
@@ -67,7 +67,7 @@ async def get_line_profile(access_token: str) -> dict:
     用 access_token 取得 LINE 使用者資料
     回傳 {userId, displayName, pictureUrl, statusMessage}
     """
-    async with httpx.AsyncClient() as client:
+    async with httpx.AsyncClient(timeout=8.0) as client:
         response = await client.get(
             "https://api.line.me/v2/profile",
             headers={"Authorization": f"Bearer {access_token}"},
