@@ -37,10 +37,10 @@ def import_retailers():
     init_db()
     db = SessionLocal()
 
-    # 清除舊資料
-    deleted = db.query(Retailer).delete()
+    # 先將所有店家標記為未營業，後續在 Excel 裡的有出現才會設為 True
+    updated = db.query(Retailer).update({"isActive": False})
     db.commit()
-    print(f"已清除 {deleted} 筆舊資料")
+    print(f"已將 {updated} 筆舊資料標示為 isActive=False")
 
     wb = openpyxl.load_workbook(EXCEL_PATH, read_only=True, data_only=True)
 
@@ -70,17 +70,28 @@ def import_retailers():
 
             city = normalize_city(city_raw)
 
-            retailer = Retailer(
-                name=name,
-                address=address,
-                city=city,
-                district=district,
-                source=source_label,
-                lat=None,
-                lng=None,
-                isActive=True,
-            )
-            db.add(retailer)
+            existing = db.query(Retailer).filter(
+                Retailer.address == address,
+                Retailer.name == name
+            ).first()
+
+            if existing:
+                existing.isActive = True
+                existing.city = city
+                existing.district = district
+                existing.source = source_label
+            else:
+                retailer = Retailer(
+                    name=name,
+                    address=address,
+                    city=city,
+                    district=district,
+                    source=source_label,
+                    lat=None,
+                    lng=None,
+                    isActive=True,
+                )
+                db.add(retailer)
             count += 1
 
             # 每 500 筆 commit 一次
