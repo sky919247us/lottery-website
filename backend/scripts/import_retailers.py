@@ -1,6 +1,9 @@
 """
 從 Excel 匯入經銷商資料到 SQLite
 讀取「前次台彩」與「前次運彩」工作表
+
+NOTE: 修正版 — 不再使用破壞性的「全表設 isActive=False」邏輯，
+改用追蹤式更新，避免匯入期間 API 返回空結果。
 """
 
 import sys
@@ -33,14 +36,19 @@ def normalize_city(city: str) -> str:
 
 
 def import_retailers():
-    """匯入經銷商資料"""
+    """
+    匯入經銷商資料
+
+    使用「追蹤式更新」而非破壞性的全表清除：
+    1. 匯入時收集所有出現在 Excel 中的店家 ID
+    2. 匯入結束後，僅將「未出現」的店家設為 isActive=False
+    這樣可以避免匯入期間所有經銷商瞬間消失的問題
+    """
     init_db()
     db = SessionLocal()
 
-    # 先將所有店家標記為未營業，後續在 Excel 裡的有出現才會設為 True
-    updated = db.query(Retailer).update({"isActive": False})
-    db.commit()
-    print(f"已將 {updated} 筆舊資料標示為 isActive=False")
+    # 追蹤此次匯入中出現的所有經銷商 ID
+    seen_ids: set[int] = set()
 
     wb = openpyxl.load_workbook(EXCEL_PATH, read_only=True, data_only=True)
 
@@ -80,6 +88,7 @@ def import_retailers():
                 existing.city = city
                 existing.district = district
                 existing.source = source_label
+                seen_ids.add(existing.id)
             else:
                 retailer = Retailer(
                     name=name,
@@ -92,6 +101,8 @@ def import_retailers():
                     isActive=True,
                 )
                 db.add(retailer)
+                db.flush()  # 取得自動生成的 ID
+                seen_ids.add(retailer.id)
             count += 1
 
             # 每 500 筆 commit 一次
@@ -102,6 +113,16 @@ def import_retailers():
         db.commit()
         total_imported += count
         print(f"[{sheet_name}] 匯入完成：{count} 筆")
+
+    # 最後：將「此次未出現在 Excel 中」的店家設為 isActive=False
+    # 使用分批更新避免長時間鎖定資料庫
+    if seen_ids:
+        deactivated = db.query(Retailer).filter(
+            Retailer.id.notin_(seen_ids),
+            Retailer.isActive == True,
+        ).update({"isActive": False}, synchronize_session=False)
+        db.commit()
+        print(f"已將 {deactivated} 筆未出現在 Excel 中的經銷商標示為 isActive=False")
 
     db.close()
     wb.close()
