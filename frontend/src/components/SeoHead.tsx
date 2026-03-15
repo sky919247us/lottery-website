@@ -30,7 +30,7 @@ function setMetaTag(property: string, content: string, isOg = false) {
 
 export default function SeoHead({ title, description, path, jsonLd }: SeoHeadProps) {
   useEffect(() => {
-    const fullTitle = `${title} | 刮刮樂情報站`
+    const fullTitle = `${title} | 刮刮研究室`
     document.title = fullTitle
 
     // 基礎 Meta Tags

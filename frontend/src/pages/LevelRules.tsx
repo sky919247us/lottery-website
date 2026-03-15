@@ -18,7 +18,7 @@ export default function LevelRules() {
     <Box sx={{ maxWidth: 800, mx: 'auto', p: 2 }}>
       <Typography variant="h5" fontWeight={700} mb={1}>等級與積分規則</Typography>
       <Typography variant="body2" color="text.secondary" mb={3}>
-        在刮刮樂情報站，您的每一次貢獻都能帶來積分，隨著等級提升，您將享有更多專屬特權！
+        在刮刮研究室，您的每一次貢獻都能帶來積分，隨著等級提升，您將享有更多專屬特權！
       </Typography>
 
       <Typography variant="h6" fontWeight={700} mb={2}>如何獲得積分？</Typography>

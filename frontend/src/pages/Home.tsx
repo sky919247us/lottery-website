@@ -284,7 +284,7 @@ export default function Home() {
     return (
         <div className="home">
             <SeoHead
-                title="刮刮樂情報站 — 中獎率分析 × 殘值計算"
+                title="刮刮研究室 — 中獎率分析 × 殘值計算"
                 description="全台最完整的刮刮樂情報平台。即時查看各款刮刮樂的中獎率、銷售率、頭獎剩餘與殘值分析，幫助你做出最聰明的購買決策。"
                 path="/"
             />
