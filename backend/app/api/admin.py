@@ -594,3 +594,122 @@ async def list_community_users(
             for k, v in KARMA_LEVELS.items()
         },
     }
+
+@router.get("/community-users/{user_id}/history")
+async def get_community_user_history(
+    user_id: int,
+    db: Session = Depends(get_db),
+    admin: AdminUser = Depends(require_role(ROLE_SUPER_ADMIN, ROLE_ADMIN)),
+):
+    """取得社群使用者的歷史紀錄 (打卡、評分、karma logs)"""
+    user = db.query(User).filter(User.id == user_id).first()
+    if not user:
+        raise HTTPException(status_code=404, detail="使用者不存在")
+    
+    from app.model.user import KarmaLog, InventoryReport, get_level_info
+    from app.model.retailer import RetailerRating
+    
+    karma_logs = db.query(KarmaLog).filter(KarmaLog.userId == user_id).order_by(KarmaLog.createdAt.desc()).limit(50).all()
+    reports = db.query(InventoryReport).filter(InventoryReport.userId == user_id).order_by(InventoryReport.createdAt.desc()).limit(50).all()
+    ratings = db.query(RetailerRating).filter(RetailerRating.userId == user_id).order_by(RetailerRating.createdAt.desc()).limit(50).all()
+
+    title, weight, _ = get_level_info(user.karmaLevel)
+
+    return {
+        "user": {
+            "id": user.id,
+            "lineUserId": user.lineUserId,
+            "displayName": user.displayName or "",
+            "customNickname": user.customNickname or "",
+            "pictureUrl": user.pictureUrl or "",
+            "karmaPoints": user.karmaPoints,
+            "karmaLevel": user.karmaLevel,
+            "levelTitle": title,
+            "levelWeight": weight,
+            "isBanned": bool(user.isBanned),
+            "createdAt": user.createdAt.isoformat() if user.createdAt else None,
+        },
+        "karmaLogs": [
+            {
+                "id": l.id,
+                "points": l.points,
+                "action": l.action,
+                "description": l.description,
+                "createdAt": l.createdAt.isoformat() if l.createdAt else None,
+            } for l in karma_logs
+        ],
+        "inventoryReports": [
+            {
+                "id": r.id,
+                "retailerId": r.retailerId,
+                "status": r.status,
+                "createdAt": r.createdAt.isoformat() if r.createdAt else None,
+            } for r in reports
+        ],
+        "ratings": [
+            {
+                "id": r.id,
+                "retailerId": r.retailerId,
+                "score": r.score,
+                "comment": r.comment,
+                "createdAt": r.createdAt.isoformat() if r.createdAt else None,
+            } for r in ratings
+        ]
+    }
+
+@router.put("/community-users/{user_id}/karma")
+async def adjust_community_user_karma(
+    user_id: int,
+    data: KarmaAdjustRequest,
+    db: Session = Depends(get_db),
+    admin: AdminUser = Depends(require_role(ROLE_SUPER_ADMIN)),
+):
+    """手動調整社群使用者積分 (僅超級管理員)"""
+    user = db.query(User).filter(User.id == user_id).first()
+    if not user:
+        raise HTTPException(status_code=404, detail="使用者不存在")
+
+    old_points = user.karmaPoints
+    if data.set_to is None:
+        if data.points == 0:
+            raise HTTPException(status_code=400, detail="未指定調整數值")
+        new_points = old_points + data.points
+        diff = data.points
+    else:
+        new_points = data.set_to
+        diff = new_points - old_points
+
+    if new_points < 0:
+        new_points = 0
+        diff = -old_points
+
+    user.karmaPoints = new_points
+    user.karmaLevel = calc_karma_level(new_points)
+
+    from app.model.user import KarmaLog
+    log = KarmaLog(
+        userId=user_id,
+        points=diff,
+        action="admin_adjust",
+        description=f"管理員 {admin.username} 手動調整: {data.reason}"
+    )
+    db.add(log)
+    db.commit()
+    
+    logger.info(f"管理員 {admin.username} 調整了使用者 {user_id} 積分: {old_points} -> {new_points}")
+    return {"status": "ok", "newPoints": new_points, "newLevel": user.karmaLevel}
+
+@router.put("/community-users/bulk-ban")
+async def bulk_ban_community_users(
+    data: BulkBanRequest,
+    db: Session = Depends(get_db),
+    admin: AdminUser = Depends(require_role(ROLE_SUPER_ADMIN)),
+):
+    """批量封禁或解封社群使用者"""
+    users = db.query(User).filter(User.id.in_(data.userIds)).all()
+    for user in users:
+        user.isBanned = data.isBanned
+    db.commit()
+    logger.info(f"管理員 {admin.username} 批量{'封禁' if data.isBanned else '解封'}了使用者: {data.userIds}")
+    return {"status": "ok", "updatedCount": len(users)}
+
