@@ -771,7 +771,7 @@ export default function CommunityMap() {
     return (
         <div className="community-map">
             <SeoHead
-                title="經銷商地圖 — 全台彩券行搜尋與庫存查詢"
+                title="投注站地圖 — 全台彩券行搜尋與庫存查詢"
                 description="搜尋全台彩券經銷商，查看設施標籤、庫存狀態、營業資訊與導航。支援地圖模式與列表模式切換。"
                 path="/map"
                 jsonLd={{
@@ -1098,12 +1098,12 @@ export default function CommunityMap() {
                         {loadingRetailers ? (
                             <div className="community-map__loading">
                                 <div className="spinner" />
-                                <p>載入經銷商資料中...</p>
+                                <p>載入投注站資料中...</p>
                             </div>
                         ) : filtered.length === 0 ? (
                             <div className="community-map__empty">
                                 <Store size={48} />
-                                <p>找不到符合條件的投注站</p>
+                                <p>網頁更新中 請稍後重整網頁</p>
                             </div>
                         ) : viewMode === 'map' ? (
                             <div className="community-map__map-view glass-card" style={{ padding: 0, overflow: 'hidden' }}>
