@@ -521,21 +521,48 @@ export default function CommunityMap() {
     async function loadData() {
         try {
             setLoadingRetailers(true)
-            const [retData, chkData, festData, heatData] = await Promise.all([
+
+            // NOTE: 使用 Promise.allSettled 取代 Promise.all
+            // 確保任何一個 API 失敗時，不會連帶清空其他已成功取得的資料
+            const [retResult, chkResult, festResult, heatResult] = await Promise.allSettled([
                 fetchRetailers(),
                 fetchCheckins(),
-                fetchFestivalStatus().catch(() => null),
-                fetchHeatmap().catch(() => [])
+                fetchFestivalStatus(),
+                fetchHeatmap(),
             ])
-            setRetailers(retData)
-            setCheckins(chkData)
-            if (festData) setFestival(festData)
-            setHeatmapPoints(heatData)
 
-            // 如果有認領的店家，預載他們的官方庫存（優化體驗）
+            // 經銷商資料（核心）：若失敗則重試一次
+            if (retResult.status === 'fulfilled') {
+                setRetailers(retResult.value)
+            } else {
+                // 重試一次
+                try {
+                    const retryData = await fetchRetailers()
+                    setRetailers(retryData)
+                } catch {
+                    setRetailers([])
+                }
+            }
+
+            // 打卡紀錄（次要）：失敗不影響核心功能
+            if (chkResult.status === 'fulfilled') {
+                setCheckins(chkResult.value)
+            }
+
+            // 節慶狀態（選用）：失敗不影響核心功能
+            if (festResult.status === 'fulfilled' && festResult.value) {
+                setFestival(festResult.value)
+            }
+
+            // 熱力圖資料（選用）：失敗不影響核心功能
+            if (heatResult.status === 'fulfilled') {
+                setHeatmapPoints(heatResult.value)
+            }
+
+            // 預載認領店家的官方庫存（使用成功取得的經銷商資料）
+            const retData = retResult.status === 'fulfilled' ? retResult.value : []
             const claimedIds = retData.filter(r => r.isClaimed).map(r => r.id)
             if (claimedIds.length > 0) {
-                // 批次獲取（簡單起見先前 10 個或只取可見的，這裡先實作一個基本的預載）
                 claimedIds.slice(0, 20).forEach(async (id) => {
                     try {
                         const data = await fetchMerchantOfficialInventory(id)
@@ -544,6 +571,7 @@ export default function CommunityMap() {
                 })
             }
         } catch {
+            // 極端情況：Promise.allSettled 本身不會拋錯，此為最終保險
             setRetailers([])
             setCheckins([])
         } finally {
