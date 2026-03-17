@@ -270,7 +270,7 @@ export default function AdminLayout() {
   )
 
   return (
-    <Box sx={{ display: 'flex', minHeight: '100vh', bgcolor: 'background.default' }}>
+    <Box sx={{ display: 'flex', height: '100vh', bgcolor: 'background.default', overflow: 'hidden' }}>
       <CssBaseline />
 
       {/* 頂部導航 */}
@@ -367,8 +367,8 @@ export default function AdminLayout() {
           p: 3,
           width: { md: `calc(100% - ${DRAWER_WIDTH}px)` },
           mt: '64px',
-          minHeight: 'calc(100vh - 64px)',
-          overflow: 'auto',
+          height: 'calc(100vh - 64px)',
+          overflowY: 'auto',
         }}
       >
         <Outlet />
