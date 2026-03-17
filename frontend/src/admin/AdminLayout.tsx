@@ -368,6 +368,7 @@ export default function AdminLayout() {
           width: { md: `calc(100% - ${DRAWER_WIDTH}px)` },
           mt: '64px',
           minHeight: 'calc(100vh - 64px)',
+          overflow: 'auto',
         }}
       >
         <Outlet />
