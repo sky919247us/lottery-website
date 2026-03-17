@@ -116,12 +116,22 @@ def _run_migrations():
             conn.execute(text("ALTER TABLE admin_users ADD COLUMN retailerId INTEGER REFERENCES retailers(id)"))
             conn.commit()
 
-        # retailers.tierExpireAt — PRO 方案到期時間
+        # retailers — PRO 專屬頁面欄位
         result = conn.execute(text("PRAGMA table_info(retailers)"))
         existing_cols = {row[1] for row in result.fetchall()}
-        if "tierExpireAt" not in existing_cols:
-            conn.execute(text("ALTER TABLE retailers ADD COLUMN tierExpireAt DATETIME"))
-            conn.commit()
+        pro_columns = {
+            "tierExpireAt": "DATETIME",
+            "description": "TEXT DEFAULT ''",
+            "bannerUrl": "TEXT DEFAULT ''",
+            "contactLine": "VARCHAR(100) DEFAULT ''",
+            "contactFb": "VARCHAR(200) DEFAULT ''",
+            "contactPhone": "VARCHAR(20) DEFAULT ''",
+            "businessHours": "VARCHAR(200) DEFAULT ''",
+        }
+        for col_name, col_type in pro_columns.items():
+            if col_name not in existing_cols:
+                conn.execute(text(f"ALTER TABLE retailers ADD COLUMN {col_name} {col_type}"))
+        conn.commit()
 
 
 def init_db():
