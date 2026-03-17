@@ -43,6 +43,7 @@ class Retailer(Base):
     # --- Phase 3：認領相關 ---
     isClaimed = Column(Boolean, default=False, comment="是否已被認領")
     merchantTier = Column(String(10), default="", comment="方案層級：basic / pro")
+    tierExpireAt = Column(DateTime, nullable=True, comment="PRO 方案到期時間")
     announcement = Column(String(200), default="", comment="臨時公告文字")
 
     # --- Phase 4：熱力圖 ---

@@ -16,6 +16,7 @@ from sqlalchemy import (
     String,
     Text,
     create_engine,
+    text,
 )
 from sqlalchemy.orm import DeclarativeBase, Session, relationship, sessionmaker
 
@@ -105,9 +106,28 @@ from app.model.admin import AdminUser  # noqa: F401
 from app.model.jackpot_store import JackpotStore  # noqa: F401
 
 
+def _run_migrations():
+    """執行增量欄位遷移（補充 create_all 不會自動新增欄位的限制）"""
+    with engine.connect() as conn:
+        # admin_users.retailerId — 關聯店家 ID（新增於 2024 版本）
+        result = conn.execute(text("PRAGMA table_info(admin_users)"))
+        existing_cols = {row[1] for row in result.fetchall()}
+        if "retailerId" not in existing_cols:
+            conn.execute(text("ALTER TABLE admin_users ADD COLUMN retailerId INTEGER REFERENCES retailers(id)"))
+            conn.commit()
+
+        # retailers.tierExpireAt — PRO 方案到期時間
+        result = conn.execute(text("PRAGMA table_info(retailers)"))
+        existing_cols = {row[1] for row in result.fetchall()}
+        if "tierExpireAt" not in existing_cols:
+            conn.execute(text("ALTER TABLE retailers ADD COLUMN tierExpireAt DATETIME"))
+            conn.commit()
+
+
 def init_db():
     """建立所有資料表"""
     Base.metadata.create_all(bind=engine)
+    _run_migrations()
 
 
 def get_db():
