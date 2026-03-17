@@ -788,3 +788,144 @@ async def update_my_store(
     logger.info(f"商家 {admin.username} 更新了店舖資訊")
     return {"status": "ok"}
 
+
+# ─── 商家庫存管理 ──────────────────────────────────────
+
+@router.get("/merchant/inventory")
+async def get_merchant_inventory(
+    admin: AdminUser = Depends(require_role(ROLE_MERCHANT, ROLE_ADMIN, ROLE_SUPER_ADMIN)),
+    db: Session = Depends(get_db),
+):
+    """取得商家自己的庫存清單"""
+    if not admin.retailerId:
+        raise HTTPException(status_code=404, detail="尚未關聯店家")
+
+    from app.model.merchant_inventory import MerchantInventory
+
+    items = db.query(MerchantInventory).filter(
+        MerchantInventory.retailerId == admin.retailerId,
+    ).order_by(MerchantInventory.itemPrice.desc()).all()
+
+    return [
+        {
+            "id": item.id,
+            "itemName": item.itemName,
+            "itemPrice": item.itemPrice,
+            "status": item.status,
+            "scratchcardId": item.scratchcardId,
+            "gameId": item.scratchcard.gameId if item.scratchcard else None,
+            "imageUrl": item.scratchcard.imageUrl if item.scratchcard else None,
+            "updatedAt": item.updatedAt.isoformat() if item.updatedAt else None,
+        }
+        for item in items
+    ]
+
+
+@router.put("/merchant/inventory")
+async def update_merchant_inventory(
+    items: list[dict],
+    admin: AdminUser = Depends(require_role(ROLE_MERCHANT, ROLE_ADMIN, ROLE_SUPER_ADMIN)),
+    db: Session = Depends(get_db),
+):
+    """批量更新商家庫存狀態"""
+    if not admin.retailerId:
+        raise HTTPException(status_code=404, detail="尚未關聯店家")
+
+    from app.model.merchant_inventory import MerchantInventory
+
+    for item_data in items:
+        if item_data.get("id"):
+            # 更新現有品項
+            existing = db.query(MerchantInventory).filter(
+                MerchantInventory.id == item_data["id"],
+                MerchantInventory.retailerId == admin.retailerId,
+            ).first()
+            if existing:
+                existing.status = item_data.get("status", existing.status)
+                existing.updatedAt = datetime.now(timezone.utc)
+        else:
+            # 新增品項
+            new_item = MerchantInventory(
+                retailerId=admin.retailerId,
+                scratchcardId=item_data.get("scratchcardId"),
+                itemName=item_data.get("itemName", ""),
+                itemPrice=item_data.get("itemPrice", 0),
+                status=item_data.get("status", "未設定"),
+            )
+            db.add(new_item)
+
+    db.commit()
+    logger.info(f"商家 {admin.username} 更新了庫存 ({len(items)} 品項)")
+    return {"status": "ok"}
+
+
+@router.delete("/merchant/inventory/{item_id}")
+async def delete_merchant_inventory_item(
+    item_id: int,
+    admin: AdminUser = Depends(require_role(ROLE_MERCHANT, ROLE_ADMIN, ROLE_SUPER_ADMIN)),
+    db: Session = Depends(get_db),
+):
+    """刪除庫存品項"""
+    if not admin.retailerId:
+        raise HTTPException(status_code=404, detail="尚未關聯店家")
+
+    from app.model.merchant_inventory import MerchantInventory
+
+    item = db.query(MerchantInventory).filter(
+        MerchantInventory.id == item_id,
+        MerchantInventory.retailerId == admin.retailerId,
+    ).first()
+    if not item:
+        raise HTTPException(status_code=404, detail="品項不存在")
+
+    db.delete(item)
+    db.commit()
+    return {"status": "ok"}
+
+
+@router.get("/merchant/scratchcards/search")
+async def search_scratchcards_for_merchant(
+    q: str = "",
+    admin: AdminUser = Depends(require_role(ROLE_MERCHANT, ROLE_ADMIN, ROLE_SUPER_ADMIN)),
+    db: Session = Depends(get_db),
+):
+    """搜尋可用的刮刮樂款式（排除已過兌獎期限）"""
+    import re
+
+    all_cards = db.query(Scratchcard).all()
+    now = datetime.now()
+    results = []
+
+    for card in all_cards:
+        # 排除過期款式
+        if card.redeemDeadline:
+            match = re.match(r"(\d+)年(\d+)月(\d+)日", card.redeemDeadline)
+            if match:
+                roc_year = int(match.group(1))
+                m = int(match.group(2))
+                d = int(match.group(3))
+                try:
+                    deadline = datetime(roc_year + 1911, m, d)
+                    if deadline < now:
+                        continue
+                except ValueError:
+                    pass
+
+        # 關鍵字篩選
+        if q:
+            kw = q.lower()
+            if kw not in card.name.lower() and kw not in card.gameId.lower():
+                continue
+
+        results.append({
+            "id": card.id,
+            "gameId": card.gameId,
+            "name": card.name,
+            "price": card.price,
+            "imageUrl": card.imageUrl or "",
+            "redeemDeadline": card.redeemDeadline or "",
+        })
+
+    results.sort(key=lambda x: x["price"], reverse=True)
+    return results[:50]
+
