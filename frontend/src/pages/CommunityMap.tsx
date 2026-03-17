@@ -342,6 +342,15 @@ function RetailerPopupSection({
                 >
                     🧭 導航
                 </a>
+                {isPro && (
+                  <Link
+                      to={`/store/${retailer.id}`}
+                      className="compound-popup__btn"
+                      style={{ textDecoration: 'none', background: 'linear-gradient(135deg, #d4af37, #b8962e)', color: '#fff' }}
+                  >
+                      👑 專屬頁面
+                  </Link>
+                )}
                 {!retailer.isClaimed && (
                   <Link
                       to={`/merchant/claim/${retailer.id}`}
@@ -1233,6 +1242,15 @@ export default function CommunityMap() {
                                                         <ExternalLink size={14} />
                                                         導航
                                                     </a>
+                                                    {r.merchantTier === 'pro' && (
+                                                        <Link
+                                                            to={`/store/${r.id}`}
+                                                            className="community-map__report-btn"
+                                                            style={{ textDecoration: 'none', background: 'linear-gradient(135deg, #d4af37, #b8962e)', color: '#fff', whiteSpace: 'nowrap' }}
+                                                        >
+                                                            👑 專屬頁面
+                                                        </Link>
+                                                    )}
                                                     {!r.isClaimed && (
                                                         <Link
                                                             to={`/merchant/claim/${r.id}`}
