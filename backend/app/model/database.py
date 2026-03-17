@@ -99,6 +99,7 @@ class YouTubeLink(Base):
 from app.model.retailer import Retailer  # noqa: F401
 from app.model.user import User, KarmaLog, InventoryReport  # noqa: F401
 from app.model.merchant import MerchantClaim, MerchantAnnouncement  # noqa: F401
+from app.model.merchant_photo import MerchantPhoto  # noqa: F401
 from app.model.rating import RetailerRating  # noqa: F401
 from app.model.admin import AdminUser  # noqa: F401
 from app.model.jackpot_store import JackpotStore  # noqa: F401

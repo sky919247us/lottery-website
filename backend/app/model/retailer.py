@@ -52,3 +52,11 @@ class Retailer(Base):
     mapClickCount = Column(Integer, default=0, comment="地圖店家點擊次數")
     nearbyInventoryCount = Column(Integer, default=0, comment="附近店家找庫存曝光次數")
     manualRating = Column(Float, nullable=True, comment="超級管理員人工覆寫評分 (1.0~5.0)")
+
+    # --- Phase 6：PRO 專屬頁面 ---
+    description = Column(Text, default="", comment="店家簡介 (PRO)")
+    bannerUrl = Column(Text, default="", comment="頁面頂部橫幅圖片 URL (PRO)")
+    contactLine = Column(String(100), default="", comment="LINE 帳號/連結 (PRO)")
+    contactFb = Column(String(200), default="", comment="Facebook 粉專連結 (PRO)")
+    contactPhone = Column(String(20), default="", comment="聯絡電話 (PRO)")
+    businessHours = Column(String(200), default="", comment="營業時間描述 (PRO)")

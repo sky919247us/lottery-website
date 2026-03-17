@@ -16,7 +16,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 
-from app.api import map, retailer, scratchcard, videos, user, inventory, merchant, festival, auth, rating, admin, upload, payment
+from app.api import map, retailer, scratchcard, videos, user, inventory, merchant, festival, auth, rating, admin, upload, payment, store_page
 from app.model.database import init_db
 from app.service.crawler_service import run_crawler
 from app.service.scraper_service import sync_jackpot_stores
@@ -76,6 +76,7 @@ app.include_router(rating.router)
 app.include_router(admin.router)
 app.include_router(upload.router)
 app.include_router(payment.router)
+app.include_router(store_page.router)
 
 # 掛載靜態檔案目錄供讀取圖片
 import os

@@ -102,6 +102,7 @@ export default function AdminLayout() {
     { label: '店舖總覽', icon: <DashboardIcon />, path: '/admin/merchant/dashboard' },
     { label: '店舖設定', icon: <SettingsIcon />, path: '/admin/merchant/profile' },
     { label: '現貨管理', icon: <InventoryIcon />, path: '/admin/merchant/inventory' },
+    { label: '專屬頁面', icon: <StorefrontIcon />, path: '/admin/merchant/store-page' },
   ]
 
   /** 根據角色決定要顯示的選單 */

@@ -1,0 +1,380 @@
+/* ====================================================
+   StorePage.css — 商家專屬頁面樣式
+   ==================================================== */
+
+/* CSS 變數 */
+.store-page {
+    --sp-green: #22c55e;
+    --sp-orange: #f59e0b;
+    --sp-red: #ef4444;
+    --sp-muted: #94a3b8;
+    --sp-accent: #d4af37;
+    --sp-bg: #0f172a;
+    --sp-surface: rgba(255, 255, 255, 0.04);
+    --sp-border: rgba(255, 255, 255, 0.08);
+    --sp-text: #e2e8f0;
+    --sp-text-secondary: #94a3b8;
+}
+
+/* === 載入與錯誤狀態 === */
+.sp-loading,
+.sp-error {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    min-height: 60vh;
+    gap: 1rem;
+    color: var(--sp-text-secondary);
+    text-align: center;
+    padding: 2rem;
+}
+.sp-error h2 {
+    color: var(--sp-text);
+    font-size: 1.3rem;
+}
+
+/* === Hero Banner === */
+.sp-hero {
+    position: relative;
+    min-height: 280px;
+    display: flex;
+    align-items: flex-end;
+    background-size: cover;
+    background-position: center;
+    background-color: #1a2540;
+    overflow: hidden;
+}
+.sp-hero__overlay {
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(to top, rgba(15, 23, 42, 0.95), rgba(15, 23, 42, 0.3));
+}
+.sp-hero__content {
+    position: relative;
+    z-index: 1;
+    width: 100%;
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 2rem 1.5rem;
+}
+.sp-hero__name {
+    font-size: 2rem;
+    font-weight: 800;
+    color: #fff;
+    margin: 0 0 0.5rem;
+    text-shadow: 0 2px 8px rgba(0, 0, 0, 0.4);
+}
+.sp-hero__address {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    color: rgba(255, 255, 255, 0.85);
+    font-size: 0.95rem;
+    margin: 0;
+}
+.sp-hero__announcement {
+    margin-top: 0.75rem;
+    padding: 0.5rem 1rem;
+    background: rgba(212, 175, 55, 0.15);
+    border: 1px solid rgba(212, 175, 55, 0.3);
+    border-radius: 8px;
+    color: #fbbf24;
+    font-size: 0.9rem;
+    display: inline-block;
+}
+
+/* === 主容器 === */
+.sp-container {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 1.5rem;
+}
+
+/* === 快速操作列 === */
+.sp-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.75rem;
+    margin-bottom: 1.5rem;
+}
+.sp-action-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    padding: 0.6rem 1.2rem;
+    border-radius: 25px;
+    font-size: 0.9rem;
+    font-weight: 600;
+    text-decoration: none;
+    transition: all 0.2s;
+    border: 1px solid var(--sp-border);
+    cursor: pointer;
+}
+.sp-action-btn--nav {
+    background: linear-gradient(135deg, #3b82f6, #2563eb);
+    color: #fff;
+    border-color: transparent;
+}
+.sp-action-btn--nav:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(59, 130, 246, 0.4);
+}
+.sp-action-btn--phone {
+    background: rgba(34, 197, 94, 0.1);
+    color: var(--sp-green);
+    border-color: rgba(34, 197, 94, 0.3);
+}
+.sp-action-btn--phone:hover {
+    background: rgba(34, 197, 94, 0.2);
+}
+.sp-action-btn--line {
+    background: rgba(0, 185, 0, 0.1);
+    color: #00c300;
+    border-color: rgba(0, 185, 0, 0.3);
+}
+.sp-action-btn--line:hover {
+    background: rgba(0, 185, 0, 0.2);
+}
+.sp-action-btn--fb {
+    background: rgba(66, 103, 178, 0.1);
+    color: #4267b2;
+    border-color: rgba(66, 103, 178, 0.3);
+}
+.sp-action-btn--fb:hover {
+    background: rgba(66, 103, 178, 0.2);
+}
+
+/* === 通用 Section === */
+.sp-section {
+    margin-bottom: 1.5rem;
+    padding: 1.5rem;
+}
+.sp-section__title {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-size: 1.15rem;
+    font-weight: 700;
+    color: var(--sp-text);
+    margin: 0 0 1rem;
+}
+
+/* === 店家簡介 === */
+.sp-description {
+    color: var(--sp-text-secondary);
+    line-height: 1.7;
+    margin: 0 0 0.75rem;
+    white-space: pre-line;
+}
+.sp-business-hours {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    color: var(--sp-accent);
+    font-size: 0.9rem;
+}
+
+/* === 設施標籤 === */
+.sp-facilities {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+}
+.sp-facility-tag {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.3rem;
+    padding: 0.35rem 0.75rem;
+    border-radius: 20px;
+    background: rgba(212, 175, 55, 0.08);
+    border: 1px solid rgba(212, 175, 55, 0.2);
+    color: var(--sp-accent);
+    font-size: 0.82rem;
+    font-weight: 500;
+}
+
+/* === 中獎牆輪播 === */
+.sp-carousel-wrapper {
+    position: relative;
+}
+.sp-carousel {
+    display: flex;
+    gap: 1rem;
+    overflow-x: auto;
+    scroll-snap-type: x mandatory;
+    scrollbar-width: none;
+    -webkit-overflow-scrolling: touch;
+    padding: 0.5rem 0;
+}
+.sp-carousel::-webkit-scrollbar {
+    display: none;
+}
+.sp-carousel-card {
+    flex: 0 0 260px;
+    scroll-snap-align: start;
+    border-radius: 12px;
+    overflow: hidden;
+    background: var(--sp-surface);
+    border: 1px solid var(--sp-border);
+    transition: transform 0.2s;
+}
+.sp-carousel-card:hover {
+    transform: scale(1.02);
+}
+.sp-carousel-card img {
+    width: 100%;
+    height: 200px;
+    object-fit: cover;
+}
+.sp-carousel-caption {
+    padding: 0.5rem 0.75rem;
+    color: var(--sp-text);
+    font-size: 0.85rem;
+    text-align: center;
+    margin: 0;
+}
+.sp-carousel-btn {
+    position: absolute;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    background: rgba(15, 23, 42, 0.8);
+    border: 1px solid var(--sp-border);
+    color: var(--sp-text);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    z-index: 2;
+    transition: background 0.2s;
+}
+.sp-carousel-btn:hover {
+    background: rgba(15, 23, 42, 0.95);
+}
+.sp-carousel-btn--left {
+    left: -12px;
+}
+.sp-carousel-btn--right {
+    right: -12px;
+}
+
+/* === 相簿 === */
+.sp-gallery {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    gap: 0.75rem;
+}
+.sp-gallery-item {
+    border-radius: 10px;
+    overflow: hidden;
+    background: var(--sp-surface);
+    border: 1px solid var(--sp-border);
+    transition: transform 0.2s;
+}
+.sp-gallery-item:hover {
+    transform: scale(1.03);
+}
+.sp-gallery-item img {
+    width: 100%;
+    height: 180px;
+    object-fit: cover;
+}
+.sp-gallery-caption {
+    padding: 0.4rem 0.6rem;
+    color: var(--sp-text-secondary);
+    font-size: 0.8rem;
+    text-align: center;
+    margin: 0;
+}
+
+/* === 即時庫存 === */
+.sp-inventory {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+    gap: 0.75rem;
+}
+.sp-inventory-card {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0.75rem;
+    border-radius: 10px;
+    background: var(--sp-surface);
+    border: 1px solid var(--sp-border);
+}
+.sp-inventory-img {
+    width: 48px;
+    height: 48px;
+    border-radius: 8px;
+    object-fit: cover;
+    flex-shrink: 0;
+}
+.sp-inventory-info {
+    flex: 1;
+    min-width: 0;
+}
+.sp-inventory-name {
+    display: block;
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: var(--sp-text);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+.sp-inventory-price {
+    display: block;
+    font-size: 0.75rem;
+    color: var(--sp-text-secondary);
+}
+.sp-inventory-status {
+    font-weight: 700;
+    font-size: 0.85rem;
+    flex-shrink: 0;
+}
+
+/* === Footer === */
+.sp-footer {
+    text-align: center;
+    padding: 2rem 0;
+}
+.sp-back-link {
+    color: var(--sp-accent);
+    text-decoration: none;
+    font-weight: 600;
+    transition: color 0.2s;
+}
+.sp-back-link:hover {
+    color: #fbbf24;
+}
+
+/* === 響應式 === */
+@media (max-width: 768px) {
+    .sp-hero {
+        min-height: 220px;
+    }
+    .sp-hero__name {
+        font-size: 1.5rem;
+    }
+    .sp-carousel-card {
+        flex: 0 0 200px;
+    }
+    .sp-carousel-card img {
+        height: 150px;
+    }
+    .sp-gallery {
+        grid-template-columns: repeat(2, 1fr);
+    }
+    .sp-gallery-item img {
+        height: 140px;
+    }
+    .sp-inventory {
+        grid-template-columns: 1fr;
+    }
+    .sp-carousel-btn {
+        display: none;
+    }
+}

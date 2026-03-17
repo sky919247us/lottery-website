@@ -34,6 +34,7 @@ const AuthCallback = lazy(() => import('./pages/AuthCallback'))
 const UserProfile = lazy(() => import('./pages/UserProfile'))
 const LevelRules = lazy(() => import('./pages/LevelRules'))
 const MerchantClaimForm = lazy(() => import('./pages/MerchantClaimForm'))
+const StorePage = lazy(() => import('./pages/StorePage'))
 const AdminRoutes = lazy(() => import('./admin/AdminRoutes'))
 
 /** 載入中的 Fallback UI */
@@ -88,6 +89,7 @@ export default function App() {
                     <Route path="/auth/callback" element={<AuthCallback />} />
                     <Route path="/profile" element={<UserProfile />} />
                     <Route path="/levels" element={<LevelRules />} />
+                    <Route path="/store/:id" element={<StorePage />} />
                   </Routes>
                 </Suspense>
               </main>

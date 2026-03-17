@@ -18,6 +18,7 @@ import AdminAccounts from './pages/AdminAccounts'
 import MerchantDashboard from './pages/MerchantDashboard'
 import MerchantProfile from './pages/MerchantProfile'
 import MerchantInventory from './pages/MerchantInventory'
+import MerchantStorePage from './pages/MerchantStorePage'
 
 /**
  * Auth Guard：未登入則導向登入頁
@@ -100,6 +101,7 @@ function AdminRoutesInner() {
         <Route path="/merchant/dashboard" element={<MerchantDashboard />} />
         <Route path="/merchant/profile" element={<MerchantProfile />} />
         <Route path="/merchant/inventory" element={<MerchantInventory />} />
+        <Route path="/merchant/store-page" element={<MerchantStorePage />} />
 
         {/* 預設導向 Dashboard */}
         <Route path="/" element={<Navigate to="/admin/dashboard" replace />} />

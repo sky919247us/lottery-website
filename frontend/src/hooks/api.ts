@@ -486,3 +486,9 @@ export async function recordRetailerClick(retailerId: number): Promise<void> {
 export async function recordRetailerExposure(retailerId: number): Promise<void> {
     await api.post(`/api/inventory/retailer/${retailerId}/exposure`)
 }
+
+/** 取得商家公開專屬頁面資料 (PRO) */
+export async function fetchStorePage(retailerId: number) {
+    const res = await api.get(`/api/store/${retailerId}`)
+    return res.data
+}

@@ -373,3 +373,36 @@ export async function rejectMerchantClaim(claimId: number, reason: string): Prom
 
 export default adminApi
 
+// ─── 商家專屬頁面管理 API ────────────────────────────────
+
+/** 更新商家專屬頁面文字資訊 */
+export async function updateStorePage(data: Record<string, unknown>): Promise<void> {
+    await adminApi.put('/merchant/store-page', data)
+}
+
+/** 上傳商家圖片（相簿或中獎牆） */
+export async function uploadStorePhoto(file: File, category: string, caption: string) {
+    const formData = new FormData()
+    formData.append('file', file)
+    formData.append('category', category)
+    formData.append('caption', caption)
+    const res = await adminApi.post('/merchant/photos', formData, {
+        headers: { 'Content-Type': 'multipart/form-data' },
+    })
+    return res.data
+}
+
+/** 刪除商家圖片 */
+export async function deleteStorePhoto(photoId: number): Promise<void> {
+    await adminApi.delete(`/merchant/photos/${photoId}`)
+}
+
+/** 上傳商家 Banner */
+export async function uploadStoreBanner(file: File) {
+    const formData = new FormData()
+    formData.append('file', file)
+    const res = await adminApi.post('/merchant/banner', formData, {
+        headers: { 'Content-Type': 'multipart/form-data' },
+    })
+    return res.data as { bannerUrl: string }
+}
