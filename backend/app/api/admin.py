@@ -705,11 +705,83 @@ async def bulk_ban_community_users(
     db: Session = Depends(get_db),
     admin: AdminUser = Depends(require_role(ROLE_SUPER_ADMIN)),
 ):
-    """批量封禁或解封社群使用者"""
     users = db.query(User).filter(User.id.in_(data.userIds)).all()
     for user in users:
         user.isBanned = data.isBanned
     db.commit()
     logger.info(f"管理員 {admin.username} 批量{'封禁' if data.isBanned else '解封'}了使用者: {data.userIds}")
     return {"status": "ok", "updatedCount": len(users)}
+
+
+# ─── 商家後台專屬店鋪讀取 ──────────────────────────────
+
+@router.get("/merchant/my-store")
+async def get_my_store(
+    admin: AdminUser = Depends(require_role(ROLE_MERCHANT, ROLE_ADMIN, ROLE_SUPER_ADMIN)),
+    db: Session = Depends(get_db),
+):
+    """取得商家自己關聯的店家（給商家後台看板與設定使用）"""
+    if not admin.retailerId:
+        raise HTTPException(status_code=404, detail="尚未關聯店家，請聯繫管理員設定")
+        
+    retailer = db.query(Retailer).filter(Retailer.id == admin.retailerId).first()
+    if not retailer:
+        raise HTTPException(status_code=404, detail="關聯的店家記錄不存在")
+        
+    return {
+        "id": retailer.id,
+        "name": retailer.name,
+        "address": retailer.address,
+        "city": retailer.city,
+        "district": retailer.district,
+        "source": retailer.source,
+        "lat": retailer.lat,
+        "lng": retailer.lng,
+        "isActive": retailer.isActive,
+        "isClaimed": retailer.isClaimed,
+        "merchantTier": retailer.merchantTier,
+        "announcement": retailer.announcement,
+        "hasAC": getattr(retailer, 'hasAC', False),
+        "hasToilet": getattr(retailer, 'hasToilet', False),
+        "hasSeats": getattr(retailer, 'hasSeats', False),
+        "hasWifi": getattr(retailer, 'hasWifi', False),
+        "hasAccessibility": getattr(retailer, 'hasAccessibility', False),
+        "hasEPay": getattr(retailer, 'hasEPay', False),
+        "hasStrategy": getattr(retailer, 'hasStrategy', False),
+        "hasNumberPick": getattr(retailer, 'hasNumberPick', False),
+        "hasScratchBoard": getattr(retailer, 'hasScratchBoard', False),
+        "hasMagnifier": getattr(retailer, 'hasMagnifier', False),
+        "hasReadingGlasses": getattr(retailer, 'hasReadingGlasses', False),
+        "hasNewspaper": getattr(retailer, 'hasNewspaper', False),
+        "hasSportTV": getattr(retailer, 'hasSportTV', False),
+    }
+
+
+@router.put("/merchant/my-store")
+async def update_my_store(
+    data: dict,
+    admin: AdminUser = Depends(require_role(ROLE_MERCHANT, ROLE_ADMIN, ROLE_SUPER_ADMIN)),
+    db: Session = Depends(get_db),
+):
+    """更新商家自己關聯的店家（公告與設施標籤）"""
+    if not admin.retailerId:
+        raise HTTPException(status_code=404, detail="尚未關聯店家")
+        
+    retailer = db.query(Retailer).filter(Retailer.id == admin.retailerId).first()
+    if not retailer:
+        raise HTTPException(status_code=404, detail="關聯的店家記錄不存在")
+
+    allowed_fields = [
+        "announcement", "hasAC", "hasToilet", "hasSeats", "hasWifi",
+        "hasAccessibility", "hasEPay", "hasStrategy", "hasNumberPick",
+        "hasScratchBoard", "hasMagnifier", "hasReadingGlasses",
+        "hasNewspaper", "hasSportTV"
+    ]
+    for field in allowed_fields:
+        if field in data:
+            setattr(retailer, field, data[field])
+            
+    db.commit()
+    logger.info(f"商家 {admin.username} 更新了店舖資訊")
+    return {"status": "ok"}
 
