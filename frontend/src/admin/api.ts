@@ -159,6 +159,18 @@ export async function deleteAdminUser(userId: number): Promise<void> {
   await adminApi.delete(`/users/${userId}`)
 }
 
+/** 更新管理員帳號（角色、retailerId 等） */
+export async function updateAdminUser(userId: number, data: {
+  displayName?: string
+  role?: string
+  retailerId?: number | null
+  isActive?: boolean
+  expireAt?: string | null
+}): Promise<AdminUser> {
+  const res = await adminApi.put(`/users/${userId}`, data)
+  return res.data
+}
+
 /** 修改密碼 */
 export async function changeAdminPassword(oldPassword: string, newPassword: string): Promise<void> {
   await adminApi.post('/users/change-password', { oldPassword, newPassword })
