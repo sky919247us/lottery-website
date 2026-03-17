@@ -14,7 +14,7 @@ import DeleteIcon from '@mui/icons-material/Delete'
 import OpenInNewIcon from '@mui/icons-material/OpenInNew'
 import {
     fetchMyStore, updateStorePage, uploadStorePhoto,
-    deleteStorePhoto, uploadStoreBanner,
+    deleteStorePhoto, uploadStoreBanner, fetchMerchantPhotos,
 } from '../api'
 import { useAdminAuth } from '../AdminAuthContext'
 
@@ -63,16 +63,13 @@ export default function MerchantStorePage() {
             setContactPhone(data.contactPhone || '')
             setBannerUrl(data.bannerUrl || '')
 
-            // 圖片從專屬頁面 API 取得
-            if (retailerId) {
-                const { fetchStorePage } = await import('../../hooks/api')
-                try {
-                    const storeData = await fetchStorePage(retailerId)
-                    setGalleryPhotos(storeData.gallery || [])
-                    setWinningWallPhotos(storeData.winningWall || [])
-                } catch {
-                    // 若尚未開通，照片為空
-                }
+            // 圖片從後台專用 API 取得（僅 PRO 商家）
+            try {
+                const photosData = await fetchMerchantPhotos()
+                setGalleryPhotos(photosData.gallery || [])
+                setWinningWallPhotos(photosData.winningWall || [])
+            } catch {
+                // 尚無照片
             }
         } catch {
             setError('載入失敗，請重新整理')

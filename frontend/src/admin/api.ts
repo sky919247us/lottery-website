@@ -300,6 +300,18 @@ export async function deleteMerchantInventoryItem(itemId: number): Promise<void>
   await adminApi.delete(`/merchant/inventory/${itemId}`)
 }
 
+/** 取得商家自己的照片（後台專用，不受 PRO 限制） */
+export async function fetchMerchantPhotos(): Promise<{ gallery: any[]; winningWall: any[] }> {
+  const res = await adminApi.get('/merchant/photos')
+  return res.data
+}
+
+/** 取得商家自己的照片（後台專用，僅 PRO） */
+export async function fetchMerchantPhotos(): Promise<{ gallery: any[]; winningWall: any[] }> {
+  const res = await adminApi.get('/merchant/photos')
+  return res.data
+}
+
 // ─── 社群使用者管理 API ───────────────────────────────────
 
 export interface CommunityUserItem {

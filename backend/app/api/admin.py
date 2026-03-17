@@ -935,3 +935,67 @@ async def search_scratchcards_for_merchant(
     results.sort(key=lambda x: x["price"], reverse=True)
     return results[:50]
 
+
+@router.get("/merchant/photos")
+async def get_merchant_photos(
+    admin: AdminUser = Depends(require_role(ROLE_MERCHANT, ROLE_ADMIN, ROLE_SUPER_ADMIN)),
+    db: Session = Depends(get_db),
+):
+    """取得商家自己的所有圖片（僅 PRO 商家）"""
+    if not admin.retailerId:
+        raise HTTPException(status_code=404, detail="尚未關聯店家")
+
+    retailer = db.query(Retailer).filter(Retailer.id == admin.retailerId).first()
+    if not retailer or retailer.merchantTier != "pro":
+        raise HTTPException(status_code=403, detail="此功能僅限 PRO 方案商家使用")
+
+    from app.model.merchant_photo import MerchantPhoto
+
+    photos = (
+        db.query(MerchantPhoto)
+        .filter(MerchantPhoto.retailerId == admin.retailerId)
+        .order_by(MerchantPhoto.category, MerchantPhoto.sortOrder, MerchantPhoto.createdAt.desc())
+        .all()
+    )
+
+    gallery = [
+        {"id": p.id, "imageUrl": p.imageUrl, "caption": p.caption}
+        for p in photos if p.category == "gallery"
+    ]
+    winning_wall = [
+        {"id": p.id, "imageUrl": p.imageUrl, "caption": p.caption}
+        for p in photos if p.category == "winning_wall"
+    ]
+
+    return {"gallery": gallery, "winningWall": winning_wall}
+
+
+@router.get("/merchant/photos")
+async def get_merchant_photos(
+    admin: AdminUser = Depends(require_role(ROLE_MERCHANT, ROLE_ADMIN, ROLE_SUPER_ADMIN)),
+    db: Session = Depends(get_db),
+):
+    """取得商家自己的所有圖片（不受 PRO 限制，供後台編輯使用）"""
+    if not admin.retailerId:
+        raise HTTPException(status_code=404, detail="尚未關聯店家")
+
+    from app.model.merchant_photo import MerchantPhoto
+
+    photos = (
+        db.query(MerchantPhoto)
+        .filter(MerchantPhoto.retailerId == admin.retailerId)
+        .order_by(MerchantPhoto.category, MerchantPhoto.sortOrder, MerchantPhoto.createdAt.desc())
+        .all()
+    )
+
+    gallery = [
+        {"id": p.id, "imageUrl": p.imageUrl, "caption": p.caption}
+        for p in photos if p.category == "gallery"
+    ]
+    winning_wall = [
+        {"id": p.id, "imageUrl": p.imageUrl, "caption": p.caption}
+        for p in photos if p.category == "winning_wall"
+    ]
+
+    return {"gallery": gallery, "winningWall": winning_wall}
+
