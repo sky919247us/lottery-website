@@ -677,9 +677,9 @@ export default function CommunityMap() {
                     ? Math.sqrt(((b.lat - uLat) * 111) ** 2 + (((b.lng - uLng) * 111 * cosLat) ** 2))
                     : 9999
 
-                // PRO 享 5km 距離折扣（近的 PRO 更靠前，遠的 PRO 不會霸佔前排）
-                const aAdj = aDist - (a.merchantTier === 'pro' ? 5 : 0)
-                const bAdj = bDist - (b.merchantTier === 'pro' ? 5 : 0)
+                // PRO 享 10km 距離折扣（近的 PRO 更靠前，遠的 PRO 不會霸佔前排）
+                const aAdj = aDist - (a.merchantTier === 'pro' ? 10 : 0)
+                const bAdj = bDist - (b.merchantTier === 'pro' ? 10 : 0)
                 return aAdj - bAdj
             })
         } else {
