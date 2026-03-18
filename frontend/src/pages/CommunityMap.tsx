@@ -664,29 +664,23 @@ export default function CommunityMap() {
             )
         }
 
-        // 排序邏輯：有 GPS 時按距離排序，PRO 仍優先
+        // 排序邏輯：有 GPS 時按距離排序，PRO 享距離折扣
         if (userLocation && !filterCity) {
-            // 有定位且未篩選縣市：按距離排序，PRO 在同距離區間內優先
             const { lat: uLat, lng: uLng } = userLocation
+            const cosLat = Math.cos(uLat * Math.PI / 180)
             result.sort((a, b) => {
-                const aPro = a.merchantTier === 'pro' ? 1 : 0
-                const bPro = b.merchantTier === 'pro' ? 1 : 0
-
-                // 計算距離（公里）
+                // 計算實際距離（公里）
                 const aDist = a.lat && a.lng
-                    ? Math.sqrt(((a.lat - uLat) * 111) ** 2 + (((a.lng - uLng) * 111 * Math.cos(uLat * Math.PI / 180)) ** 2))
+                    ? Math.sqrt(((a.lat - uLat) * 111) ** 2 + (((a.lng - uLng) * 111 * cosLat) ** 2))
                     : 9999
                 const bDist = b.lat && b.lng
-                    ? Math.sqrt(((b.lat - uLat) * 111) ** 2 + (((b.lng - uLng) * 111 * Math.cos(uLat * Math.PI / 180)) ** 2))
+                    ? Math.sqrt(((b.lat - uLat) * 111) ** 2 + (((b.lng - uLng) * 111 * cosLat) ** 2))
                     : 9999
 
-                // PRO 店家在 30km 內優先置頂
-                const aProNearby = aPro && aDist <= 30 ? 1 : 0
-                const bProNearby = bPro && bDist <= 30 ? 1 : 0
-                if (aProNearby !== bProNearby) return bProNearby - aProNearby
-
-                // 其餘按距離排序
-                return aDist - bDist
+                // PRO 享 5km 距離折扣（近的 PRO 更靠前，遠的 PRO 不會霸佔前排）
+                const aAdj = aDist - (a.merchantTier === 'pro' ? 5 : 0)
+                const bAdj = bDist - (b.merchantTier === 'pro' ? 5 : 0)
+                return aAdj - bAdj
             })
         } else {
             // 無定位或已篩選縣市：PRO 置頂
