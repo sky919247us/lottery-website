@@ -1,10 +1,12 @@
 """
 SQLAlchemy 資料庫模型與連線設定
-使用 SQLite 作為本地開發資料庫
+支援 PostgreSQL（生產）與 SQLite（本地開發）
 """
 
+import os
 from datetime import datetime
 
+from dotenv import load_dotenv
 from sqlalchemy import (
     BigInteger,
     Boolean,
@@ -20,10 +22,16 @@ from sqlalchemy import (
 )
 from sqlalchemy.orm import DeclarativeBase, Session, relationship, sessionmaker
 
-# NOTE: 本地開發使用 SQLite，生產環境將切換至 Cloudflare D1
-DATABASE_URL = "sqlite:///./scratchcard.db"
+load_dotenv()
 
-engine = create_engine(DATABASE_URL, connect_args={"check_same_thread": False, "timeout": 15})
+DATABASE_URL = os.getenv("DATABASE_URL", "sqlite:///./scratchcard.db")
+
+# SQLite 需要特殊連線參數
+if DATABASE_URL.startswith("sqlite"):
+    engine = create_engine(DATABASE_URL, connect_args={"check_same_thread": False, "timeout": 15})
+else:
+    engine = create_engine(DATABASE_URL, pool_size=10, max_overflow=20, pool_pre_ping=True)
+
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
 
@@ -108,30 +116,32 @@ from app.model.jackpot_store import JackpotStore  # noqa: F401
 
 def _run_migrations():
     """執行增量欄位遷移（補充 create_all 不會自動新增欄位的限制）"""
+    is_sqlite = DATABASE_URL.startswith("sqlite")
     with engine.connect() as conn:
-        # admin_users.retailerId — 關聯店家 ID（新增於 2024 版本）
-        result = conn.execute(text("PRAGMA table_info(admin_users)"))
-        existing_cols = {row[1] for row in result.fetchall()}
-        if "retailerId" not in existing_cols:
-            conn.execute(text("ALTER TABLE admin_users ADD COLUMN retailerId INTEGER REFERENCES retailers(id)"))
-            conn.commit()
+        if is_sqlite:
+            # SQLite 用 PRAGMA 檢查欄位
+            result = conn.execute(text("PRAGMA table_info(admin_users)"))
+            existing_cols = {row[1] for row in result.fetchall()}
+            if "retailerId" not in existing_cols:
+                conn.execute(text("ALTER TABLE admin_users ADD COLUMN retailerId INTEGER REFERENCES retailers(id)"))
+                conn.commit()
 
-        # retailers — PRO 專屬頁面欄位
-        result = conn.execute(text("PRAGMA table_info(retailers)"))
-        existing_cols = {row[1] for row in result.fetchall()}
-        pro_columns = {
-            "tierExpireAt": "DATETIME",
-            "description": "TEXT DEFAULT ''",
-            "bannerUrl": "TEXT DEFAULT ''",
-            "contactLine": "VARCHAR(100) DEFAULT ''",
-            "contactFb": "VARCHAR(200) DEFAULT ''",
-            "contactPhone": "VARCHAR(20) DEFAULT ''",
-            "businessHours": "VARCHAR(200) DEFAULT ''",
-        }
-        for col_name, col_type in pro_columns.items():
-            if col_name not in existing_cols:
-                conn.execute(text(f"ALTER TABLE retailers ADD COLUMN {col_name} {col_type}"))
-        conn.commit()
+            result = conn.execute(text("PRAGMA table_info(retailers)"))
+            existing_cols = {row[1] for row in result.fetchall()}
+            pro_columns = {
+                "tierExpireAt": "DATETIME",
+                "description": "TEXT DEFAULT ''",
+                "bannerUrl": "TEXT DEFAULT ''",
+                "contactLine": "VARCHAR(100) DEFAULT ''",
+                "contactFb": "VARCHAR(200) DEFAULT ''",
+                "contactPhone": "VARCHAR(20) DEFAULT ''",
+                "businessHours": "VARCHAR(200) DEFAULT ''",
+            }
+            for col_name, col_type in pro_columns.items():
+                if col_name not in existing_cols:
+                    conn.execute(text(f"ALTER TABLE retailers ADD COLUMN {col_name} {col_type}"))
+            conn.commit()
+        # PostgreSQL 不需要手動遷移，create_all 會處理所有欄位
 
 
 def init_db():
