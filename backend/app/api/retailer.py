@@ -6,6 +6,7 @@
 from fastapi import APIRouter, Depends, Query
 from sqlalchemy.orm import Session
 
+from app.api.cache import get_cache, set_cache
 from app.model.database import get_db
 from app.model.retailer import Retailer
 from app.schema.retailer import RetailerResponse
@@ -22,6 +23,12 @@ def get_retailers(
     db: Session = Depends(get_db),
 ):
     """取得經銷商列表（支援篩選）"""
+    # --- 快取檢查 (TTL 120 秒) ---
+    cache_key = f"retailers:list:{city}:{source}:{search}:{has_coords}"
+    cached = get_cache(cache_key, ttl=120)
+    if cached is not None:
+        return cached
+
     query = db.query(Retailer).filter(Retailer.isActive == True)
 
     if city:
@@ -47,7 +54,12 @@ def get_retailers(
         query = query.filter(Retailer.lat.is_not(None), Retailer.lng.is_not(None))
         query = query.filter(Retailer.lat != 0, Retailer.lng != 0)
 
-    return query.order_by(Retailer.city, Retailer.district, Retailer.name).all()
+    items = query.order_by(Retailer.city, Retailer.district, Retailer.name).all()
+
+    # --- 存入快取 ---
+    set_cache(cache_key, items)
+
+    return items
 
 
 @router.get("/{retailer_id}", response_model=RetailerResponse)

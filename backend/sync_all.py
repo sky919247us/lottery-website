@@ -6,6 +6,7 @@ import os
 # 設定路徑以便匯入 app
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
+from app.api.cache import clear_cache
 from app.service.crawler_service import run_crawler
 from scripts.import_retailers import import_retailers
 
@@ -38,6 +39,10 @@ async def main():
         logger.info("Step 2 完成。")
     except Exception as e:
         logger.error(f"Step 2 失敗: {e}")
+
+    # 清除 API 快取，確保下次請求取得最新資料
+    clear_cache()
+    logger.info("已清除 API 快取。")
 
     logger.info("============== 同步程序全部結束 ==============")
 

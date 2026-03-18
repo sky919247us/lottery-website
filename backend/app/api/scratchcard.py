@@ -6,6 +6,7 @@
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session, joinedload
 
+from app.api.cache import get_cache, set_cache
 from app.model.database import Scratchcard, PrizeStructure, get_db
 from app.schema.scratchcard import ScratchcardDetail, ScratchcardListItem
 
@@ -32,6 +33,12 @@ def get_scratchcard_list(
     db: Session = Depends(get_db),
 ):
     """取得刮刮樂列表（輕量版，不含獎金結構詳情）"""
+    # --- 快取檢查 (TTL 60 秒) ---
+    cache_key = f"scratchcards:list:{sort_by}:{order}:{price}:{high_win_only}"
+    cached = get_cache(cache_key, ttl=60)
+    if cached is not None:
+        return cached
+
     # [OPTIMIZE] 移除 joinedload 避免列表 Payload 過大導致 9s 載入延遲
     query = db.query(Scratchcard)
 
@@ -58,6 +65,9 @@ def get_scratchcard_list(
     for item in items:
         if not item.overallWinRate:
             item.overallWinRate = "—"
+
+    # --- 存入快取 ---
+    set_cache(cache_key, items)
 
     return items
 

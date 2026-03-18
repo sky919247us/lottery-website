@@ -17,12 +17,12 @@ class Retailer(Base):
     id = Column(Integer, primary_key=True, autoincrement=True)
     name = Column(String(100), nullable=False, comment="投注站名稱")
     address = Column(Text, default="", comment="完整地址")
-    city = Column(String(20), default="", comment="縣市")
+    city = Column(String(20), default="", index=True, comment="縣市")
     district = Column(String(20), default="", comment="行政區")
-    source = Column(String(20), default="", comment="來源：台灣彩券 / 台灣運彩")
-    lat = Column(Float, nullable=True, comment="緯度")
-    lng = Column(Float, nullable=True, comment="經度")
-    isActive = Column(Boolean, default=True, comment="是否仍在營業")
+    source = Column(String(20), default="", index=True, comment="來源：台灣彩券 / 台灣運彩")
+    lat = Column(Float, nullable=True, index=True, comment="緯度")
+    lng = Column(Float, nullable=True, index=True, comment="經度")
+    isActive = Column(Boolean, default=True, index=True, comment="是否仍在營業")
     updatedAt = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
     # --- Phase 3：設施標籤 ---
@@ -41,8 +41,8 @@ class Retailer(Base):
     hasSportTV = Column(Boolean, default=False, comment="運彩轉播")
 
     # --- Phase 3：認領相關 ---
-    isClaimed = Column(Boolean, default=False, comment="是否已被認領")
-    merchantTier = Column(String(10), default="", comment="方案層級：basic / pro")
+    isClaimed = Column(Boolean, default=False, index=True, comment="是否已被認領")
+    merchantTier = Column(String(10), default="", index=True, comment="方案層級：basic / pro")
     tierExpireAt = Column(DateTime, nullable=True, comment="PRO 方案到期時間")
     announcement = Column(String(200), default="", comment="臨時公告文字")
 
