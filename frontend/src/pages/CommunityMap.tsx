@@ -483,6 +483,7 @@ export default function CommunityMap() {
     const [viewMode, setViewMode] = useState<'list' | 'map'>('list')
     const [heatmapPoints, setHeatmapPoints] = useState<HeatmapPoint[]>([])
     const [showOnlyJackpot, setShowOnlyJackpot] = useState(false)
+    const [userLocation, setUserLocation] = useState<{ lat: number; lng: number } | null>(null)
 
     // 點擊次數追蹤
     const handleRetailerClick = useCallback((retailerId: number) => {
@@ -533,6 +534,8 @@ export default function CommunityMap() {
 
             // 階段 1：嘗試取得用戶位置 + 載入附近商家
             let nearbyIds: Set<number> = new Set()
+            let userLat: number | null = null
+            let userLng: number | null = null
 
             try {
                 const pos = await new Promise<GeolocationPosition>((resolve, reject) => {
@@ -543,8 +546,9 @@ export default function CommunityMap() {
                     })
                 })
 
-                const userLat = pos.coords.latitude
-                const userLng = pos.coords.longitude
+                userLat = pos.coords.latitude
+                userLng = pos.coords.longitude
+                setUserLocation({ lat: userLat, lng: userLng })
 
                 // 載入附近商家
                 const nearbyData = await fetchNearbyRetailers(userLat, userLng, 10, 100)
@@ -660,12 +664,38 @@ export default function CommunityMap() {
             )
         }
 
-        // Pro 店家置頂排序
-        result.sort((a, b) => {
-            const aPro = a.merchantTier === 'pro' ? 1 : 0
-            const bPro = b.merchantTier === 'pro' ? 1 : 0
-            return bPro - aPro
-        })
+        // 排序邏輯：有 GPS 時按距離排序，PRO 仍優先
+        if (userLocation && !filterCity) {
+            // 有定位且未篩選縣市：按距離排序，PRO 在同距離區間內優先
+            const { lat: uLat, lng: uLng } = userLocation
+            result.sort((a, b) => {
+                const aPro = a.merchantTier === 'pro' ? 1 : 0
+                const bPro = b.merchantTier === 'pro' ? 1 : 0
+
+                // 計算距離（公里）
+                const aDist = a.lat && a.lng
+                    ? Math.sqrt(((a.lat - uLat) * 111) ** 2 + (((a.lng - uLng) * 111 * Math.cos(uLat * Math.PI / 180)) ** 2))
+                    : 9999
+                const bDist = b.lat && b.lng
+                    ? Math.sqrt(((b.lat - uLat) * 111) ** 2 + (((b.lng - uLng) * 111 * Math.cos(uLat * Math.PI / 180)) ** 2))
+                    : 9999
+
+                // PRO 店家在 30km 內優先置頂
+                const aProNearby = aPro && aDist <= 30 ? 1 : 0
+                const bProNearby = bPro && bDist <= 30 ? 1 : 0
+                if (aProNearby !== bProNearby) return bProNearby - aProNearby
+
+                // 其餘按距離排序
+                return aDist - bDist
+            })
+        } else {
+            // 無定位或已篩選縣市：PRO 置頂
+            result.sort((a, b) => {
+                const aPro = a.merchantTier === 'pro' ? 1 : 0
+                const bPro = b.merchantTier === 'pro' ? 1 : 0
+                return bPro - aPro
+            })
+        }
 
         // 僅顯示頭獎商家
         if (showOnlyJackpot) {
@@ -673,7 +703,7 @@ export default function CommunityMap() {
         }
 
         return result
-    }, [retailers, search, filterCity, filterDistrict, filterSource, activeTags, showOnlyJackpot])
+    }, [retailers, search, filterCity, filterDistrict, filterSource, activeTags, showOnlyJackpot, userLocation])
 
     /** 各縣市統計 */
     const cityStats = useMemo(() => {
