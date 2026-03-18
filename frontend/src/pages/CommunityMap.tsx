@@ -19,7 +19,7 @@ import {
 } from 'lucide-react'
 import { Link } from 'react-router-dom'
 import {
-    fetchRetailers, fetchCheckins, createCheckin,
+    fetchRetailers, fetchNearbyRetailers, fetchCheckins, createCheckin,
     fetchInventory, reportInventory, fetchMerchantOfficialInventory,
     fetchFestivalStatus, fetchHeatmap, searchScratchcardsPublic,
     recordRetailerClick,
@@ -531,8 +531,31 @@ export default function CommunityMap() {
         try {
             setLoadingRetailers(true)
 
-            // NOTE: 使用 Promise.allSettled 取代 Promise.all
-            // 確保任何一個 API 失敗時，不會連帶清空其他已成功取得的資料
+            // 階段 1：嘗試取得用戶位置 + 載入附近商家
+            let nearbyIds: Set<number> = new Set()
+
+            try {
+                const pos = await new Promise<GeolocationPosition>((resolve, reject) => {
+                    navigator.geolocation.getCurrentPosition(resolve, reject, {
+                        timeout: 5000,
+                        enableHighAccuracy: false,
+                        maximumAge: 300000, // 5 分鐘快取
+                    })
+                })
+
+                const userLat = pos.coords.latitude
+                const userLng = pos.coords.longitude
+
+                // 載入附近商家
+                const nearbyData = await fetchNearbyRetailers(userLat, userLng, 10, 100)
+                setRetailers(nearbyData)
+                nearbyIds = new Set(nearbyData.map(r => r.id))
+                setLoadingRetailers(false) // 附近資料已載入，先讓用戶看到
+            } catch {
+                // GPS 失敗或附近載入失敗，跳過附近載入
+            }
+
+            // 階段 2：背景載入其餘資料
             const [retResult, chkResult, festResult, heatResult] = await Promise.allSettled([
                 fetchRetailers(),
                 fetchCheckins(),
@@ -542,14 +565,17 @@ export default function CommunityMap() {
 
             // 經銷商資料（核心）：若失敗則重試一次
             if (retResult.status === 'fulfilled') {
-                setRetailers(retResult.value)
+                setRetailers(retResult.value) // 用全部資料覆蓋
             } else {
                 // 重試一次
                 try {
                     const retryData = await fetchRetailers()
                     setRetailers(retryData)
                 } catch {
-                    setRetailers([])
+                    // 如果全部載入失敗但附近載入成功，保留附近資料
+                    if (nearbyIds.size === 0) {
+                        setRetailers([])
+                    }
                 }
             }
 

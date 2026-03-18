@@ -170,8 +170,24 @@ export async function fetchRetailers(params?: {
     source?: string
     search?: string
     has_coords?: boolean
+    exclude_ids?: string
 }): Promise<RetailerData[]> {
     const { data } = await api.get('/api/retailers', { params })
+    return data
+}
+
+/**
+ * 取得附近經銷商（依距離排序）
+ */
+export async function fetchNearbyRetailers(
+    lat: number,
+    lng: number,
+    radiusKm?: number,
+    limit?: number
+): Promise<RetailerData[]> {
+    const { data } = await api.get('/api/retailers/nearby', {
+        params: { lat, lng, radius_km: radiusKm || 5, limit: limit || 50 },
+    })
     return data
 }
 
