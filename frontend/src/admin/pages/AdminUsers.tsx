@@ -204,6 +204,12 @@ export default function AdminUsers() {
         </Box>
       )
     },
+    {
+      field: 'customNickname',
+      headerName: '暱稱',
+      width: 130,
+      renderCell: (params) => params.value || '—'
+    },
     { field: 'karmaLevel', headerName: '等級', width: 80, renderCell: (params) => `Lv.${params.value}` },
     { 
       field: 'levelTitle', 
