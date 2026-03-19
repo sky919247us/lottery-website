@@ -91,6 +91,47 @@ export default function MerchantClaimForm() {
         目前認領申請為人工審核，請準備清晰之「彩券經銷商證」與「代理人證」照片。
       </Typography>
 
+      <Card sx={{ p: 3, mb: 3 }}>
+        <form onSubmit={handleSubmit}>
+          <Typography variant="subtitle2" fontWeight={600} mb={1}>基本聯絡資訊</Typography>
+          <TextField
+            fullWidth size="small" label="真實姓名"
+            value={contactName} onChange={e => setContactName(e.target.value)}
+            sx={{ mb: 2 }} required
+          />
+          <TextField
+            fullWidth size="small" label="聯絡電話"
+            value={contactPhone} onChange={e => setContactPhone(e.target.value)}
+            sx={{ mb: 3 }} required
+            helperText="請填寫方便核對資料之電話"
+          />
+
+          <Typography variant="subtitle2" fontWeight={600} mb={1}>驗證文件上傳</Typography>
+          <Alert severity="info" sx={{ mb: 2 }}>照片僅做身份查驗之用，我們不會對外公開您的證件資料。</Alert>
+
+          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2, mb: 3 }}>
+            <Button variant="outlined" component="label" startIcon={<CloudUpload />}>
+              {licenseImage ? licenseImage.name : '上傳「彩券經銷商證」照片'}
+              <input type="file" hidden accept="image/jpeg, image/png" onChange={e => handleFileChange(e, setLicenseImage)} />
+            </Button>
+
+            <Button variant="outlined" component="label" startIcon={<CloudUpload />}>
+              {idCardImage ? idCardImage.name : '上傳「代理人證」正面照片'}
+              <input type="file" hidden accept="image/jpeg, image/png" onChange={e => handleFileChange(e, setIdCardImage)} />
+            </Button>
+          </Box>
+
+          <Button
+            variant="contained"
+            fullWidth
+            type="submit"
+            disabled={submitting || !licenseImage || !idCardImage}
+          >
+            {submitting ? <CircularProgress size={24} color="inherit" /> : '確認並送出申請'}
+          </Button>
+        </form>
+      </Card>
+
       {/* ===== 服務方案說明（金流審核必要資訊） ===== */}
       <Card sx={{ p: 3, mb: 3, border: '1px solid #e0c060', bgcolor: '#fffdf0' }}>
         <Typography variant="h6" fontWeight={700} mb={0.5} display="flex" alignItems="center" gap={1}>
@@ -161,48 +202,6 @@ export default function MerchantClaimForm() {
         </Typography>
       </Card>
 
-      <Card sx={{ p: 3 }}>
-        <form onSubmit={handleSubmit}>
-          <Typography variant="subtitle2" fontWeight={600} mb={1}>基本聯絡資訊</Typography>
-          <TextField 
-            fullWidth size="small" label="真實姓名" 
-            value={contactName} onChange={e => setContactName(e.target.value)}
-            sx={{ mb: 2 }} required
-          />
-          <TextField 
-            fullWidth size="small" label="聯絡電話" 
-            value={contactPhone} onChange={e => setContactPhone(e.target.value)}
-            sx={{ mb: 3 }} required
-            helperText="請填寫方便核對資料之電話"
-          />
-
-          <Typography variant="subtitle2" fontWeight={600} mb={1}>驗證文件上傳</Typography>
-          <Alert severity="info" sx={{ mb: 2 }}>照片僅做身份查驗之用，我們不會對外公開您的證件資料。</Alert>
-          
-          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2, mb: 3 }}>
-            <Button variant="outlined" component="label" startIcon={<CloudUpload />}>
-              {licenseImage ? licenseImage.name : '上傳「彩券經銷商證」照片'}
-              <input type="file" hidden accept="image/jpeg, image/png" onChange={e => handleFileChange(e, setLicenseImage)} />
-            </Button>
-            
-            <Button variant="outlined" component="label" startIcon={<CloudUpload />}>
-              {idCardImage ? idCardImage.name : '上傳「代理人證」正面照片'}
-              <input type="file" hidden accept="image/jpeg, image/png" onChange={e => handleFileChange(e, setIdCardImage)} />
-            </Button>
-          </Box>
-
-          <Button 
-            variant="contained" 
-            fullWidth 
-            type="submit" 
-            disabled={submitting || !licenseImage || !idCardImage}
-          >
-            {submitting ? <CircularProgress size={24} color="inherit" /> : '確認並送出申請'}
-          </Button>
-
-        </form>
-      </Card>
-      
       {/* 僅當表單填寫完畢才顯示 LINE 客服，避免被濫用 */}
       {(contactName.trim() && contactPhone.trim() && licenseImage && idCardImage) ? (
         <Box sx={{ mt: 3, pt: 3, borderTop: '1px solid #eee', textAlign: 'center' }}>
