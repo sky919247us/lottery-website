@@ -213,7 +213,7 @@ async def get_dashboard_stats(
     from app.model.merchant import MerchantClaim
     from datetime import datetime, timedelta
 
-    from app.model.scratchcard import Scratchcard
+    from app.model.database import Scratchcard
 
     total_retailers = db.query(Retailer).count()
     active_retailers = db.query(Retailer).filter(Retailer.isActive.is_(True)).count()
