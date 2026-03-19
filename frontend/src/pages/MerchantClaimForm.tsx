@@ -117,7 +117,7 @@ export default function MerchantClaimForm() {
               { feature: '維護店家基本資訊', free: true, pro: true },
               { feature: '設施標籤管理（冷氣/座位/Wi-Fi…）', free: true, pro: true },
               { feature: '庫存即時更新（顧客可查詢）', free: true, pro: true },
-              { feature: '發布店家公告', free: true, pro: true },
+              { feature: '發布店家公告', free: false, pro: true },
               { feature: '地圖排序加權（PRO 優先顯示）', free: false, pro: true },
               { feature: '店家列表置頂（PRO 標章）', free: false, pro: true },
               { feature: '搜尋結果優先排序', free: false, pro: true },
