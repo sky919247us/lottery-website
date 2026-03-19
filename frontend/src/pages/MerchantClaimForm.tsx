@@ -1,8 +1,11 @@
 import { useState } from 'react'
 import type { FormEvent } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
-import { Box, Typography, Card, TextField, Button, CircularProgress, Alert } from '@mui/material'
+import { Box, Typography, Card, TextField, Button, CircularProgress, Alert, Chip, Divider, Table, TableBody, TableCell, TableHead, TableRow } from '@mui/material'
 import CloudUpload from '@mui/icons-material/CloudUpload'
+import CheckCircleIcon from '@mui/icons-material/CheckCircle'
+import CancelIcon from '@mui/icons-material/Cancel'
+import StarIcon from '@mui/icons-material/Star'
 import { useSnackbar } from 'notistack'
 import { useAuth } from '../hooks/useAuth'
 import { submitMerchantClaim, uploadImage, fetchRetailers } from '../hooks/api'
@@ -81,12 +84,82 @@ export default function MerchantClaimForm() {
   }
 
   return (
-    <Box sx={{ maxWidth: 600, mx: 'auto', p: 2, pt: { xs: 10, md: 12 } }}>
+    <Box sx={{ maxWidth: 680, mx: 'auto', p: 2, pt: { xs: 10, md: 12 } }}>
       <Typography variant="h5" fontWeight={700} mb={1}>商家認領申請</Typography>
       <Typography variant="body2" color="text.secondary" mb={3}>
         認領後您將可以維護「{currentStore?.name || '此店家'}」的精確資訊，包含發布公告、調整設施與即時上報庫存狀況。
         目前認領申請為人工審核，請準備清晰之「彩券經銷商證」與「代理人證」照片。
       </Typography>
+
+      {/* ===== 服務方案說明（金流審核必要資訊） ===== */}
+      <Card sx={{ p: 3, mb: 3, border: '1px solid #e0c060', bgcolor: '#fffdf0' }}>
+        <Typography variant="h6" fontWeight={700} mb={0.5} display="flex" alignItems="center" gap={1}>
+          <StarIcon sx={{ color: '#c8a000', fontSize: 22 }} />
+          刮刮研究室 商家服務方案
+        </Typography>
+        <Typography variant="body2" color="text.secondary" mb={2}>
+          刮刮研究室為台灣刮刮樂投注站資訊平台，提供彩券行業者在平台上管理店家資訊、展示庫存及行銷宣傳的訂閱服務。
+        </Typography>
+
+        <Table size="small" sx={{ mb: 2 }}>
+          <TableHead>
+            <TableRow sx={{ bgcolor: '#f5f5f5' }}>
+              <TableCell sx={{ fontWeight: 700 }}>功能項目</TableCell>
+              <TableCell align="center" sx={{ fontWeight: 700 }}>一般認領（免費）</TableCell>
+              <TableCell align="center" sx={{ fontWeight: 700, color: '#b8860b' }}>
+                PRO 專業版（訂閱）
+              </TableCell>
+            </TableRow>
+          </TableHead>
+          <TableBody>
+            {[
+              { feature: '在地圖與列表上顯示店家', free: true, pro: true },
+              { feature: '維護店家基本資訊', free: true, pro: true },
+              { feature: '設施標籤管理（冷氣/座位/Wi-Fi…）', free: true, pro: true },
+              { feature: '庫存即時更新（顧客可查詢）', free: true, pro: true },
+              { feature: '發布店家公告', free: true, pro: true },
+              { feature: '地圖排序加權（PRO 優先顯示）', free: false, pro: true },
+              { feature: '店家列表置頂（PRO 標章）', free: false, pro: true },
+              { feature: '搜尋結果優先排序', free: false, pro: true },
+              { feature: '中獎戰績照片上傳（最多 10 張）', free: false, pro: true },
+              { feature: '店內環境相冊（最多 10 張）', free: false, pro: true },
+              { feature: '專屬店家頁面（完整品牌展示）', free: false, pro: true },
+              { feature: '橫幅 Banner 圖片上傳', free: false, pro: true },
+              { feature: '店家簡介文字', free: false, pro: true },
+              { feature: 'LINE / Facebook / 電話 聯絡資訊展示', free: false, pro: true },
+            ].map((row, i) => (
+              <TableRow key={i} sx={{ '&:hover': { bgcolor: '#fafafa' } }}>
+                <TableCell>{row.feature}</TableCell>
+                <TableCell align="center">
+                  {row.free
+                    ? <CheckCircleIcon sx={{ color: '#4caf50', fontSize: 20 }} />
+                    : <CancelIcon sx={{ color: '#ccc', fontSize: 20 }} />}
+                </TableCell>
+                <TableCell align="center">
+                  {row.pro
+                    ? <CheckCircleIcon sx={{ color: '#c8a000', fontSize: 20 }} />
+                    : <CancelIcon sx={{ color: '#ccc', fontSize: 20 }} />}
+                </TableCell>
+              </TableRow>
+            ))}
+          </TableBody>
+        </Table>
+
+        <Divider sx={{ mb: 2 }} />
+        <Box sx={{ display: 'flex', gap: 2, flexWrap: 'wrap', alignItems: 'center' }}>
+          <Box>
+            <Chip label="一般認領" size="small" sx={{ mr: 1 }} />
+            <Typography component="span" variant="body2" color="text.secondary">永久免費</Typography>
+          </Box>
+          <Box>
+            <Chip label="PRO 專業版" size="small" sx={{ bgcolor: '#c8a000', color: '#fff', mr: 1 }} icon={<StarIcon sx={{ color: '#fff !important', fontSize: 16 }} />} />
+            <Typography component="span" variant="body2" fontWeight={600}>月繳訂閱制（金額請洽客服）</Typography>
+          </Box>
+        </Box>
+        <Typography variant="caption" color="text.secondary" display="block" mt={1}>
+          ※ PRO 訂閱費用為數位行銷服務費，透過 PAYUNi 金流平台收款。訂閱後可隨時取消，不強制續約。
+        </Typography>
+      </Card>
 
       <Card sx={{ p: 3 }}>
         <form onSubmit={handleSubmit}>
