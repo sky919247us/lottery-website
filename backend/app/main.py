@@ -125,10 +125,10 @@ def on_startup():
     finally:
         db.close()
 
-    # 每日凌晨 4:00 自動執行爬蟲
+    # 每日台灣早上 9:00 (UTC 1:00) 自動執行爬蟲
     scheduler.add_job(
         _run_crawler_job,
-        trigger=CronTrigger(hour=4, minute=0),
+        trigger=CronTrigger(hour=1, minute=0),
         id="daily_crawler",
         replace_existing=True,
     )
@@ -148,7 +148,7 @@ def on_startup():
     )
 
     scheduler.start()
-    logger.info("⏰ APScheduler 已啟動，每日 08:00 自動爬取")
+    logger.info("⏰ APScheduler 已啟動，每日 09:00 (台灣時間) 自動爬取")
 
 
 @app.on_event("shutdown")
