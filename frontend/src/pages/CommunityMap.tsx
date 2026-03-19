@@ -46,6 +46,7 @@ L.Icon.Default.mergeOptions({
 })
 
 import { useUser } from '../hooks/useUser'
+import { useAuth } from '../hooks/useAuth'
 import './CommunityMap.css'
 
 /** 22 縣市列表 */
@@ -468,6 +469,7 @@ function ClusteredMarkers({
 export default function CommunityMap() {
     // 使用者 Karma
     const { user } = useUser()
+    const { isLoggedIn, loginWithLine } = useAuth()
 
     // 經銷商
     const [retailers, setRetailers] = useState<RetailerData[]>([])
@@ -522,7 +524,12 @@ export default function CommunityMap() {
     const [festival, setFestival] = useState<FestivalStatus | null>(null)
 
     // 評分 Modal
-    const [ratingRetailer, setRatingRetailer] = useState<RetailerData | null>(null)
+    const [ratingRetailer, setRatingRetailerRaw] = useState<RetailerData | null>(null)
+    /** 開啟評分（需登入） */
+    function setRatingRetailer(r: RetailerData | null) {
+        if (r && !isLoggedIn) { loginWithLine(); return }
+        setRatingRetailerRaw(r)
+    }
 
     useEffect(() => {
         loadData()
@@ -736,6 +743,7 @@ export default function CommunityMap() {
 
     /** 打卡送出 */
     async function handleSubmit() {
+        if (!isLoggedIn) { loginWithLine(); return }
         if (!city || !amount) return
         setSubmitting(true)
         try {
@@ -757,6 +765,7 @@ export default function CommunityMap() {
 
     /** 開啟庫存回報面板 */
     function openInventoryReport(r: RetailerData) {
+        if (!isLoggedIn) { loginWithLine(); return }
         setInventoryRetailer(r)
         setInventoryItem('')
         setInventoryStatus('')
@@ -954,7 +963,10 @@ export default function CommunityMap() {
                         {/* 打卡按鈕 */}
                         <button
                             className="community-map__checkin-toggle"
-                            onClick={() => setShowCheckin(!showCheckin)}
+                            onClick={() => {
+                                if (!isLoggedIn) { loginWithLine(); return }
+                                setShowCheckin(!showCheckin)
+                            }}
                         >
                             <Send size={16} />
                             中獎打卡
