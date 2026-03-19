@@ -153,7 +153,7 @@ export default function MerchantClaimForm() {
           </Box>
           <Box>
             <Chip label="PRO 專業版" size="small" sx={{ bgcolor: '#c8a000', color: '#fff', mr: 1 }} icon={<StarIcon sx={{ color: '#fff !important', fontSize: 16 }} />} />
-            <Typography component="span" variant="body2" fontWeight={600}>年費 NT$1,680（每月 NT$140）</Typography>
+            <Typography component="span" variant="body2" fontWeight={600}>年費 NT$1,680</Typography>
           </Box>
         </Box>
         <Typography variant="caption" color="text.secondary" display="block" mt={1}>
