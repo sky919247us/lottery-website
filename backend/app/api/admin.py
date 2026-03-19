@@ -213,14 +213,27 @@ async def get_dashboard_stats(
     from app.model.merchant import MerchantClaim
     from datetime import datetime, timedelta
 
+    from app.model.scratchcard import Scratchcard
+
     total_retailers = db.query(Retailer).count()
-    active_retailers = db.query(Retailer).filter(Retailer.isActive == True).count()
-    claimed_retailers = db.query(Retailer).filter(Retailer.isClaimed == True).count()
-    
+    active_retailers = db.query(Retailer).filter(Retailer.isActive.is_(True)).count()
+    claimed_retailers = db.query(Retailer).filter(Retailer.isClaimed.is_(True)).count()
+
+    # 台灣彩券 / 台灣運彩 分類統計
+    lottery_retailers = db.query(Retailer).filter(
+        Retailer.source == "台灣彩券", Retailer.isActive.is_(True)
+    ).count()
+    sports_retailers = db.query(Retailer).filter(
+        Retailer.source == "台灣運彩", Retailer.isActive.is_(True)
+    ).count()
+
+    # 刮刮樂款式數
+    total_scratchcards = db.query(Scratchcard).count()
+
     total_users = db.query(User).count()
     total_claims = db.query(MerchantClaim).count()
     pending_claims = db.query(MerchantClaim).filter(MerchantClaim.status == "pending").count()
-    
+
     # 庫存回報數 (近 7 天)
     week_ago = datetime.now() - timedelta(days=7)
     recent_reports = db.query(InventoryReport).filter(InventoryReport.createdAt >= week_ago).count()
@@ -229,6 +242,9 @@ async def get_dashboard_stats(
         "totalRetailers": total_retailers,
         "activeRetailers": active_retailers,
         "claimedRetailers": claimed_retailers,
+        "twLotteryCount": lottery_retailers,
+        "sportsLotteryCount": sports_retailers,
+        "totalScratchcards": total_scratchcards,
         "totalUsers": total_users,
         "pendingClaims": pending_claims,
         "totalClaims": total_claims,
