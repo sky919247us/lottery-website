@@ -132,17 +132,17 @@ def on_startup():
         id="daily_crawler",
         replace_existing=True,
     )
-    # 每天凌晨 2:00 自動執行頭獎店家同步
+    # 每天台灣凌晨 3:00 (UTC 19:00) 自動執行頭獎店家同步
     scheduler.add_job(
         sync_jackpot_stores,
-        trigger=CronTrigger(hour=2, minute=0),
+        trigger=CronTrigger(hour=19, minute=0),
         id="daily_jackpot_sync",
         replace_existing=True,
     )
-    # 每天凌晨 3:00 自動執行資料庫備份
+    # 每天台灣凌晨 4:00 (UTC 20:00) 自動執行資料庫備份
     scheduler.add_job(
         _run_backup_job,
-        trigger=CronTrigger(hour=3, minute=0),
+        trigger=CronTrigger(hour=20, minute=0),
         id="daily_db_backup",
         replace_existing=True,
     )
