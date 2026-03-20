@@ -33,8 +33,8 @@ class CloudflareAnalyticsService:
                 filter: { date_geq: $start, date_leq: $end }
                 orderBy: [date_ASC]
               ) {
-                dimensions { date clientCountryName }
-                sum { requests pageViews }
+                dimensions { date }
+                sum { requests pageViews countryMap { clientCountryName requests } }
                 uniq { uniques }
               }
             }
@@ -73,7 +73,6 @@ class CloudflareAnalyticsService:
 
                 for row in rows:
                     date = row["dimensions"]["date"]
-                    country = row["dimensions"].get("clientCountryName") or "Unknown"
                     requests = row["sum"].get("requests", 0)
                     pageviews = row["sum"].get("pageViews", 0)
                     uniques = row.get("uniq", {}).get("uniques", 0)
@@ -82,7 +81,10 @@ class CloudflareAnalyticsService:
                     daily_map[date]["pageviews"] += pageviews
                     daily_map[date]["requests"] += requests
 
-                    country_map[country] += requests
+                    # 國家統計從 countryMap 取得
+                    for cm in row["sum"].get("countryMap", []):
+                        name = cm.get("clientCountryName") or "Unknown"
+                        country_map[name] += cm.get("requests", 0)
 
                 daily = [
                     {"date": k, **v}
