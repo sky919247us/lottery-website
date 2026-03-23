@@ -191,6 +191,31 @@ export async function fetchNearbyRetailers(
     return data
 }
 
+/** 地圖標記輕量資料 */
+export interface MapMarkerData {
+    id: number
+    name: string
+    lat: number | null
+    lng: number | null
+    city: string
+    district: string
+    source: string
+    address: string
+    isClaimed: boolean
+    merchantTier: string
+    jackpotCount: number
+}
+
+/**
+ * 取得地圖標記（輕量端點，只回傳地圖必要欄位）
+ */
+export async function fetchMapMarkers(bounds?: string): Promise<MapMarkerData[]> {
+    const { data } = await api.get('/api/retailers/map-markers', {
+        params: bounds ? { bounds } : {},
+    })
+    return data
+}
+
 /* === 使用者 & Karma (Phase 2) === */
 
 /** 使用者資料（LINE 登入） */

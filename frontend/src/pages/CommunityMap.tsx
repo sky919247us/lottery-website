@@ -22,9 +22,9 @@ import {
     fetchRetailers, fetchNearbyRetailers, fetchCheckins, createCheckin,
     fetchInventory, reportInventory, fetchMerchantOfficialInventory,
     fetchFestivalStatus, fetchHeatmap, searchScratchcardsPublic,
-    recordRetailerClick,
+    recordRetailerClick, fetchMapMarkers,
     type RetailerData, type CheckinData, type InventoryItem, type MerchantInventoryData,
-    type FestivalStatus, type HeatmapPoint, type ScratchcardSearchItem
+    type FestivalStatus, type HeatmapPoint, type ScratchcardSearchItem, type MapMarkerData
 } from '../hooks/api'
 
 import { MapContainer, TileLayer, Marker, Popup } from 'react-leaflet'
@@ -108,6 +108,44 @@ const LEVEL_COLORS = [
 
 /** 每頁顯示筆數 */
 const PAGE_SIZE = 50
+
+/** localStorage 快取 — 地圖標記 */
+const MAP_CACHE_KEY = 'map_markers_cache'
+const MAP_CACHE_TTL = 5 * 60 * 1000 // 5 分鐘
+
+function getCachedMarkers(): RetailerData[] | null {
+    try {
+        const raw = localStorage.getItem(MAP_CACHE_KEY)
+        if (!raw) return null
+        const { ts, data } = JSON.parse(raw)
+        if (Date.now() - ts > MAP_CACHE_TTL) {
+            localStorage.removeItem(MAP_CACHE_KEY)
+            return null
+        }
+        return data
+    } catch {
+        return null
+    }
+}
+
+function setCachedMarkers(data: RetailerData[]) {
+    try {
+        localStorage.setItem(MAP_CACHE_KEY, JSON.stringify({ ts: Date.now(), data }))
+    } catch { /* quota exceeded — 忽略 */ }
+}
+
+/** 將輕量 MapMarkerData 轉為 RetailerData（設施標籤預設 false） */
+function markerToRetailer(m: MapMarkerData): RetailerData {
+    return {
+        ...m,
+        isActive: true,
+        hasAC: false, hasToilet: false, hasSeats: false, hasWifi: false,
+        hasAccessibility: false, hasEPay: false, hasStrategy: false,
+        hasNumberPick: false, hasScratchBoard: false, hasMagnifier: false,
+        hasReadingGlasses: false, hasNewspaper: false, hasSportTV: false,
+        announcement: '',
+    }
+}
 
 /** 統一縣市字眼（將「臺」替換為「台」） */
 function normalizeCity(city: string): string {
@@ -474,6 +512,8 @@ export default function CommunityMap() {
     // 經銷商
     const [retailers, setRetailers] = useState<RetailerData[]>([])
     const [loadingRetailers, setLoadingRetailers] = useState(true)
+    const [fullDataLoaded, setFullDataLoaded] = useState(false)
+    const [loadingFullData, setLoadingFullData] = useState(false)
     const [search, setSearch] = useState('')
     const [filterCity, setFilterCity] = useState('')
     const [filterDistrict, setFilterDistrict] = useState('')
@@ -539,74 +579,86 @@ export default function CommunityMap() {
         try {
             setLoadingRetailers(true)
 
-            // 階段 1：嘗試取得用戶位置 + 載入附近商家
-            let nearbyIds: Set<number> = new Set()
+            // ===== 第 0 階段：localStorage 快取 → 秒開 =====
+            const cached = getCachedMarkers()
+            if (cached && cached.length > 0) {
+                setRetailers(cached)
+                setLoadingRetailers(false) // 先用快取資料顯示
+            }
+
+            // ===== 第 1 階段：GPS 定位（非阻塞，最多等 3 秒）=====
             let userLat: number | null = null
             let userLng: number | null = null
-
             try {
                 const pos = await new Promise<GeolocationPosition>((resolve, reject) => {
                     navigator.geolocation.getCurrentPosition(resolve, reject, {
-                        timeout: 5000,
+                        timeout: 3000,
                         enableHighAccuracy: false,
-                        maximumAge: 300000, // 5 分鐘快取
+                        maximumAge: 300000,
                     })
                 })
-
                 userLat = pos.coords.latitude
                 userLng = pos.coords.longitude
                 setUserLocation({ lat: userLat, lng: userLng })
-
-                // 載入附近商家
-                const nearbyData = await fetchNearbyRetailers(userLat, userLng, 10, 100)
-                setRetailers(nearbyData)
-                nearbyIds = new Set(nearbyData.map(r => r.id))
-                setLoadingRetailers(false) // 附近資料已載入，先讓用戶看到
             } catch {
-                // GPS 失敗或附近載入失敗，跳過附近載入
+                // GPS 失敗，繼續
             }
 
-            // 階段 2：背景載入其餘資料
-            const [retResult, chkResult, festResult, heatResult] = await Promise.allSettled([
-                fetchRetailers(),
+            // ===== 第 2 階段：輕量地圖標記 + 次要資料（並行）=====
+            const [markersResult, chkResult, festResult, heatResult] = await Promise.allSettled([
+                fetchMapMarkers(),
                 fetchCheckins(),
                 fetchFestivalStatus(),
                 fetchHeatmap(),
             ])
 
-            // 經銷商資料（核心）：若失敗則重試一次
-            if (retResult.status === 'fulfilled') {
-                setRetailers(retResult.value) // 用全部資料覆蓋
-            } else {
-                // 重試一次
-                try {
-                    const retryData = await fetchRetailers()
-                    setRetailers(retryData)
-                } catch {
-                    // 如果全部載入失敗但附近載入成功，保留附近資料
-                    if (nearbyIds.size === 0) {
-                        setRetailers([])
-                    }
+            // 地圖標記（核心）
+            if (markersResult.status === 'fulfilled') {
+                const converted = markersResult.value.map(markerToRetailer)
+
+                // 若有 GPS，按距離排序（PRO 優先）
+                if (userLat !== null && userLng !== null) {
+                    const uLat = userLat, uLng = userLng
+                    converted.sort((a, b) => {
+                        if (!a.lat || !a.lng) return 1
+                        if (!b.lat || !b.lng) return -1
+                        const aDist = Math.sqrt(
+                            Math.pow((a.lat - uLat) * 111, 2) +
+                            Math.pow((a.lng - uLng) * 111 * Math.cos(uLat * Math.PI / 180), 2)
+                        )
+                        const bDist = Math.sqrt(
+                            Math.pow((b.lat - uLat) * 111, 2) +
+                            Math.pow((b.lng - uLng) * 111 * Math.cos(uLat * Math.PI / 180), 2)
+                        )
+                        const aAdj = aDist - (a.merchantTier === 'pro' ? 10 : 0)
+                        const bAdj = bDist - (b.merchantTier === 'pro' ? 10 : 0)
+                        return aAdj - bAdj
+                    })
                 }
+
+                setRetailers(converted)
+                setCachedMarkers(converted) // 存入 localStorage
             }
 
-            // 打卡紀錄（次要）：失敗不影響核心功能
+            // 打卡紀錄（次要）
             if (chkResult.status === 'fulfilled') {
                 setCheckins(chkResult.value)
             }
 
-            // 節慶狀態（選用）：失敗不影響核心功能
+            // 節慶狀態（選用）
             if (festResult.status === 'fulfilled' && festResult.value) {
                 setFestival(festResult.value)
             }
 
-            // 熱力圖資料（選用）：失敗不影響核心功能
+            // 熱力圖資料（選用）
             if (heatResult.status === 'fulfilled') {
                 setHeatmapPoints(heatResult.value)
             }
 
-            // 預載認領店家的官方庫存（使用成功取得的經銷商資料）
-            const retData = retResult.status === 'fulfilled' ? retResult.value : []
+            // 預載認領店家的官方庫存
+            const retData = markersResult.status === 'fulfilled'
+                ? markersResult.value.map(markerToRetailer)
+                : []
             const claimedIds = retData.filter(r => r.isClaimed).map(r => r.id)
             if (claimedIds.length > 0) {
                 claimedIds.slice(0, 20).forEach(async (id) => {
@@ -617,7 +669,6 @@ export default function CommunityMap() {
                 })
             }
         } catch {
-            // 極端情況：Promise.allSettled 本身不會拋錯，此為最終保險
             setRetailers([])
             setCheckins([])
         } finally {
@@ -735,10 +786,28 @@ export default function CommunityMap() {
     }
 
     /** 切換設施標籤篩選 */
+    /** 當用戶啟用設施標籤篩選時，按需載入完整資料 */
+    async function loadFullDataIfNeeded() {
+        if (fullDataLoaded || loadingFullData) return
+        setLoadingFullData(true)
+        try {
+            const fullData = await fetchRetailers({ has_coords: true })
+            setRetailers(fullData)
+            setFullDataLoaded(true)
+            setCachedMarkers(fullData) // 升級 localStorage 快取
+        } catch {
+            // 載入失敗，保留輕量資料
+        } finally {
+            setLoadingFullData(false)
+        }
+    }
+
     function toggleTag(tag: string) {
         setActiveTags(prev =>
             prev.includes(tag) ? prev.filter(t => t !== tag) : [...prev, tag]
         )
+        // 啟用標籤篩選時，載入包含設施欄位的完整資料
+        loadFullDataIfNeeded()
     }
 
     /** 打卡送出 */

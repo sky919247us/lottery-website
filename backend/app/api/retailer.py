@@ -11,9 +11,59 @@ from sqlalchemy.orm import Session
 from app.api.cache import get_cache, set_cache
 from app.model.database import get_db
 from app.model.retailer import Retailer
-from app.schema.retailer import RetailerResponse
+from app.schema.retailer import RetailerResponse, RetailerMapMarker
 
 router = APIRouter(prefix="/api/retailers", tags=["經銷商"])
+
+
+@router.get("/map-markers", response_model=list[RetailerMapMarker])
+def get_map_markers(
+    bounds: str | None = Query(None, description="地圖邊界 sw_lat,sw_lng,ne_lat,ne_lng"),
+    db: Session = Depends(get_db),
+):
+    """輕量級地圖標記端點 — 只回傳地圖顯示必要的欄位"""
+    cache_key = f"retailers:markers:{bounds}"
+    cached = get_cache(cache_key, ttl=120)
+    if cached is not None:
+        return cached
+
+    # 只查詢地圖需要的欄位（大幅減少資料傳輸量）
+    query = db.query(
+        Retailer.id, Retailer.name, Retailer.lat, Retailer.lng,
+        Retailer.city, Retailer.district, Retailer.source,
+        Retailer.isClaimed, Retailer.merchantTier, Retailer.jackpotCount,
+        Retailer.address,
+    ).filter(
+        Retailer.isActive == True,
+        Retailer.lat.is_not(None),
+        Retailer.lng.is_not(None),
+        Retailer.lat != 0,
+        Retailer.lng != 0,
+    )
+
+    # 若有邊界參數，只回傳視窗內的標記
+    if bounds:
+        try:
+            sw_lat, sw_lng, ne_lat, ne_lng = [float(x) for x in bounds.split(",")]
+            query = query.filter(
+                Retailer.lat.between(sw_lat, ne_lat),
+                Retailer.lng.between(sw_lng, ne_lng),
+            )
+        except (ValueError, TypeError):
+            pass
+
+    rows = query.all()
+    items = [
+        RetailerMapMarker(
+            id=r.id, name=r.name, lat=r.lat, lng=r.lng,
+            city=r.city, district=r.district, source=r.source,
+            isClaimed=r.isClaimed, merchantTier=r.merchantTier or "",
+            jackpotCount=r.jackpotCount or 0, address=r.address,
+        )
+        for r in rows
+    ]
+    set_cache(cache_key, items)
+    return items
 
 
 @router.get("/nearby", response_model=list[RetailerResponse])
@@ -71,11 +121,12 @@ def get_retailers(
     search: str | None = Query(None, description="關鍵字搜尋（名稱或地址）"),
     has_coords: bool = Query(False, description="僅回傳有座標的經銷商"),
     exclude_ids: str | None = Query(None, description="排除的 ID 列表，逗號分隔"),
+    limit: int = Query(0, description="限制回傳筆數（0 = 不限）"),
     db: Session = Depends(get_db),
 ):
     """取得經銷商列表（支援篩選）"""
     # --- 快取檢查 (TTL 120 秒) ---
-    cache_key = f"retailers:list:{city}:{source}:{search}:{has_coords}:{exclude_ids}"
+    cache_key = f"retailers:list:{city}:{source}:{search}:{has_coords}:{exclude_ids}:{limit}"
     cached = get_cache(cache_key, ttl=120)
     if cached is not None:
         return cached
@@ -114,7 +165,10 @@ def get_retailers(
         query = query.filter(Retailer.lat.is_not(None), Retailer.lng.is_not(None))
         query = query.filter(Retailer.lat != 0, Retailer.lng != 0)
 
-    items = query.order_by(Retailer.city, Retailer.district, Retailer.name).all()
+    query = query.order_by(Retailer.city, Retailer.district, Retailer.name)
+    if limit > 0:
+        query = query.limit(limit)
+    items = query.all()
 
     # --- 存入快取 ---
     set_cache(cache_key, items)

@@ -39,3 +39,20 @@ class RetailerResponse(BaseModel):
     jackpotCount: int = 0
 
     model_config = {"from_attributes": True}
+
+
+class RetailerMapMarker(BaseModel):
+    """地圖標記用輕量格式 — 只含地圖顯示必要欄位"""
+    id: int
+    name: str
+    lat: float | None = None
+    lng: float | None = None
+    city: str = ""
+    district: str = ""
+    source: str = ""
+    address: str = ""
+    isClaimed: bool = False
+    merchantTier: str = ""
+    jackpotCount: int = 0
+
+    model_config = {"from_attributes": True}
