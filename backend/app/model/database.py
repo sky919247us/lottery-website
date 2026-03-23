@@ -30,7 +30,18 @@ DATABASE_URL = os.getenv("DATABASE_URL", "sqlite:///./scratchcard.db")
 if DATABASE_URL.startswith("sqlite"):
     engine = create_engine(DATABASE_URL, connect_args={"check_same_thread": False, "timeout": 15})
 else:
-    engine = create_engine(DATABASE_URL, pool_size=10, max_overflow=20, pool_pre_ping=True)
+    # PostgreSQL 連線池最佳化（2GB RAM VPS）
+    # pool_size: 基礎連線數（多使用者併發）
+    # max_overflow: 超出基礎後的臨時連線數
+    # pool_pre_ping: 連線前檢查有效性（避免閒置連線斷開）
+    # pool_recycle: 連線回收時間（60 秒，避免 PostgreSQL 閒置超時）
+    engine = create_engine(
+        DATABASE_URL,
+        pool_size=20,           # 原本 10，改為 20
+        max_overflow=30,        # 原本 20，改為 30
+        pool_pre_ping=True,
+        pool_recycle=60,        # 新增：60 秒自動回收連線
+    )
 
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
@@ -114,6 +125,26 @@ from app.model.admin import AdminUser  # noqa: F401
 from app.model.jackpot_store import JackpotStore  # noqa: F401
 
 
+def _create_composite_indexes():
+    """建立複合索引以加速常用查詢"""
+    is_sqlite = DATABASE_URL.startswith("sqlite")
+    is_postgres = DATABASE_URL.startswith("postgresql")
+
+    with engine.connect() as conn:
+        if is_postgres:
+            # PostgreSQL 複合索引（GIS 查詢最佳化）
+            indexes_to_create = [
+                "CREATE INDEX IF NOT EXISTS idx_retailers_active_coords ON retailers (isActive, lat, lng) WHERE isActive = true",
+                "CREATE INDEX IF NOT EXISTS idx_retailers_tier_active ON retailers (merchantTier, isActive) WHERE isActive = true",
+            ]
+            for idx_sql in indexes_to_create:
+                try:
+                    conn.execute(text(idx_sql))
+                    conn.commit()
+                except Exception as e:
+                    print(f"[索引] {idx_sql[:50]}... 已存在或建立失敗: {e}")
+
+
 def _run_migrations():
     """執行增量欄位遷移（補充 create_all 不會自動新增欄位的限制）"""
     is_sqlite = DATABASE_URL.startswith("sqlite")
@@ -147,6 +178,7 @@ def _run_migrations():
 def init_db():
     """建立所有資料表"""
     Base.metadata.create_all(bind=engine)
+    _create_composite_indexes()
     _run_migrations()
 
 

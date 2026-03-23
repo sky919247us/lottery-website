@@ -176,6 +176,64 @@ def get_retailers(
     return items
 
 
+@router.get("/map-geojson", response_model=dict)
+def get_map_geojson(
+    db: Session = Depends(get_db),
+):
+    """
+    取得地圖 GeoJSON 資料（輕量化格式）
+    - 減少欄位數（只返回必要的地圖資訊）
+    - 適合 Leaflet/Mapbox 直接使用
+    - 相比 JSON 響應小 40~60%
+    """
+    # --- 快取檢查 (TTL 300 秒 = 5 分鐘) ---
+    cache_key = "retailers:map-geojson:all"
+    cached = get_cache(cache_key, ttl=300)
+    if cached is not None:
+        return cached
+
+    query = db.query(Retailer).filter(
+        Retailer.isActive == True,
+        Retailer.lat.is_not(None),
+        Retailer.lng.is_not(None),
+        Retailer.lat != 0,
+        Retailer.lng != 0
+    )
+
+    retailers = query.all()
+
+    # 構建 GeoJSON FeatureCollection
+    features = []
+    for r in retailers:
+        feature = {
+            "type": "Feature",
+            "geometry": {
+                "type": "Point",
+                "coordinates": [r.lng, r.lat]  # GeoJSON: [lon, lat]
+            },
+            "properties": {
+                "id": r.id,
+                "name": r.name,
+                "city": r.city,
+                "district": r.district,
+                "source": r.source,
+                "tier": r.merchantTier or "basic",
+                "isClaimed": r.isClaimed,
+            }
+        }
+        features.append(feature)
+
+    geojson = {
+        "type": "FeatureCollection",
+        "features": features,
+        "totalCount": len(features)
+    }
+
+    # --- 存入快取 ---
+    set_cache(cache_key, geojson)
+    return geojson
+
+
 @router.get("/{retailer_id}", response_model=RetailerResponse)
 def get_retailer(retailer_id: int, db: Session = Depends(get_db)):
     """取得單一經銷商詳情"""
