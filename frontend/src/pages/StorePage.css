@@ -162,10 +162,11 @@
 
 /* === 店家簡介 === */
 .sp-description {
-    color: var(--sp-text-secondary);
+    color: var(--sp-text);
     line-height: 1.7;
     margin: 0 0 0.75rem;
     white-space: pre-line;
+    font-weight: 500;
 }
 .sp-business-hours {
     display: flex;
