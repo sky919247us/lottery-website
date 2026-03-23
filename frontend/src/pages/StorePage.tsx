@@ -33,6 +33,17 @@ const FACILITY_MAP: Record<string, { label: string; icon: React.ReactNode }> = {
     hasSportTV: { label: '運彩轉播', icon: <Tv size={16} /> },
 }
 
+/** R2 圖片 fallback：自訂域名失敗時改用 R2 dev 公開網址 */
+const R2_CUSTOM = 'https://img.i168.win'
+const R2_FALLBACK = 'https://pub-21021f943b5f4eb08695467bc899d993.r2.dev'
+
+function imgFallback(e: React.SyntheticEvent<HTMLImageElement>) {
+    const img = e.currentTarget
+    if (img.src.includes(R2_CUSTOM)) {
+        img.src = img.src.replace(R2_CUSTOM, R2_FALLBACK)
+    }
+}
+
 /** 庫存狀態文字顏色 */
 function statusColor(status: string) {
     if (status === '充足') return 'var(--sp-green)'
@@ -47,6 +58,7 @@ export default function StorePage() {
     const [loading, setLoading] = useState(true)
     const [error, setError] = useState('')
     const carouselRef = useRef<HTMLDivElement>(null)
+    const heroRef = useRef<HTMLElement>(null)
 
     useEffect(() => {
         async function load() {
@@ -62,6 +74,18 @@ export default function StorePage() {
         }
         if (id) load()
     }, [id])
+
+    // Banner 圖片 fallback
+    useEffect(() => {
+        if (!data?.store?.bannerUrl || !data.store.bannerUrl.includes(R2_CUSTOM)) return
+        const img = new Image()
+        img.src = data.store.bannerUrl
+        img.onerror = () => {
+            if (heroRef.current) {
+                heroRef.current.style.backgroundImage = `url(${data.store.bannerUrl.replace(R2_CUSTOM, R2_FALLBACK)})`
+            }
+        }
+    }, [data])
 
     if (loading) {
         return (
@@ -107,7 +131,7 @@ export default function StorePage() {
             />
 
             {/* === Hero Banner === */}
-            <section className="sp-hero" style={store.bannerUrl ? { backgroundImage: `url(${store.bannerUrl})` } : {}}>
+            <section ref={heroRef} className="sp-hero" style={store.bannerUrl ? { backgroundImage: `url(${store.bannerUrl})` } : {}}>
                 <div className="sp-hero__overlay" />
                 <motion.div
                     className="sp-hero__content"
@@ -206,7 +230,7 @@ export default function StorePage() {
                             <div className="sp-carousel" ref={carouselRef}>
                                 {winningWall.map((photo: any) => (
                                     <div key={photo.id} className="sp-carousel-card">
-                                        <img src={photo.imageUrl} alt={photo.caption || '中獎照片'} loading="lazy" />
+                                        <img src={photo.imageUrl} alt={photo.caption || '中獎照片'} loading="lazy" onError={imgFallback} />
                                         {photo.caption && <p className="sp-carousel-caption">{photo.caption}</p>}
                                     </div>
                                 ))}
@@ -230,7 +254,7 @@ export default function StorePage() {
                         <div className="sp-gallery">
                             {gallery.map((photo: any) => (
                                 <div key={photo.id} className="sp-gallery-item">
-                                    <img src={photo.imageUrl} alt={photo.caption || '店內照片'} loading="lazy" />
+                                    <img src={photo.imageUrl} alt={photo.caption || '店內照片'} loading="lazy" onError={imgFallback} />
                                     {photo.caption && <p className="sp-gallery-caption">{photo.caption}</p>}
                                 </div>
                             ))}
@@ -250,7 +274,7 @@ export default function StorePage() {
                         <div className="sp-inventory">
                             {inventory.map((inv: any) => (
                                 <div key={inv.id} className="sp-inventory-card">
-                                    {inv.imageUrl && <img src={inv.imageUrl} alt={inv.itemName} className="sp-inventory-img" loading="lazy" />}
+                                    {inv.imageUrl && <img src={inv.imageUrl} alt={inv.itemName} className="sp-inventory-img" loading="lazy" onError={imgFallback} />}
                                     <div className="sp-inventory-info">
                                         <span className="sp-inventory-name">{inv.itemName}</span>
                                         {inv.itemPrice > 0 && <span className="sp-inventory-price">NT${inv.itemPrice}</span>}
