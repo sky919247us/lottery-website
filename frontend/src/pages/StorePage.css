@@ -10,10 +10,15 @@
     --sp-muted: #94a3b8;
     --sp-accent: #d4af37;
     --sp-bg: #0f172a;
-    --sp-surface: rgba(255, 255, 255, 0.04);
-    --sp-border: rgba(255, 255, 255, 0.08);
-    --sp-text: #e2e8f0;
-    --sp-text-secondary: #94a3b8;
+    --sp-surface: rgba(255, 255, 255, 0.06);
+    --sp-border: rgba(255, 255, 255, 0.1);
+    --sp-text: #f1f5f9;
+    --sp-text-secondary: #cbd5e1;
+
+    /* 強制深色背景，避免全站白底 CSS 覆蓋 */
+    background-color: #0f172a !important;
+    min-height: 100vh;
+    color: #f1f5f9;
 }
 
 /* === 載入與錯誤狀態 === */
@@ -149,6 +154,10 @@
 .sp-section {
     margin-bottom: 1.5rem;
     padding: 1.5rem;
+    /* 覆蓋全站 glass-card 的白色背景 */
+    background: rgba(255, 255, 255, 0.06) !important;
+    border: 1px solid rgba(255, 255, 255, 0.1) !important;
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3) !important;
 }
 .sp-section__title {
     display: flex;
