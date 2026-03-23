@@ -118,10 +118,33 @@ export default function Home() {
     }, [])
 
     async function loadData() {
+        const CACHE_KEY = 'scratchcards_cache'
+        const CACHE_TTL = 24 * 60 * 60 * 1000 // 24 小時（台彩每天 09:00 更新一次）
+
+        // 先讀 localStorage 快取 → 立即顯示（不等 API）
+        try {
+            const raw = localStorage.getItem(CACHE_KEY)
+            if (raw) {
+                const { data, ts } = JSON.parse(raw)
+                if (Date.now() - ts < CACHE_TTL && Array.isArray(data) && data.length > 0) {
+                    setCards(data)
+                    setLoading(false)
+                    // 後台靜默刷新（stale-while-revalidate）
+                    fetchScratchcards({ sortBy: 'issueDate', order: 'desc' }).then(fresh => {
+                        setCards(fresh)
+                        localStorage.setItem(CACHE_KEY, JSON.stringify({ data: fresh, ts: Date.now() }))
+                    }).catch(() => {})
+                    return
+                }
+            }
+        } catch { /* localStorage 不可用，繼續正常流程 */ }
+
+        // 無快取 → 正常 fetch
         try {
             setLoading(true)
             const data = await fetchScratchcards({ sortBy: 'issueDate', order: 'desc' })
             setCards(data)
+            localStorage.setItem(CACHE_KEY, JSON.stringify({ data, ts: Date.now() }))
         } catch {
             setCards([])
         } finally {
@@ -501,10 +524,14 @@ export default function Home() {
 
                 <div className="home__grid">
                     {loading ? (
-                        <div className="home__loading">
-                            <div className="spinner" />
-                            <p>載入中...</p>
-                        </div>
+                        Array.from({ length: 12 }).map((_, i) => (
+                            <div key={i} className="skeleton-card">
+                                <div className="skeleton-block skeleton-image" />
+                                <div className="skeleton-block skeleton-title" />
+                                <div className="skeleton-block skeleton-sub" />
+                                <div className="skeleton-block skeleton-bar" />
+                            </div>
+                        ))
                     ) : processedCards.length === 0 ? (
                         <div className="home__empty">
                             <Trophy size={48} />

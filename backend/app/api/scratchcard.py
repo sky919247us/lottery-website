@@ -33,9 +33,9 @@ def get_scratchcard_list(
     db: Session = Depends(get_db),
 ):
     """取得刮刮樂列表（輕量版，不含獎金結構詳情）"""
-    # --- 快取檢查 (TTL 60 秒) ---
+    # --- 快取檢查 (TTL 86400 秒 = 24 小時，台彩每天 09:00 更新一次) ---
     cache_key = f"scratchcards:list:{sort_by}:{order}:{price}:{high_win_only}"
-    cached = get_cache(cache_key, ttl=60)
+    cached = get_cache(cache_key, ttl=86400)
     if cached is not None:
         return cached
 
