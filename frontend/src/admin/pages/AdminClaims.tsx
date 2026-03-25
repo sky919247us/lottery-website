@@ -57,8 +57,9 @@ export default function AdminClaims() {
 
   const columns: GridColDef[] = [
     { field: 'id', headerName: 'ID', width: 70 },
-    { field: 'retailerId', headerName: '店家ID', width: 90 },
-    { field: 'userId', headerName: 'User ID', width: 90 },
+    { field: 'retailerId', headerName: '店家ID', width: 80 },
+    { field: 'storeName', headerName: '店家名稱', width: 180 },
+    { field: 'userId', headerName: 'User ID', width: 80 },
     { field: 'contactName', headerName: '聯絡人', width: 120 },
     { field: 'contactPhone', headerName: '聯絡電話', width: 150 },
     { field: 'displayName', headerName: 'LINE 名稱', width: 150 },

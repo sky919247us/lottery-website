@@ -331,10 +331,35 @@ async def get_claims(
 ):
     """取得認領申請列表（管理員用）"""
     from app.model.merchant import MerchantClaim
+    from app.model.retailer import Retailer
+    from app.model.user import User
     query = db.query(MerchantClaim)
     if status:
         query = query.filter(MerchantClaim.status == status)
-    return query.order_by(MerchantClaim.createdAt.desc()).all()
+    claims = query.order_by(MerchantClaim.createdAt.desc()).all()
+
+    result = []
+    for c in claims:
+        retailer = db.query(Retailer).filter(Retailer.id == c.retailerId).first()
+        user = db.query(User).filter(User.id == c.userId).first()
+        item = {
+            "id": c.id,
+            "retailerId": c.retailerId,
+            "storeName": retailer.name if retailer else "",
+            "userId": c.userId,
+            "lineDisplayName": user.displayName if user else "",
+            "contactName": c.contactName,
+            "contactPhone": c.contactPhone,
+            "licenseUrl": c.licenseUrl,
+            "idCardUrl": c.idCardUrl,
+            "status": c.status,
+            "tier": c.tier,
+            "rejectReason": c.rejectReason,
+            "createdAt": c.createdAt,
+            "approvedAt": c.approvedAt,
+        }
+        result.append(item)
+    return result
 
 
 @router.put("/merchant-claims/{claim_id}/approve")
