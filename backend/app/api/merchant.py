@@ -19,7 +19,7 @@ from app.schema.user import (
 from app.api.user import add_karma
 from app.service.lemonsqueezy import LemonsqueezyService
 from fastapi import Query, UploadFile, File
-from app.service.r2_service import R2Service
+from app.service.r2_service import upload_image
 
 router = APIRouter(prefix="/api/merchant", tags=["店家管理"])
 
@@ -220,23 +220,28 @@ async def upload_verification_document(
         raise HTTPException(status_code=400, detail="無效的文件類型")
 
     try:
-        # 上傳到 R2
-        r2 = R2Service()
-        file_key = f"verification/{claim_id}/{doc_type}/{file.filename}"
-        file_url = await r2.upload_file(file, file_key)
+        # 讀取檔案內容
+        file_data = await file.read()
+
+        # 使用 r2_service 上傳（category 用 "verification" 區別商家文件）
+        public_url, r2_key = upload_image(
+            file_data=file_data,
+            retailer_id=claim.retailerId,
+            category=f"verification_{doc_type}",
+        )
 
         # 保存 URL 到 claim
         if doc_type == "license":
-            claim.licenseUrl = file_url
+            claim.licenseUrl = public_url
         else:  # idcard
-            claim.idCardUrl = file_url
+            claim.idCardUrl = public_url
 
         db.commit()
 
         return {
             "status": "ok",
             "docType": doc_type,
-            "fileUrl": file_url,
+            "fileUrl": public_url,
             "message": "文件已上傳",
         }
 
