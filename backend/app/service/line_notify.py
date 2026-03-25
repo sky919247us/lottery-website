@@ -44,8 +44,59 @@ def _send(line_user_id: str, messages: list[dict]) -> bool:
         return False
 
 
-def notify_claim_approved(line_user_id: str, store_name: str, claim_id: int) -> bool:
-    """審核通過通知"""
+def notify_claim_approved(
+    line_user_id: str, store_name: str, claim_id: int,
+    username: str | None = None, password: str | None = None,
+) -> bool:
+    """審核通過通知（含後台帳密）"""
+    # 帳密資訊區塊
+    credential_contents = []
+    if username and password:
+        credential_contents = [
+            {
+                "type": "separator",
+                "margin": "lg",
+            },
+            {
+                "type": "text",
+                "text": "🔐 商家後台帳號",
+                "weight": "bold",
+                "size": "sm",
+                "margin": "lg",
+            },
+            {
+                "type": "box",
+                "layout": "vertical",
+                "margin": "md",
+                "spacing": "sm",
+                "backgroundColor": "#f5f5f5",
+                "cornerRadius": "md",
+                "paddingAll": "12px",
+                "contents": [
+                    {
+                        "type": "text",
+                        "text": f"帳號：{username}",
+                        "size": "sm",
+                        "weight": "bold",
+                    },
+                    {
+                        "type": "text",
+                        "text": f"密碼：{password}",
+                        "size": "sm",
+                        "weight": "bold",
+                    },
+                ],
+            },
+            {
+                "type": "text",
+                "text": "⚠️ 請妥善保管密碼，建議登入後修改",
+                "size": "xxs",
+                "color": "#ef4444",
+                "margin": "md",
+                "wrap": True,
+            },
+        ]
+
     messages = [
         {
             "type": "flex",
@@ -80,12 +131,12 @@ def notify_claim_approved(line_user_id: str, store_name: str, claim_id: int) -> 
                         },
                         {
                             "type": "text",
-                            "text": "您現在可以管理店家資訊，或升級 PRO 方案享受更多功能。",
+                            "text": "您現在可以登入商家後台管理店家資訊。",
                             "wrap": True,
                             "size": "sm",
                             "color": "#666666",
                         },
-                    ],
+                    ] + credential_contents,
                 },
                 "footer": {
                     "type": "box",
@@ -95,8 +146,8 @@ def notify_claim_approved(line_user_id: str, store_name: str, claim_id: int) -> 
                             "type": "button",
                             "action": {
                                 "type": "uri",
-                                "label": "前往商家後台",
-                                "uri": "https://i168.win/merchant",
+                                "label": "登入商家後台",
+                                "uri": "https://i168.win/admin/",
                             },
                             "style": "primary",
                             "color": "#0B192C",

@@ -182,22 +182,21 @@ export default function MerchantDashboard() {
               )}
               {store.merchantTier !== 'pro' && (
                 <Box sx={{ mt: 3, pt: 2, borderTop: '1px solid #eaeaea' }}>
-                  <Typography variant="subtitle2" mb={1}>💎 解鎖專業版功能</Typography>
-                  <Typography variant="body2" color="text.secondary" mb={2}>享有地圖特效光暈、庫存設施即時公告、優先曝光與完整數據分析等進階功能。</Typography>
-                  <Box sx={{ display: 'flex', gap: 2 }}>
-                    <Chip 
-                      label={upgrading ? "處理中..." : "月訂閱 ($500)"} 
-                      color="primary" 
-                      onClick={() => !upgrading && handleUpgrade('PRO_MONTHLY', 500)} 
-                      clickable 
-                      disabled={upgrading}
-                    />
-                    <Chip 
-                      label={upgrading ? "處理中..." : "年訂閱 ($5000)"} 
-                      color="secondary" 
-                      onClick={() => !upgrading && handleUpgrade('PRO_YEARLY', 5000)} 
-                      clickable 
-                      disabled={upgrading}
+                  <Typography variant="subtitle2" mb={1}>💎 升級 PRO 專業版</Typography>
+                  <Typography variant="body2" color="text.secondary" mb={1}>享有專業商家頁面、中獎牆展示、數據分析、優先搜尋排名等進階功能。</Typography>
+                  <Box sx={{ display: 'flex', gap: 2, mt: 2 }}>
+                    <Chip
+                      label="立即升級 PRO — NT$1,680/年"
+                      sx={{
+                        background: 'linear-gradient(135deg, #d4af37, #a855f7)',
+                        color: '#fff', fontWeight: 600, fontSize: '0.9rem',
+                        px: 2, py: 2.5, cursor: 'pointer',
+                        '&:hover': { opacity: 0.9, transform: 'scale(1.02)' },
+                      }}
+                      onClick={() => {
+                        window.open('https://i168.lemonsqueezy.com/checkout/buy/5ab4ec1f-a4c8-4055-9ca4-51b06610e861', '_blank')
+                      }}
+                      clickable
                     />
                   </Box>
                 </Box>

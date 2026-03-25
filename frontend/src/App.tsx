@@ -4,7 +4,7 @@
  * /admin/* 路徑使用獨立的管理後台 Layout
  * 使用 React.lazy 實作頁面級懶載入，優化首次載入效能
  */
-import { BrowserRouter, Routes, Route } from 'react-router-dom'
+import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
 import { lazy, Suspense } from 'react'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { SnackbarProvider } from 'notistack'
@@ -84,7 +84,7 @@ export default function App() {
                     <Route path="/calculator" element={<Calculator />} />
                     <Route path="/wallet" element={<PnLDashboard />} />
                     <Route path="/map" element={<CommunityMap />} />
-                    <Route path="/merchant" element={<MerchantDashboard />} />
+                    <Route path="/merchant" element={<Navigate to="/admin/" replace />} />
                     <Route path="/merchant/claim/:id" element={<MerchantClaimForm />} />
                     <Route path="/auth/callback" element={<AuthCallback />} />
                     <Route path="/profile" element={<UserProfile />} />

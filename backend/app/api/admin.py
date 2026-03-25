@@ -386,16 +386,57 @@ async def approve_claim(
         retailer.isClaimed = True
         retailer.merchantTier = claim.tier
 
+    # 自動建立商家後台帳號
+    import secrets
+    import string
+    from app.model.admin import AdminUser, ROLE_MERCHANT, hash_password
+    from app.model.user import User
+
+    user = db.query(User).filter(User.id == claim.userId).first()
+    store_name = retailer.name if retailer else "店家"
+
+    # 檢查是否已有帳號
+    existing_account = db.query(AdminUser).filter(
+        AdminUser.retailerId == claim.retailerId,
+        AdminUser.role == ROLE_MERCHANT,
+    ).first()
+
+    merchant_username = None
+    merchant_password = None
+
+    if not existing_account:
+        # 產生帳號：用手機號碼或 merchant_ + retailerId
+        merchant_username = claim.contactPhone or f"merchant_{claim.retailerId}"
+        # 產生 8 位數隨機密碼
+        alphabet = string.ascii_letters + string.digits
+        merchant_password = ''.join(secrets.choice(alphabet) for _ in range(8))
+
+        hashed, salt = hash_password(merchant_password)
+        new_admin = AdminUser(
+            username=merchant_username,
+            passwordHash=hashed,
+            passwordSalt=salt,
+            displayName=store_name,
+            role=ROLE_MERCHANT,
+            retailerId=claim.retailerId,
+            isActive=1,
+        )
+        db.add(new_admin)
+    else:
+        merchant_username = existing_account.username
+        # 帳號已存在，不重新產生密碼
+
     db.commit()
 
-    # 發送 LINE 通知
+    # 發送 LINE 通知（含帳密）
     try:
-        from app.model.user import User
         from app.service.line_notify import notify_claim_approved
-        user = db.query(User).filter(User.id == claim.userId).first()
         if user and user.lineUserId:
-            store_name = retailer.name if retailer else "您的店家"
-            notify_claim_approved(user.lineUserId, store_name, claim.id)
+            notify_claim_approved(
+                user.lineUserId, store_name, claim.id,
+                username=merchant_username,
+                password=merchant_password,
+            )
     except Exception as e:
         logger.warning(f"[LINE] 通知發送失敗（不影響審核）: {e}")
 
