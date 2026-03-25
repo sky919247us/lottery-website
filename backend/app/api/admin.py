@@ -362,6 +362,18 @@ async def approve_claim(
         retailer.merchantTier = claim.tier
 
     db.commit()
+
+    # 發送 LINE 通知
+    try:
+        from app.model.user import User
+        from app.service.line_notify import notify_claim_approved
+        user = db.query(User).filter(User.id == claim.userId).first()
+        if user and user.lineUserId:
+            store_name = retailer.name if retailer else "您的店家"
+            notify_claim_approved(user.lineUserId, store_name, claim.id)
+    except Exception as e:
+        logger.warning(f"[LINE] 通知發送失敗（不影響審核）: {e}")
+
     return {"status": "ok", "message": "已核准認領"}
 
 
@@ -381,6 +393,20 @@ async def reject_claim(
     claim.status = "rejected"
     claim.rejectReason = reason
     db.commit()
+
+    # 發送 LINE 通知
+    try:
+        from app.model.user import User
+        from app.model.retailer import Retailer
+        from app.service.line_notify import notify_claim_rejected
+        user = db.query(User).filter(User.id == claim.userId).first()
+        retailer = db.query(Retailer).filter(Retailer.id == claim.retailerId).first()
+        if user and user.lineUserId:
+            store_name = retailer.name if retailer else "您的店家"
+            notify_claim_rejected(user.lineUserId, store_name, reason)
+    except Exception as e:
+        logger.warning(f"[LINE] 通知發送失敗（不影響審核）: {e}")
+
     return {"status": "ok", "message": "已駁回認領"}
 
 

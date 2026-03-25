@@ -100,6 +100,38 @@ def _run_crawler_job():
     except Exception as e:
         logger.error(f"❌ 每日爬蟲失敗: {e}")
 
+def _run_pro_expiry_reminder():
+    """每日掃描 PRO 即將到期的商家，在 7 天前與 1 天前發送 LINE 提醒"""
+    from app.model.merchant import MerchantClaim
+    from app.model.retailer import Retailer
+    from app.model.user import User
+    from app.service.line_notify import notify_pro_expiring
+    from datetime import datetime, timedelta
+
+    db = SessionLocal()
+    try:
+        now = datetime.utcnow()
+        for days_left in [7, 1]:
+            target_date = now + timedelta(days=days_left)
+            claims = db.query(MerchantClaim).filter(
+                MerchantClaim.tier == "pro",
+                MerchantClaim.proExpiresAt >= target_date.replace(hour=0, minute=0, second=0),
+                MerchantClaim.proExpiresAt < target_date.replace(hour=23, minute=59, second=59),
+            ).all()
+
+            for claim in claims:
+                user = db.query(User).filter(User.id == claim.userId).first()
+                retailer = db.query(Retailer).filter(Retailer.id == claim.retailerId).first()
+                if user and user.lineUserId and retailer:
+                    expires_str = claim.proExpiresAt.strftime("%Y/%m/%d")
+                    notify_pro_expiring(user.lineUserId, retailer.name, days_left, expires_str)
+                    logger.info(f"[LINE] PRO 到期提醒已發送: {retailer.name}，剩 {days_left} 天")
+    except Exception as e:
+        logger.error(f"❌ PRO 到期提醒失敗: {e}")
+    finally:
+        db.close()
+
+
 def _run_backup_job():
     """資料庫備份排程任務"""
     logger.info("⏰ 排程觸發：開始執行資料庫備份...")
@@ -138,6 +170,13 @@ def on_startup():
         sync_jackpot_stores,
         trigger=CronTrigger(hour=19, minute=0),
         id="daily_jackpot_sync",
+        replace_existing=True,
+    )
+    # 每天台灣早上 10:00 (UTC 2:00) 掃描 PRO 到期提醒
+    scheduler.add_job(
+        _run_pro_expiry_reminder,
+        trigger=CronTrigger(hour=2, minute=0),
+        id="daily_pro_expiry_reminder",
         replace_existing=True,
     )
     # 每天台灣凌晨 4:00 (UTC 20:00) 自動執行資料庫備份
