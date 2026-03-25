@@ -20,6 +20,7 @@ import {
     type RetailerData
 } from '../hooks/api'
 import { useUser } from '../hooks/useUser'
+import PlanCard from '../components/PlanCard'
 import './MerchantDashboard.css'
 
 /** 設施標籤設定 */
@@ -50,6 +51,7 @@ export default function MerchantDashboard() {
     const { user } = useUser()
     const [retailers, setRetailers] = useState<RetailerData[]>([])
     const [selectedRetailer, setSelectedRetailer] = useState<RetailerData | null>(null)
+    const [claimId, setClaimId] = useState<number | null>(null)
     const [searchTerm, setSearchTerm] = useState('')
     const [step, setStep] = useState<'search' | 'manage'>('search')
     const [tags, setTags] = useState<Record<string, boolean>>({})
@@ -69,7 +71,7 @@ export default function MerchantDashboard() {
         : []
 
     /** 選擇店家 */
-    function selectRetailer(r: RetailerData) {
+    async function selectRetailer(r: RetailerData) {
         setSelectedRetailer(r)
         setStep('manage')
         // 載入現有標籤
@@ -79,6 +81,20 @@ export default function MerchantDashboard() {
         })
         setTags(currentTags)
         setAnnouncement(r.announcement || '')
+
+        // 查詢認領 ID（用於方案卡片）
+        if (r.isClaimed) {
+            try {
+                const res = await fetch(`/api/merchant/retailers/${r.id}/claim`)
+                const data = await res.json()
+                setClaimId(data.id || null)
+            } catch (err) {
+                console.error('查詢認領信息失敗:', err)
+                setClaimId(null)
+            }
+        } else {
+            setClaimId(null)
+        }
     }
 
     /** 切換營業狀態 */
@@ -262,6 +278,15 @@ export default function MerchantDashboard() {
                                 <Shield size={16} /> 提交認領申請
                             </button>
                         </div>
+                    )}
+
+                    {/* 方案卡片 */}
+                    {selectedRetailer.isClaimed && user && (
+                        <PlanCard
+                            claimId={claimId}
+                            retailerId={selectedRetailer.id}
+                            userId={user.id}
+                        />
                     )}
 
                     <div className="merchant__panels">

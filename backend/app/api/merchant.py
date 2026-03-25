@@ -136,6 +136,23 @@ def create_announcement(
 
 # ========== PRO 商家升級相關 API ==========
 
+@router.get("/retailers/{retailer_id}/claim")
+def get_retailer_claim(retailer_id: int, db: Session = Depends(get_db)):
+    """取得零售商的認領資訊（若存在）"""
+    claim = db.query(MerchantClaim).filter(
+        MerchantClaim.retailerId == retailer_id,
+    ).order_by(MerchantClaim.createdAt.desc()).first()
+
+    if not claim:
+        return {"id": None}
+
+    return {
+        "id": claim.id,
+        "status": claim.status,
+        "tier": claim.tier,
+    }
+
+
 @router.get("/claim/{claim_id}/status")
 def get_claim_status(claim_id: int, db: Session = Depends(get_db)):
     """取得認領申請狀態"""
