@@ -14,7 +14,7 @@ from app.model.database import Base
 
 
 class MerchantClaim(Base):
-    """店家認領申請"""
+    """店家認領申請 + PRO 付款"""
     __tablename__ = "merchant_claims"
 
     id = Column(Integer, primary_key=True, autoincrement=True)
@@ -22,11 +22,17 @@ class MerchantClaim(Base):
     userId = Column(Integer, ForeignKey("users.id"), nullable=False, index=True)
     contactName = Column(String(50), default="", comment="聯絡人姓名")
     contactPhone = Column(String(20), default="", comment="聯絡電話")
-    licenseUrl = Column(Text, default="", comment="經銷證照片 URL")
-    idCardUrl = Column(Text, default="", comment="代理人證件 URL")
+    licenseUrl = Column(Text, default="", comment="營業執照/證照 URL (R2)")
+    idCardUrl = Column(Text, default="", comment="代理人身份證 URL (R2)")
     status = Column(String(20), default="pending", comment="審核狀態：pending / approved / rejected")
     tier = Column(String(20), default="basic", comment="方案：basic / pro")
     rejectReason = Column(String(200), default="", comment="駁回原因")
+
+    # Lemonsqueezy PRO 支付
+    lemonsqueezyOrderId = Column(String(100), nullable=True, comment="LM 訂單 ID")
+    paymentStatus = Column(String(20), default="pending", comment="付款狀態：pending / paid / failed")
+    proExpiresAt = Column(DateTime, nullable=True, comment="PRO 到期日期（一年後）")
+
     createdAt = Column(DateTime, default=datetime.utcnow)
     approvedAt = Column(DateTime, nullable=True, comment="核准時間")
 

@@ -17,6 +17,9 @@ from app.schema.user import (
     MerchantAnnouncementCreate, RetailerTagsUpdate
 )
 from app.api.user import add_karma
+from app.service.lemonsqueezy import LemonsqueezyService
+from fastapi import Query, UploadFile, File
+from app.service.r2_service import R2Service
 
 router = APIRouter(prefix="/api/merchant", tags=["店家管理"])
 
@@ -129,3 +132,96 @@ def create_announcement(
     db.add(announcement)
     db.commit()
     return {"status": "ok", "message": "公告已發佈"}
+
+
+# ========== PRO 商家升級相關 API ==========
+
+@router.get("/claim/{claim_id}/status")
+def get_claim_status(claim_id: int, db: Session = Depends(get_db)):
+    """取得認領申請狀態"""
+    claim = db.query(MerchantClaim).filter(MerchantClaim.id == claim_id).first()
+    if not claim:
+        raise HTTPException(status_code=404, detail="申請不存在")
+
+    return {
+        "id": claim.id,
+        "status": claim.status,  # pending / approved / rejected
+        "tier": claim.tier,      # basic / pro
+        "verificationComplete": bool(claim.licenseUrl and claim.idCardUrl),
+        "paymentStatus": claim.paymentStatus,  # pending / paid
+        "proExpiresAt": claim.proExpiresAt,
+    }
+
+
+@router.get("/claim/{claim_id}/checkout-url")
+def get_checkout_url(claim_id: int, db: Session = Depends(get_db)):
+    """
+    取得 Lemonsqueezy 結帳連結
+    前置條件：申請已核准
+    """
+    claim = db.query(MerchantClaim).filter(MerchantClaim.id == claim_id).first()
+    if not claim:
+        raise HTTPException(status_code=404, detail="申請不存在")
+
+    # 驗證申請已核准
+    if claim.status != "approved":
+        raise HTTPException(status_code=403, detail="申請尚未核准")
+
+    # 返回結帳 URL
+    checkout_url = LemonsqueezyService.get_checkout_url()
+    if not checkout_url:
+        raise HTTPException(status_code=500, detail="支付系統未設定")
+
+    return {
+        "checkoutUrl": checkout_url,
+        "productId": LemonsqueezyService.PRODUCT_ID,
+        "price": "NT$1,680",
+    }
+
+
+@router.post("/claim/{claim_id}/upload-verification")
+async def upload_verification_document(
+    claim_id: int,
+    doc_type: str = Query(..., description="license 或 idcard"),
+    file: UploadFile = File(...),
+    db: Session = Depends(get_db),
+):
+    """
+    上傳驗證文件（營業執照或身份證）
+
+    Args:
+        claim_id: MerchantClaim ID
+        doc_type: 文件類型 (license / idcard)
+        file: 上傳的檔案
+    """
+    claim = db.query(MerchantClaim).filter(MerchantClaim.id == claim_id).first()
+    if not claim:
+        raise HTTPException(status_code=404, detail="申請不存在")
+
+    # 驗證文件類型
+    if doc_type not in ["license", "idcard"]:
+        raise HTTPException(status_code=400, detail="無效的文件類型")
+
+    try:
+        # 上傳到 R2
+        r2 = R2Service()
+        file_key = f"verification/{claim_id}/{doc_type}/{file.filename}"
+        file_url = await r2.upload_file(file, file_key)
+
+        # 保存 URL 到 claim
+        if doc_type == "license":
+            claim.licenseUrl = file_url
+        else:  # idcard
+            claim.idCardUrl = file_url
+
+        db.commit()
+
+        return {
+            "status": "ok",
+            "docType": doc_type,
+            "fileUrl": file_url,
+            "message": "文件已上傳",
+        }
+
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"上傳失敗: {str(e)}")
