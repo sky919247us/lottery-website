@@ -198,7 +198,7 @@ export default function MerchantClaimForm() {
           </Box>
         </Box>
         <Typography variant="caption" color="text.secondary" display="block" mt={1}>
-          ※ PRO 訂閱費用為數位行銷服務費，透過 PAYUNi 金流平台收款。訂閱後可隨時取消，不強制續約。
+          ※ PRO 訂閱費用為數位行銷服務費，透過 Lemon Squeezy 金流平台收款。訂閱後可隨時取消，不強制續約。
         </Typography>
       </Card>
 
