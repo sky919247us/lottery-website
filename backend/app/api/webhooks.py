@@ -9,7 +9,7 @@ from sqlalchemy.orm import Session
 from app.model.database import get_db
 from app.service.lemonsqueezy import LemonsqueezyService
 
-router = APIRouter(prefix="/webhooks", tags=["Webhooks"])
+router = APIRouter(prefix="/api/webhooks", tags=["Webhooks"])
 
 
 @router.post("/lemonsqueezy")
