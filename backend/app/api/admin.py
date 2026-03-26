@@ -881,6 +881,33 @@ async def get_my_store(
     }
 
 
+@router.get("/merchant/claim/{claim_id}/checkout-url")
+async def get_checkout_url(
+    claim_id: int,
+    admin: AdminUser = Depends(require_role(ROLE_MERCHANT, ROLE_ADMIN, ROLE_SUPER_ADMIN)),
+    db: Session = Depends(get_db),
+):
+    """取得 Lemonsqueezy 結帳連結（帶 claim_id）"""
+    from app.model.merchant import MerchantClaim
+    from app.service.lemonsqueezy import LemonsqueezyService
+
+    claim = db.query(MerchantClaim).filter(MerchantClaim.id == claim_id).first()
+    if not claim:
+        raise HTTPException(status_code=404, detail="申請不存在")
+    if claim.status != "approved":
+        raise HTTPException(status_code=403, detail="申請尚未核准")
+
+    checkout_url = LemonsqueezyService.get_checkout_url_with_claim(claim_id)
+    if not checkout_url:
+        raise HTTPException(status_code=500, detail="支付系統未設定")
+
+    return {
+        "checkoutUrl": checkout_url,
+        "productId": LemonsqueezyService.PRODUCT_ID,
+        "price": "NT$1,680",
+    }
+
+
 @router.put("/merchant/my-store")
 async def update_my_store(
     data: dict,

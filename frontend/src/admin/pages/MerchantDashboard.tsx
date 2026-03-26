@@ -200,8 +200,8 @@ export default function MerchantDashboard() {
                           return
                         }
                         try {
-                          const res = await fetch(`/api/merchant/claim/${store.claimId}/checkout-url`)
-                          const data = await res.json()
+                          const { fetchCheckoutUrl } = await import('../api')
+                          const data = await fetchCheckoutUrl(store.claimId!)
                           if (data.checkoutUrl) {
                             window.open(data.checkoutUrl, '_blank')
                           } else {

@@ -247,6 +247,12 @@ export async function updateMyStore(data: Record<string, unknown>): Promise<void
   await adminApi.put('/merchant/my-store', data)
 }
 
+/** 取得 PRO 升級結帳連結 */
+export async function fetchCheckoutUrl(claimId: number) {
+  const res = await adminApi.get(`/merchant/claim/${claimId}/checkout-url`)
+  return res.data
+}
+
 /** 建立升級訂單（取得金流參數） */
 export async function createPaymentOrder(retailerId: number, plan: string, amount: number) {
   const res = await adminApi.post('/payment/create', { retailer_id: retailerId, plan, amount })
