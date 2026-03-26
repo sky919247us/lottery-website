@@ -35,6 +35,7 @@ class AdminUpdateRequest(BaseModel):
     retailerId: int | None = None
     isActive: int | None = None
     expireAt: datetime | None = None
+    proExpiresAt: datetime | str | None = None
 
 
 class AdminChangePasswordRequest(BaseModel):

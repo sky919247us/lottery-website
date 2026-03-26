@@ -166,6 +166,7 @@ export async function updateAdminUser(userId: number, data: {
   retailerId?: number | null
   isActive?: boolean
   expireAt?: string | null
+  proExpiresAt?: string | null
 }): Promise<AdminUser> {
   const res = await adminApi.put(`/users/${userId}`, data)
   return res.data

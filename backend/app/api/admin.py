@@ -186,6 +186,36 @@ async def update_admin_user(
     if data.expireAt is not None:
         target.expireAt = data.expireAt
 
+    # 處理 PRO 到期日更新（同步 MerchantClaim + Retailer）
+    if data.proExpiresAt is not None and target.role == ROLE_MERCHANT and target.retailerId:
+        from app.model.merchant import MerchantClaim
+        from datetime import datetime as dt
+
+        claim = db.query(MerchantClaim).filter(
+            MerchantClaim.retailerId == target.retailerId,
+            MerchantClaim.status == "approved",
+        ).first()
+
+        retailer = db.query(Retailer).filter(Retailer.id == target.retailerId).first()
+
+        if data.proExpiresAt == "" or data.proExpiresAt is None:
+            # 移除 PRO
+            if claim:
+                claim.tier = "basic"
+                claim.proExpiresAt = None
+            if retailer:
+                retailer.merchantTier = "basic"
+                retailer.tierExpireAt = None
+        else:
+            # 設定 PRO 到期日
+            expire_dt = data.proExpiresAt if isinstance(data.proExpiresAt, dt) else dt.fromisoformat(str(data.proExpiresAt))
+            if claim:
+                claim.tier = "pro"
+                claim.proExpiresAt = expire_dt
+            if retailer:
+                retailer.merchantTier = "pro"
+                retailer.tierExpireAt = expire_dt
+
     db.commit()
     db.refresh(target)
     logger.info(f"超級管理員 [{admin.username}] 更新帳號: {target.username}")

@@ -18,6 +18,8 @@ import {
   TextField,
   MenuItem,
   Autocomplete,
+  Switch,
+  FormControlLabel,
 } from '@mui/material'
 import { DataGrid, type GridColDef } from '@mui/x-data-grid'
 import AddIcon from '@mui/icons-material/Add'
@@ -55,6 +57,8 @@ export default function AdminAccounts() {
     role: string
     retailerId: string | number
     isActive: boolean
+    proExpiresAt: string
+    permanentPro: boolean
   } | null>(null)
 
   // --- 店家搜尋（供關聯使用）---
@@ -119,12 +123,15 @@ export default function AdminAccounts() {
 
   /** 開啟編輯對話框 */
   const handleEditClick = (row: any) => {
+    const isPermanent = row.proExpiresAt === '9999-12-31T00:00:00'
     setEditData({
       id: row.id,
       displayName: row.displayName || '',
       role: row.role,
       retailerId: row.retailerId ?? '',
       isActive: !!row.isActive,
+      proExpiresAt: row.proExpiresAt ? row.proExpiresAt.slice(0, 10) : '',
+      permanentPro: isPermanent,
     })
     setRetailerOptions([])
     setRetailerSearch('')
@@ -134,13 +141,23 @@ export default function AdminAccounts() {
   /** 儲存編輯 */
   const handleSaveEdit = () => {
     if (!editData) return
-    updateMutation.mutate({
+    const payload: any = {
       id: editData.id,
       displayName: editData.displayName,
       role: editData.role,
       retailerId: editData.retailerId ? Number(editData.retailerId) : null,
       isActive: editData.isActive,
-    })
+    }
+    if (editData.role === 'MERCHANT' && editData.retailerId) {
+      if (editData.permanentPro) {
+        payload.proExpiresAt = '9999-12-31T00:00:00'
+      } else if (editData.proExpiresAt) {
+        payload.proExpiresAt = editData.proExpiresAt + 'T00:00:00'
+      } else {
+        payload.proExpiresAt = null
+      }
+    }
+    updateMutation.mutate(payload)
   }
 
   const columns: GridColDef[] = [
@@ -172,6 +189,7 @@ export default function AdminAccounts() {
         width: 160,
         renderCell: (params) => {
           if (!params.value) return <Typography variant="body2" color="text.secondary">—</Typography>
+          if (params.value === '9999-12-31T00:00:00') return <Chip label="永久 PRO" size="small" color="info" />
           const d = new Date(params.value)
           const isExpired = d < new Date()
           return <Chip label={d.toLocaleDateString()} size="small" color={isExpired ? 'error' : 'success'} />
@@ -318,6 +336,36 @@ export default function AdminAccounts() {
                 onChange={(e) => setEditData({ ...editData, retailerId: e.target.value })}
                 helperText="輸入彩券行的 ID 編號即可關聯。可在「彩券行管理」頁面查詢 ID。"
               />
+
+              {/* PRO 到期日設定（僅商家角色） */}
+              {editData.role === 'MERCHANT' && editData.retailerId && (
+                <>
+                  <FormControlLabel
+                    control={
+                      <Switch
+                        checked={editData.permanentPro}
+                        onChange={(e) => setEditData({
+                          ...editData,
+                          permanentPro: e.target.checked,
+                          proExpiresAt: e.target.checked ? '' : editData.proExpiresAt,
+                        })}
+                      />
+                    }
+                    label="永久 PRO"
+                  />
+                  {!editData.permanentPro && (
+                    <TextField
+                      label="PRO 到期日"
+                      type="date"
+                      fullWidth
+                      value={editData.proExpiresAt}
+                      onChange={(e) => setEditData({ ...editData, proExpiresAt: e.target.value })}
+                      slotProps={{ inputLabel: { shrink: true } }}
+                      helperText="留空表示非 PRO，設定日期即啟用 PRO"
+                    />
+                  )}
+                </>
+              )}
 
               {/* 搜尋店家名稱輔助 */}
               <Autocomplete
