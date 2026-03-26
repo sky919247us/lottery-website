@@ -56,13 +56,13 @@ export default function AdminClaims() {
   }
 
   const columns: GridColDef[] = [
-    { field: 'id', headerName: 'ID', width: 70 },
+    { field: 'id', headerName: 'ID', width: 60 },
+    { field: 'storeName', headerName: '店家名稱', width: 200 },
     { field: 'retailerId', headerName: '店家ID', width: 80 },
-    { field: 'storeName', headerName: '店家名稱', width: 180 },
     { field: 'userId', headerName: 'User ID', width: 80 },
     { field: 'contactName', headerName: '聯絡人', width: 120 },
-    { field: 'contactPhone', headerName: '聯絡電話', width: 150 },
-    { field: 'displayName', headerName: 'LINE 名稱', width: 150 },
+    { field: 'contactPhone', headerName: '聯絡電話', width: 130 },
+    { field: 'lineDisplayName', headerName: 'LINE 名稱', width: 130 },
     {
       field: 'status',
       headerName: '狀態',
@@ -155,20 +155,18 @@ export default function AdminClaims() {
         <DialogTitle>{imageDialog.title}</DialogTitle>
         <DialogContent sx={{ display: 'flex', justifyContent: 'center', p: 2 }}>
           {imageDialog.url ? (
-            <img 
-              src={`${import.meta.env.VITE_API_BASE || 'http://localhost:8000'}${imageDialog.url}`} 
-              alt={imageDialog.title} 
-              style={{ maxWidth: '100%', maxHeight: '70vh', objectFit: 'contain' }} 
+            <img
+              src={imageDialog.url.startsWith('http') ? imageDialog.url : `${import.meta.env.VITE_API_BASE || 'http://localhost:8000'}${imageDialog.url}`}
+              alt={imageDialog.title}
+              style={{ maxWidth: '100%', maxHeight: '70vh', objectFit: 'contain' }}
               onError={(e) => {
                 const img = e.target as HTMLImageElement;
-                if (!img.src.startsWith('http')) {
-                   // 嘗試修正相對路徑
-                   img.src = `http://localhost:8000${imageDialog.url}`;
-                }
+                img.style.display = 'none';
+                img.parentElement?.insertAdjacentHTML('beforeend', '<p style="color:#999">圖片載入失敗</p>');
               }}
             />
           ) : (
-            <Typography>圖片網址無效</Typography>
+            <Typography color="text.secondary">尚未上傳證件照片</Typography>
           )}
         </DialogContent>
       </Dialog>

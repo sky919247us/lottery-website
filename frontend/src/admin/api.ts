@@ -357,7 +357,9 @@ export async function bulkBanCommunityUsers(userIds: number[], isBanned: boolean
 export interface MerchantClaimItem {
   id: number
   retailerId: number
+  storeName: string
   userId: number
+  lineDisplayName: string
   contactName: string
   contactPhone: string
   licenseUrl: string
