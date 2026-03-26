@@ -836,6 +836,7 @@ async def get_my_store(
         raise HTTPException(status_code=404, detail="關聯的店家記錄不存在")
 
     # 查找該店家的 claim_id（用於 PRO 升級付款連結）
+    from app.model.merchant import MerchantClaim
     claim = db.query(MerchantClaim).filter(
         MerchantClaim.retailerId == retailer.id,
         MerchantClaim.status == "approved",
