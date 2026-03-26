@@ -89,7 +89,7 @@ def notify_claim_approved(
             },
             {
                 "type": "text",
-                "text": "⚠️ 請妥善保管密碼，建議登入後修改",
+                "text": "⚠️ 請妥善保管密碼，建議登入後點擊右上角頭像修改",
                 "size": "xxs",
                 "color": "#ef4444",
                 "margin": "md",

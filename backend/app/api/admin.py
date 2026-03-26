@@ -407,9 +407,8 @@ async def approve_claim(
     if not existing_account:
         # 產生帳號：用手機號碼或 merchant_ + retailerId
         merchant_username = claim.contactPhone or f"merchant_{claim.retailerId}"
-        # 產生 8 位數隨機密碼
-        alphabet = string.ascii_letters + string.digits
-        merchant_password = ''.join(secrets.choice(alphabet) for _ in range(8))
+        # 預設密碼 = 手機號碼（與帳號相同）
+        merchant_password = claim.contactPhone or f"merchant_{claim.retailerId}"
 
         hashed, salt = hash_password(merchant_password)
         new_admin = AdminUser(
