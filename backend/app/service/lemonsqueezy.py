@@ -130,10 +130,5 @@ class LemonsqueezyService:
 
     @staticmethod
     def get_checkout_url() -> str:
-        """取得結帳連結（前端用），自動加上繁體中文語系"""
-        url = LemonsqueezyService.CHECKOUT_URL
-        if url and "?" not in url:
-            url += "?locale=zh-TW"
-        elif url and "locale=" not in url:
-            url += "&locale=zh-TW"
-        return url
+        """取得結帳連結（前端用）"""
+        return LemonsqueezyService.CHECKOUT_URL
