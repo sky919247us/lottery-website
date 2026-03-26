@@ -80,39 +80,33 @@ class LemonsqueezyService:
         order_id = str(event_data.get("id", ""))
         attributes = event_data.get("attributes", {})
         status = attributes.get("status", "")
-        user_email = attributes.get("user_email", "")
 
-        print(f"[LM] order_created: order_id={order_id}, status={status}, email={user_email}")
+        print(f"[LM] order_created: order_id={order_id}, status={status}")
 
         # 只處理已付款的訂單
         if status != "paid":
             print(f"[LM] 訂單狀態非 paid，略過: {status}")
             return None
 
-        # 優先用 custom_data 中的 claim_id 查找
+        # 用 custom_data 中的 claim_id 查找對應店家
         custom_data = meta.get("custom_data") or {}
         claim_id = custom_data.get("claim_id")
-        claim = None
 
-        if claim_id:
-            claim = db.query(MerchantClaim).filter(
-                MerchantClaim.id == int(claim_id)
-            ).first()
-            print(f"[LM] 透過 claim_id={claim_id} 查找: {'找到' if claim else '未找到'}")
+        if not claim_id:
+            print(f"[LM] ❌ webhook 缺少 claim_id，無法識別店家")
+            return None
 
-        # 備用：查找最新的 approved 但尚未升級 PRO 的 claim
-        if not claim:
-            claim = db.query(MerchantClaim).filter(
-                MerchantClaim.status == "approved",
-                MerchantClaim.tier != "pro",
-            ).order_by(MerchantClaim.createdAt.desc()).first()
-            if claim:
-                print(f"[LM] 透過最新 approved claim 查找: claim_id={claim.id}")
-            else:
-                print(f"[LM] 無符合的 approved claim")
+        claim = db.query(MerchantClaim).filter(
+            MerchantClaim.id == int(claim_id)
+        ).first()
+        print(f"[LM] 透過 claim_id={claim_id} 查找: {'找到' if claim else '未找到'}")
 
         if not claim:
-            print(f"[LM] ❌ 找不到對應的 MerchantClaim: claim_id={claim_id}, email={user_email}")
+            print(f"[LM] ❌ 找不到對應的 MerchantClaim: claim_id={claim_id}")
+            return None
+
+        if claim.status != "approved":
+            print(f"[LM] ❌ claim 狀態非 approved: {claim.status}")
             return None
 
         # 更新為 PRO
