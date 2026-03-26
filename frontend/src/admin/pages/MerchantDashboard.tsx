@@ -194,7 +194,7 @@ export default function MerchantDashboard() {
                         '&:hover': { opacity: 0.9, transform: 'scale(1.02)' },
                       }}
                       onClick={() => {
-                        window.open('https://i168.lemonsqueezy.com/checkout/buy/5ab4ec1f-a4c8-4055-9ca4-51b06610e861', '_blank')
+                        window.open('https://i168.lemonsqueezy.com/checkout/buy/5ab4ec1f-a4c8-4055-9ca4-51b06610e861?locale=zh-TW', '_blank')
                       }}
                       clickable
                     />
