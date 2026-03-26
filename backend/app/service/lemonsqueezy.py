@@ -100,16 +100,16 @@ class LemonsqueezyService:
             ).first()
             print(f"[LM] 透過 claim_id={claim_id} 查找: {'找到' if claim else '未找到'}")
 
-        # 備用：用 email 查找最新的 approved claim
-        if not claim and user_email:
-            from app.model.user import User
-            user = db.query(User).filter(User.email == user_email).first()
-            if user:
-                claim = db.query(MerchantClaim).filter(
-                    MerchantClaim.userId == user.id,
-                    MerchantClaim.status == "approved",
-                ).order_by(MerchantClaim.createdAt.desc()).first()
-                print(f"[LM] 透過 email={user_email} 查找: {'找到' if claim else '未找到'}")
+        # 備用：查找最新的 approved 但尚未升級 PRO 的 claim
+        if not claim:
+            claim = db.query(MerchantClaim).filter(
+                MerchantClaim.status == "approved",
+                MerchantClaim.tier != "pro",
+            ).order_by(MerchantClaim.createdAt.desc()).first()
+            if claim:
+                print(f"[LM] 透過最新 approved claim 查找: claim_id={claim.id}")
+            else:
+                print(f"[LM] 無符合的 approved claim")
 
         if not claim:
             print(f"[LM] ❌ 找不到對應的 MerchantClaim: claim_id={claim_id}, email={user_email}")
