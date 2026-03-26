@@ -834,9 +834,16 @@ async def get_my_store(
     retailer = db.query(Retailer).filter(Retailer.id == admin.retailerId).first()
     if not retailer:
         raise HTTPException(status_code=404, detail="關聯的店家記錄不存在")
-        
+
+    # 查找該店家的 claim_id（用於 PRO 升級付款連結）
+    claim = db.query(MerchantClaim).filter(
+        MerchantClaim.retailerId == retailer.id,
+        MerchantClaim.status == "approved",
+    ).first()
+
     return {
         "id": retailer.id,
+        "claimId": claim.id if claim else None,
         "name": retailer.name,
         "address": retailer.address,
         "city": retailer.city,

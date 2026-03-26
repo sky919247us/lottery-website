@@ -32,6 +32,7 @@ interface StoreData {
   announcement: string
   mapClickCount: number
   nearbyInventoryCount: number
+  claimId?: number | null
 }
 
 export default function MerchantDashboard() {
@@ -193,8 +194,22 @@ export default function MerchantDashboard() {
                         px: 2, py: 2.5, cursor: 'pointer',
                         '&:hover': { opacity: 0.9, transform: 'scale(1.02)' },
                       }}
-                      onClick={() => {
-                        window.open('https://i168.lemonsqueezy.com/checkout/buy/5ab4ec1f-a4c8-4055-9ca4-51b06610e861', '_blank')
+                      onClick={async () => {
+                        if (!store?.claimId) {
+                          enqueueSnackbar('找不到認領資料，請聯繫管理員', { variant: 'error' })
+                          return
+                        }
+                        try {
+                          const res = await fetch(`/api/merchant/claim/${store.claimId}/checkout-url`)
+                          const data = await res.json()
+                          if (data.checkoutUrl) {
+                            window.open(data.checkoutUrl, '_blank')
+                          } else {
+                            enqueueSnackbar('無法取得付款連結', { variant: 'error' })
+                          }
+                        } catch {
+                          enqueueSnackbar('取得付款連結失敗', { variant: 'error' })
+                        }
                       }}
                       clickable
                     />
