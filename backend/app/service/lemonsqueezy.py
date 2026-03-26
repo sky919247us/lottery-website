@@ -4,7 +4,6 @@ Lemonsqueezy 支付集成服務
 """
 
 import os
-import json
 import hmac
 import hashlib
 from datetime import datetime, timedelta
@@ -18,71 +17,105 @@ class LemonsqueezyService:
     """Lemonsqueezy 支付服務"""
 
     PRODUCT_ID = os.getenv("LEMONSQUEEZY_PRODUCT_ID", "919326")
-    CHECKOUT_URL = os.getenv("LEMONSQUEEZY_CHECKOUT_URL", "")
+    CHECKOUT_URL = os.getenv(
+        "LEMONSQUEEZY_CHECKOUT_URL",
+        "https://i168.lemonsqueezy.com/checkout/buy/5ab4ec1f-a4c8-4055-9ca4-51b06610e861",
+    )
     SIGNING_SECRET = os.getenv("LEMONSQUEEZY_SIGNING_SECRET", "")
 
     @staticmethod
-    def verify_webhook_signature(payload: str, signature: str) -> bool:
+    def verify_webhook_signature(payload: bytes, signature: str) -> bool:
         """
         驗證 Webhook 簽名（使用 X-Signature header）
-
-        Args:
-            payload: 原始請求 body (bytes)
-            signature: X-Signature header 值
-
-        Returns:
-            True 如果簽名正確
         """
         if not LemonsqueezyService.SIGNING_SECRET:
-            # 未設定 secret，先跳過驗證（開發模式）
+            # 未設定 secret，先跳過驗證（開發/測試模式）
+            print("[LM] ⚠️ 未設定 SIGNING_SECRET，跳過簽名驗證")
             return True
 
-        # Lemonsqueezy 使用 HMAC-SHA256
         expected = hmac.new(
             LemonsqueezyService.SIGNING_SECRET.encode(),
             payload,
-            hashlib.sha256
+            hashlib.sha256,
         ).hexdigest()
 
         return hmac.compare_digest(signature, expected)
 
     @staticmethod
+    def get_checkout_url_with_claim(claim_id: int) -> str:
+        """
+        產生帶有 claim_id 的結帳連結
+        Lemonsqueezy 支援 checkout[custom][key]=value 格式傳遞自訂資料
+        """
+        base = LemonsqueezyService.CHECKOUT_URL
+        if not base:
+            return ""
+        sep = "&" if "?" in base else "?"
+        return f"{base}{sep}checkout[custom][claim_id]={claim_id}"
+
+    @staticmethod
+    def get_checkout_url() -> str:
+        """取得基本結帳連結（前端用）"""
+        return LemonsqueezyService.CHECKOUT_URL
+
+    @staticmethod
     def handle_order_created(
         db: Session,
-        order_data: dict
+        event_data: dict,
+        meta: dict,
     ) -> Optional[MerchantClaim]:
         """
-        處理 order.created 事件
+        處理 order_created 事件
 
-        Args:
-            db: 數據庫 session
-            order_data: Webhook 事件 data.order
-
-        Returns:
-            更新後的 MerchantClaim，或 None
+        Lemonsqueezy webhook payload 格式:
+        {
+            "meta": { "event_name": "order_created", "custom_data": { "claim_id": "5" } },
+            "data": {
+                "id": "123",
+                "type": "orders",
+                "attributes": { "status": "paid", "user_email": "...", ... }
+            }
+        }
         """
-        order_id = order_data.get("id")
-        customer_email = order_data.get("customer_email")
-        status = order_data.get("status")  # 通常是 "pending" 或 "completed"
+        order_id = str(event_data.get("id", ""))
+        attributes = event_data.get("attributes", {})
+        status = attributes.get("status", "")
+        user_email = attributes.get("user_email", "")
 
-        # 只處理已支付的訂單
-        if status != "completed":
+        print(f"[LM] order_created: order_id={order_id}, status={status}, email={user_email}")
+
+        # 只處理已付款的訂單
+        if status != "paid":
+            print(f"[LM] 訂單狀態非 paid，略過: {status}")
             return None
 
-        # 根據 customer_email 查找 MerchantClaim
-        claim = db.query(MerchantClaim).filter(
-            MerchantClaim.userId.in_(
-                db.query("id").from_statement(
-                    f"SELECT u.id FROM users u WHERE u.email = '{customer_email}'"
-                )
-            )
-        ).order_by(MerchantClaim.createdAt.desc()).first()
+        # 優先用 custom_data 中的 claim_id 查找
+        custom_data = meta.get("custom_data") or {}
+        claim_id = custom_data.get("claim_id")
+        claim = None
+
+        if claim_id:
+            claim = db.query(MerchantClaim).filter(
+                MerchantClaim.id == int(claim_id)
+            ).first()
+            print(f"[LM] 透過 claim_id={claim_id} 查找: {'找到' if claim else '未找到'}")
+
+        # 備用：用 email 查找最新的 approved claim
+        if not claim and user_email:
+            from app.model.user import User
+            user = db.query(User).filter(User.email == user_email).first()
+            if user:
+                claim = db.query(MerchantClaim).filter(
+                    MerchantClaim.userId == user.id,
+                    MerchantClaim.status == "approved",
+                ).order_by(MerchantClaim.createdAt.desc()).first()
+                print(f"[LM] 透過 email={user_email} 查找: {'找到' if claim else '未找到'}")
 
         if not claim:
-            print(f"[LM] 找不到對應的 MerchantClaim: {customer_email}")
+            print(f"[LM] ❌ 找不到對應的 MerchantClaim: claim_id={claim_id}, email={user_email}")
             return None
 
-        # 更新訂單資訊
+        # 更新為 PRO
         claim.lemonsqueezyOrderId = order_id
         claim.paymentStatus = "paid"
         claim.tier = "pro"
@@ -90,45 +123,33 @@ class LemonsqueezyService:
 
         db.commit()
 
-        print(f"[LM] ✅ PRO 訂單已激活: claim_id={claim.id}, order_id={order_id}")
+        print(f"[LM] ✅ PRO 已激活: claim_id={claim.id}, order_id={order_id}, 到期={claim.proExpiresAt}")
         return claim
 
     @staticmethod
     def handle_order_refunded(
         db: Session,
-        order_data: dict
+        event_data: dict,
     ) -> Optional[MerchantClaim]:
         """
-        處理 order.refunded 事件（退款）
-
-        Args:
-            db: 數據庫 session
-            order_data: Webhook 事件 data.order
-
-        Returns:
-            更新後的 MerchantClaim，或 None
+        處理 order_refunded 事件（退款）
         """
-        order_id = order_data.get("id")
+        order_id = str(event_data.get("id", ""))
 
         claim = db.query(MerchantClaim).filter(
             MerchantClaim.lemonsqueezyOrderId == order_id
         ).first()
 
         if not claim:
-            print(f"[LM] 找不到對應的退款訂單: {order_id}")
+            print(f"[LM] ❌ 找不到對應的退款訂單: {order_id}")
             return None
 
-        # 降級回 basic，清除 PRO 過期日
+        # 降級回 basic
         claim.paymentStatus = "refunded"
         claim.tier = "basic"
         claim.proExpiresAt = None
 
         db.commit()
 
-        print(f"[LM] ⚠️ PRO 訂單已退款: claim_id={claim.id}, order_id={order_id}")
+        print(f"[LM] ⚠️ PRO 已退款降級: claim_id={claim.id}, order_id={order_id}")
         return claim
-
-    @staticmethod
-    def get_checkout_url() -> str:
-        """取得結帳連結（前端用）"""
-        return LemonsqueezyService.CHECKOUT_URL

@@ -184,8 +184,8 @@ def get_checkout_url(claim_id: int, db: Session = Depends(get_db)):
     if claim.status != "approved":
         raise HTTPException(status_code=403, detail="申請尚未核准")
 
-    # 返回結帳 URL
-    checkout_url = LemonsqueezyService.get_checkout_url()
+    # 返回結帳 URL（帶 claim_id）
+    checkout_url = LemonsqueezyService.get_checkout_url_with_claim(claim_id)
     if not checkout_url:
         raise HTTPException(status_code=500, detail="支付系統未設定")
 
