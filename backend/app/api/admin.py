@@ -45,9 +45,9 @@ logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/api/admin", tags=["後台管理"])
 
 
-def _admin_to_dict(admin: AdminUser) -> dict:
+def _admin_to_dict(admin: AdminUser, db: Session = None) -> dict:
     """將 AdminUser 物件轉為前端需要的字典"""
-    return {
+    result = {
         "id": admin.id,
         "username": admin.username,
         "displayName": admin.displayName or admin.username,
@@ -57,7 +57,18 @@ def _admin_to_dict(admin: AdminUser) -> dict:
         "expireAt": admin.expireAt.isoformat() if admin.expireAt else None,
         "lastLoginAt": admin.lastLoginAt.isoformat() if admin.lastLoginAt else None,
         "createdAt": admin.createdAt.isoformat() if admin.createdAt else None,
+        "proExpiresAt": None,
     }
+    # 商家角色：查詢 PRO 到期日
+    if db and admin.role == ROLE_MERCHANT and admin.retailerId:
+        from app.model.merchant import MerchantClaim
+        claim = db.query(MerchantClaim).filter(
+            MerchantClaim.retailerId == admin.retailerId,
+            MerchantClaim.tier == "pro",
+        ).first()
+        if claim and claim.proExpiresAt:
+            result["proExpiresAt"] = claim.proExpiresAt.isoformat()
+    return result
 
 
 # ─── 登入 ───────────────────────────────────────────
@@ -88,14 +99,14 @@ async def admin_login(data: AdminLoginRequest, db: Session = Depends(get_db)):
 
     return AdminLoginResponse(
         token=token,
-        user=_admin_to_dict(admin),
+        user=_admin_to_dict(admin, db),
     )
 
 
 @router.get("/auth/me")
-async def admin_me(admin: AdminUser = Depends(get_current_admin)):
+async def admin_me(admin: AdminUser = Depends(get_current_admin), db: Session = Depends(get_db)):
     """取得當前管理員資料"""
-    return _admin_to_dict(admin)
+    return _admin_to_dict(admin, db)
 
 
 # ─── 帳號管理（僅超級管理員）───────────────────────────
@@ -107,7 +118,7 @@ async def list_admin_users(
 ):
     """列出所有管理員帳號"""
     admins = db.query(AdminUser).order_by(AdminUser.createdAt.desc()).all()
-    return [_admin_to_dict(a) for a in admins]
+    return [_admin_to_dict(a, db) for a in admins]
 
 
 @router.post("/users")
@@ -148,7 +159,7 @@ async def create_admin_user(
     db.refresh(new_admin)
 
     logger.info(f"超級管理員 [{admin.username}] 建立帳號: {data.username} (角色: {data.role})")
-    return _admin_to_dict(new_admin)
+    return _admin_to_dict(new_admin, db)
 
 
 @router.put("/users/{user_id}")
@@ -171,14 +182,14 @@ async def update_admin_user(
         target.retailerId = data.retailerId
     if data.isActive is not None:
         target.isActive = data.isActive
-    
+
     if data.expireAt is not None:
         target.expireAt = data.expireAt
 
     db.commit()
     db.refresh(target)
     logger.info(f"超級管理員 [{admin.username}] 更新帳號: {target.username}")
-    return _admin_to_dict(target)
+    return _admin_to_dict(target, db)
 
 
 @router.delete("/users/{user_id}")

@@ -166,9 +166,20 @@ export default function AdminAccounts() {
         <Typography variant="body2" color="text.secondary">—</Typography>
       )
     },
-    { 
-        field: 'createdAt', 
-        headerName: '建立時間', 
+    {
+        field: 'proExpiresAt',
+        headerName: 'PRO 到期日',
+        width: 160,
+        renderCell: (params) => {
+          if (!params.value) return <Typography variant="body2" color="text.secondary">—</Typography>
+          const d = new Date(params.value)
+          const isExpired = d < new Date()
+          return <Chip label={d.toLocaleDateString()} size="small" color={isExpired ? 'error' : 'success'} />
+        }
+    },
+    {
+        field: 'createdAt',
+        headerName: '建立時間',
         width: 180,
         renderCell: (params) => params.value ? new Date(params.value).toLocaleString() : ''
     },

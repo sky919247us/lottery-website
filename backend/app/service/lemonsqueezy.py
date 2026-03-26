@@ -11,6 +11,7 @@ from typing import Optional
 
 from sqlalchemy.orm import Session
 from app.model.merchant import MerchantClaim
+from app.model.retailer import Retailer
 
 
 class LemonsqueezyService:
@@ -115,9 +116,15 @@ class LemonsqueezyService:
         claim.tier = "pro"
         claim.proExpiresAt = datetime.utcnow() + timedelta(days=365)
 
+        # 同步更新 Retailer 的 merchantTier
+        retailer = db.query(Retailer).filter(Retailer.id == claim.retailerId).first()
+        if retailer:
+            retailer.merchantTier = "pro"
+            retailer.tierExpireAt = claim.proExpiresAt
+
         db.commit()
 
-        print(f"[LM] ✅ PRO 已激活: claim_id={claim.id}, order_id={order_id}, 到期={claim.proExpiresAt}")
+        print(f"[LM] ✅ PRO 已激活: claim_id={claim.id}, retailer_id={claim.retailerId}, order_id={order_id}, 到期={claim.proExpiresAt}")
         return claim
 
     @staticmethod
@@ -143,7 +150,13 @@ class LemonsqueezyService:
         claim.tier = "basic"
         claim.proExpiresAt = None
 
+        # 同步更新 Retailer
+        retailer = db.query(Retailer).filter(Retailer.id == claim.retailerId).first()
+        if retailer:
+            retailer.merchantTier = "basic"
+            retailer.tierExpireAt = None
+
         db.commit()
 
-        print(f"[LM] ⚠️ PRO 已退款降級: claim_id={claim.id}, order_id={order_id}")
+        print(f"[LM] ⚠️ PRO 已退款降級: claim_id={claim.id}, retailer_id={claim.retailerId}, order_id={order_id}")
         return claim
