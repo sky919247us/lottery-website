@@ -114,8 +114,9 @@ async def fetch_prize_via_api(
                 return []
 
             # 解析所有表格
-            # NOTE: 每個 <td> 可能包含多個獎項，以 <br> 分隔
-            # 使用 get_text(separator="\n") 將 <br> 轉為換行再逐行配對
+            # 支援兩種 HTML 結構：
+            # 1. <li> 列表：每個 <li> 對應一個獎項/數量
+            # 2. <br> 分隔：用換行逐行配對
             prizes = []
             for table in target_tables:
                 # 跳過統計表（class 含 summy）
@@ -137,15 +138,23 @@ async def fetch_prize_via_api(
                         pairs.append((cols[0], cols[1]))
 
                     for col_prize, col_count in pairs:
-                        # 用換行分隔取得每一行（對應 <br> 標籤）
-                        prize_lines = [
-                            line.strip() for line in col_prize.get_text(separator="\n").split("\n")
-                            if line.strip()
-                        ]
-                        count_lines = [
-                            line.strip() for line in col_count.get_text(separator="\n").split("\n")
-                            if line.strip()
-                        ]
+                        # 優先用 <li> 結構配對（更精確）
+                        prize_lis = col_prize.find_all("li")
+                        count_lis = col_count.find_all("li")
+
+                        if prize_lis and count_lis:
+                            prize_lines = [li.get_text(strip=True) for li in prize_lis if li.get_text(strip=True)]
+                            count_lines = [li.get_text(strip=True) for li in count_lis if li.get_text(strip=True)]
+                        else:
+                            # fallback: 用換行分隔（對應 <br> 標籤）
+                            prize_lines = [
+                                line.strip() for line in col_prize.get_text(separator="\n").split("\n")
+                                if line.strip()
+                            ]
+                            count_lines = [
+                                line.strip() for line in col_count.get_text(separator="\n").split("\n")
+                                if line.strip()
+                            ]
 
                         if not prize_lines or not count_lines:
                             continue
