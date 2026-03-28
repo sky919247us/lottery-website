@@ -13,8 +13,6 @@ from sentry_sdk.integrations.fastapi import FastApiIntegration
 from apscheduler.schedulers.background import BackgroundScheduler
 from apscheduler.triggers.cron import CronTrigger
 from fastapi import FastAPI, Depends
-from app.model.admin import AdminUser, ROLE_SUPER_ADMIN
-from app.service.admin_auth_service import require_role
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 
@@ -227,8 +225,14 @@ def public_stats():
         db.close()
 
 
+def _require_super_admin():
+    from app.model.admin import ROLE_SUPER_ADMIN
+    from app.service.admin_auth_service import require_role
+    return require_role(ROLE_SUPER_ADMIN)
+
+
 @app.post("/api/admin/crawl", tags=["管理"])
-async def trigger_crawl(admin: AdminUser = Depends(require_role(ROLE_SUPER_ADMIN))):
+async def trigger_crawl(admin=Depends(_require_super_admin())):
     """手動觸發爬蟲（僅超級管理員）"""
     logger.info("🔧 手動觸發爬蟲...")
     try:
