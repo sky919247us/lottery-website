@@ -5,12 +5,13 @@
 
 from datetime import datetime
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Query, UploadFile, File
 from sqlalchemy.orm import Session
 
 from app.model.database import get_db
 from app.model.retailer import Retailer
 from app.model.user import User
+from app.model.admin import AdminUser, ROLE_MERCHANT, ROLE_ADMIN, ROLE_SUPER_ADMIN
 from app.model.merchant import MerchantClaim, MerchantAnnouncement
 from app.schema.user import (
     MerchantClaimCreate, MerchantClaimResponse,
@@ -18,8 +19,16 @@ from app.schema.user import (
 )
 from app.api.user import add_karma
 from app.service.lemonsqueezy import LemonsqueezyService
-from fastapi import Query, UploadFile, File
 from app.service.r2_service import upload_image
+from app.service.admin_auth_service import require_role, get_current_admin
+
+
+def _verify_merchant_owns_retailer(admin: AdminUser, retailer_id: int):
+    """驗證商家帳號是否擁有此店家"""
+    if admin.role == ROLE_SUPER_ADMIN or admin.role == ROLE_ADMIN:
+        return  # 管理員可操作任何店家
+    if admin.retailerId != retailer_id:
+        raise HTTPException(status_code=403, detail="無權操作此店家")
 
 router = APIRouter(prefix="/api/merchant", tags=["店家管理"])
 
@@ -74,9 +83,11 @@ def submit_claim(data: MerchantClaimCreate, db: Session = Depends(get_db)):
 def update_tags(
     retailer_id: int,
     data: RetailerTagsUpdate,
+    admin: AdminUser = Depends(require_role(ROLE_MERCHANT, ROLE_ADMIN, ROLE_SUPER_ADMIN)),
     db: Session = Depends(get_db),
 ):
-    """更新店家設施標籤（需已認領）"""
+    """更新店家設施標籤（需已認領且為店家擁有者）"""
+    _verify_merchant_owns_retailer(admin, retailer_id)
     retailer = db.query(Retailer).filter(Retailer.id == retailer_id).first()
     if not retailer:
         raise HTTPException(status_code=404, detail="經銷商不存在")
@@ -93,9 +104,11 @@ def update_tags(
 def update_business_status(
     retailer_id: int,
     is_active: bool = True,
+    admin: AdminUser = Depends(require_role(ROLE_MERCHANT, ROLE_ADMIN, ROLE_SUPER_ADMIN)),
     db: Session = Depends(get_db),
 ):
-    """更新營業狀態"""
+    """更新營業狀態（需為店家擁有者）"""
+    _verify_merchant_owns_retailer(admin, retailer_id)
     retailer = db.query(Retailer).filter(Retailer.id == retailer_id).first()
     if not retailer:
         raise HTTPException(status_code=404, detail="經銷商不存在")
@@ -109,9 +122,11 @@ def update_business_status(
 def create_announcement(
     retailer_id: int,
     data: MerchantAnnouncementCreate,
+    admin: AdminUser = Depends(require_role(ROLE_MERCHANT, ROLE_ADMIN, ROLE_SUPER_ADMIN)),
     db: Session = Depends(get_db),
 ):
-    """發佈臨時公告"""
+    """發佈臨時公告（需為店家擁有者）"""
+    _verify_merchant_owns_retailer(admin, retailer_id)
     # 找到認領
     claim = db.query(MerchantClaim).filter(
         MerchantClaim.retailerId == retailer_id,

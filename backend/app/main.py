@@ -19,6 +19,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 
 from app.api import map, retailer, scratchcard, videos, user, inventory, merchant, festival, auth, rating, admin, upload, payment, store_page, webhooks
+from app.middleware.rate_limit import RateLimitMiddleware
 from app.model.database import init_db
 from app.service.crawler_service import run_crawler
 from app.service.scraper_service import sync_jackpot_stores
@@ -63,6 +64,9 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+# Rate Limiting
+app.add_middleware(RateLimitMiddleware)
 
 # 註冊路由
 app.include_router(scratchcard.router)
