@@ -74,10 +74,19 @@ async def fetch_prize_via_api(
 
             soup = BeautifulSoup(raw_html, "html.parser")
 
-            # 定位起點（ID 錨點）
+            # 定位起點（ID 錨點 或 h1 標題）
             anchor = soup.find("a", attrs={"id": target_game_id}) or soup.find(
                 "a", attrs={"name": target_game_id}
             )
+
+            # 若無錨點，嘗試用 h1 標題定位（如「遊戲期數：5140」）
+            if not anchor:
+                for h_tag in soup.find_all(re.compile(r"^h[1-3]$")):
+                    h_text = h_tag.get_text(strip=True)
+                    if str(target_game_id) in h_text and "遊戲" in h_text:
+                        anchor = h_tag
+                        break
+
             target_tables = []
 
             if anchor:
@@ -92,6 +101,11 @@ async def fetch_prize_via_api(
                     if curr.name == "a" and (curr.get("id") or curr.get("name")):
                         aid = curr.get("id") or curr.get("name")
                         if str(aid) != str(target_game_id) and re.match(r"^\d+$", str(aid)):
+                            break
+                    # 遇到下一個遊戲期數標題就停止
+                    if curr.name in ("h1", "h2", "h3"):
+                        h_text = curr.get_text(strip=True)
+                        if "遊戲" in h_text and str(target_game_id) not in h_text and re.search(r"\d{4}", h_text):
                             break
             else:
                 target_tables = soup.find_all("table")
