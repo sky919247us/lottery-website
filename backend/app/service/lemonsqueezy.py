@@ -30,9 +30,8 @@ class LemonsqueezyService:
         驗證 Webhook 簽名（使用 X-Signature header）
         """
         if not LemonsqueezyService.SIGNING_SECRET:
-            # 未設定 secret，先跳過驗證（開發/測試模式）
-            print("[LM] ⚠️ 未設定 SIGNING_SECRET，跳過簽名驗證")
-            return True
+            print("[LM] ❌ 未設定 SIGNING_SECRET，拒絕請求")
+            return False
 
         expected = hmac.new(
             LemonsqueezyService.SIGNING_SECRET.encode(),
