@@ -514,13 +514,15 @@ async def fetch_preview_scratchcards() -> list[dict[str, Any]]:
             if not detail:
                 continue
 
-            # 解析圖片 URL（取第一張）
+            # 解析圖片 URL（取第一張，listPic 可能是 list 或逗號分隔字串）
             image_url = ""
             list_pic = detail.get("listPic", "")
-            if list_pic:
+            if isinstance(list_pic, list):
+                image_url = list_pic[0].strip() if list_pic else ""
+            elif isinstance(list_pic, str) and list_pic:
                 image_url = list_pic.split(",")[0].strip()
             if not image_url:
-                image_url = detail.get("detailPicPath", "")
+                image_url = detail.get("detailPicPath", "") or ""
 
             # 解析發行日（API 回傳西元格式，轉為民國年）
             listing_date = detail.get("listingDate", "")
