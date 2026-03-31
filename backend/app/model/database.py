@@ -163,6 +163,9 @@ def _run_migrations():
             if "isPreview" not in existing_cols:
                 conn.execute(text("ALTER TABLE scratchcards ADD COLUMN isPreview BOOLEAN DEFAULT 0"))
                 conn.commit()
+            # 確保既有資料的 isPreview 不為 NULL（SQLite ALTER TABLE 不會回填既有資料）
+            conn.execute(text("UPDATE scratchcards SET isPreview = 0 WHERE isPreview IS NULL"))
+            conn.commit()
 
             result = conn.execute(text("PRAGMA table_info(retailers)"))
             existing_cols = {row[1] for row in result.fetchall()}
