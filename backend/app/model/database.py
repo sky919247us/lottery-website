@@ -71,6 +71,7 @@ class Scratchcard(Base):
     grandPrizeUnclaimed = Column(BigInteger, default=0, comment="頭獎未兌領張數")
     overallWinRate = Column(String(20), default="", comment="總中獎率")
     isHighWinRate = Column(Boolean, default=False, comment="「紅色警戒」高勝率預警")
+    isPreview = Column(Boolean, default=False, comment="即將發售（預告款）")
     prizeInfoUrl = Column(Text, default="", comment="獎金結構連結")
     imageUrl = Column(Text, default="", comment="刮刮樂圖片 URL")
     updatedAt = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
@@ -155,6 +156,12 @@ def _run_migrations():
             existing_cols = {row[1] for row in result.fetchall()}
             if "retailerId" not in existing_cols:
                 conn.execute(text("ALTER TABLE admin_users ADD COLUMN retailerId INTEGER REFERENCES retailers(id)"))
+                conn.commit()
+
+            result = conn.execute(text("PRAGMA table_info(scratchcards)"))
+            existing_cols = {row[1] for row in result.fetchall()}
+            if "isPreview" not in existing_cols:
+                conn.execute(text("ALTER TABLE scratchcards ADD COLUMN isPreview BOOLEAN DEFAULT 0"))
                 conn.commit()
 
             result = conn.execute(text("PRAGMA table_info(retailers)"))

@@ -30,11 +30,12 @@ def get_scratchcard_list(
     order: str = Query("desc", description="排序方向：asc / desc"),
     price: int | None = Query(None, description="依售價篩選"),
     high_win_only: bool = Query(False, description="僅顯示紅色警戒款式"),
+    is_preview: bool | None = Query(None, description="篩選預告款 (True) 或在售款 (False)"),
     db: Session = Depends(get_db),
 ):
     """取得刮刮樂列表（輕量版，不含獎金結構詳情）"""
     # --- 快取檢查 (TTL 86400 秒 = 24 小時，台彩每天 09:00 更新一次) ---
-    cache_key = f"scratchcards:list:{sort_by}:{order}:{price}:{high_win_only}"
+    cache_key = f"scratchcards:list:{sort_by}:{order}:{price}:{high_win_only}:{is_preview}"
     cached = get_cache(cache_key, ttl=86400)
     if cached is not None:
         return cached
@@ -47,6 +48,8 @@ def get_scratchcard_list(
         query = query.filter(Scratchcard.price == price)
     if high_win_only:
         query = query.filter(Scratchcard.isHighWinRate == True)
+    if is_preview is not None:
+        query = query.filter(Scratchcard.isPreview == is_preview)
 
     # 主要排序
     sort_column = getattr(Scratchcard, sort_by, Scratchcard.issueDate)

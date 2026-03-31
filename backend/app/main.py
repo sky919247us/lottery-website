@@ -19,7 +19,7 @@ from fastapi.staticfiles import StaticFiles
 from app.api import map, retailer, scratchcard, videos, user, inventory, merchant, festival, auth, rating, admin, upload, payment, store_page, webhooks
 from app.middleware.rate_limit import RateLimitMiddleware
 from app.model.database import init_db
-from app.service.crawler_service import run_crawler
+from app.service.crawler_service import run_crawler, run_preview_crawler
 from app.service.scraper_service import sync_jackpot_stores
 from app.service.admin_auth_service import init_super_admin
 from app.model.database import SessionLocal
@@ -136,6 +136,16 @@ def _run_pro_expiry_reminder():
         db.close()
 
 
+def _run_preview_crawler_job():
+    """預告刮刮樂爬蟲排程任務"""
+    logger.info("⏰ 排程觸發：開始執行預告刮刮樂爬蟲...")
+    try:
+        result = asyncio.run(run_preview_crawler())
+        logger.info(f"✅ 預告爬蟲完成，共寫入 {result} 筆資料")
+    except Exception as e:
+        logger.error(f"❌ 預告爬蟲失敗: {e}")
+
+
 def _run_backup_job():
     """資料庫備份排程任務"""
     logger.info("⏰ 排程觸發：開始執行資料庫備份...")
@@ -181,6 +191,13 @@ def on_startup():
         _run_pro_expiry_reminder,
         trigger=CronTrigger(hour=2, minute=0),
         id="daily_pro_expiry_reminder",
+        replace_existing=True,
+    )
+    # 每日台灣早上 10:05 (UTC 2:05) 自動執行預告刮刮樂爬蟲
+    scheduler.add_job(
+        _run_preview_crawler_job,
+        trigger=CronTrigger(hour=2, minute=5),
+        id="daily_preview_crawler",
         replace_existing=True,
     )
     # 每天台灣凌晨 4:00 (UTC 20:00) 自動執行資料庫備份
@@ -240,6 +257,18 @@ async def trigger_crawl(admin=Depends(_require_super_admin())):
         return {"status": "ok", "count": result}
     except Exception as e:
         logger.error(f"❌ 爬蟲失敗: {e}")
+        return {"status": "error", "message": str(e)}
+
+
+@app.post("/api/admin/crawl-preview", tags=["管理"])
+async def trigger_preview_crawl():
+    """手動觸發預告刮刮樂爬蟲"""
+    logger.info("🔧 手動觸發預告爬蟲...")
+    try:
+        result = await run_preview_crawler()
+        return {"status": "ok", "count": result}
+    except Exception as e:
+        logger.error(f"❌ 預告爬蟲失敗: {e}")
         return {"status": "error", "message": str(e)}
 
 

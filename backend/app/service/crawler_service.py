@@ -356,6 +356,7 @@ async def scrape_all_scratchcards() -> list[dict[str, Any]]:
                             ),
                             "overallWinRate": "",
                             "isHighWinRate": calculate_high_win_rate(details, sales_rate_value),
+                            "isPreview": False,
                             "prizeInfoUrl": link,
                             "imageUrl": image_url,
                             "prizes": prize_list,
@@ -440,6 +441,132 @@ def save_to_database(data_list: list[dict[str, Any]]) -> int:
 async def run_crawler():
     """完整爬蟲流程：爬取 + 存入 DB"""
     data = await scrape_all_scratchcards()
+    if data:
+        save_to_database(data)
+    return len(data)
+
+
+# === 預告刮刮樂爬蟲 ===
+
+INSTANT_HOME_API = "https://api.taiwanlottery.com/TLCAPIWeB/Home/Instant"
+INSTANT_DETAIL_API = "https://api.taiwanlottery.com/TLCAPIWeB/Instant/Detail"
+
+
+async def fetch_preview_scratchcards() -> list[dict[str, Any]]:
+    """
+    透過台灣彩券公開 API 取得預告（即將發售）刮刮樂資料
+    不需要 Playwright，直接呼叫 REST API
+    """
+    logger.info("🔍 開始抓取預告刮刮樂...")
+    results = []
+
+    headers = {
+        "User-Agent": "Mozilla/5.0",
+        "Referer": "https://www.taiwanlottery.com/",
+    }
+
+    async with aiohttp.ClientSession() as session:
+        # Step 1: 從首頁 API 取得預告列表
+        try:
+            async with session.get(
+                INSTANT_HOME_API, headers=headers,
+                timeout=aiohttp.ClientTimeout(total=15),
+            ) as resp:
+                if resp.status != 200:
+                    logger.warning(f"⚠️ Home/Instant API 回應 {resp.status}")
+                    return []
+                data = await resp.json()
+        except Exception as e:
+            logger.error(f"❌ 取得預告列表失敗: {e}")
+            return []
+
+        content = data.get("content", {})
+        forecast_list = content.get("forecastInstantList", [])
+
+        if not forecast_list:
+            logger.info("ℹ️ 目前沒有預告刮刮樂")
+            return []
+
+        logger.info(f"📋 發現 {len(forecast_list)} 款預告刮刮樂")
+
+        # Step 2: 逐一取得每款預告的詳細資料
+        for item in forecast_list:
+            scratch_id = item.get("scratchId", "")
+            if not scratch_id:
+                continue
+
+            try:
+                async with session.get(
+                    INSTANT_DETAIL_API,
+                    params={"ScratchId": scratch_id},
+                    headers=headers,
+                    timeout=aiohttp.ClientTimeout(total=10),
+                ) as resp:
+                    if resp.status != 200:
+                        logger.warning(f"⚠️ 取得預告詳情失敗 ({scratch_id}): HTTP {resp.status}")
+                        continue
+                    detail_data = await resp.json()
+            except Exception as e:
+                logger.warning(f"⚠️ 取得預告詳情失敗 ({scratch_id}): {e}")
+                continue
+
+            detail = detail_data.get("content", {})
+            if not detail:
+                continue
+
+            # 解析圖片 URL（取第一張）
+            image_url = ""
+            list_pic = detail.get("listPic", "")
+            if list_pic:
+                image_url = list_pic.split(",")[0].strip()
+            if not image_url:
+                image_url = detail.get("detailPicPath", "")
+
+            # 解析發行日（API 回傳西元格式，轉為民國年）
+            listing_date = detail.get("listingDate", "")
+            issue_date_roc = ""
+            if listing_date:
+                try:
+                    # 格式可能是 "2026/04/15" 或 "2026-04-15"
+                    clean_date = listing_date.replace("-", "/").split("T")[0]
+                    parts = clean_date.split("/")
+                    if len(parts) == 3:
+                        roc_year = int(parts[0]) - 1911
+                        issue_date_roc = f"{roc_year}/{parts[1]}/{parts[2]}"
+                except (ValueError, IndexError):
+                    issue_date_roc = listing_date
+
+            row = {
+                "gameId": scratch_id,
+                "name": detail.get("scratchName", item.get("scratchName", "未命名")),
+                "price": detail.get("money", 0),
+                "maxPrize": "",
+                "maxPrizeAmount": 0,
+                "issueDate": issue_date_roc,
+                "endDate": "",
+                "redeemDeadline": "",
+                "totalIssued": detail.get("issuedCount", 0),
+                "salesRate": "",
+                "salesRateValue": 0.0,
+                "grandPrizeCount": 0,
+                "grandPrizeUnclaimed": 0,
+                "overallWinRate": detail.get("oddsOfWinning", ""),
+                "isHighWinRate": False,
+                "isPreview": True,
+                "prizeInfoUrl": "",
+                "imageUrl": image_url,
+                "prizes": [],
+            }
+            results.append(row)
+            logger.info(f"    ✅ 預告: {row['name']} (${row['price']}) - 預計 {issue_date_roc}")
+
+    logger.info(f"🎉 預告爬蟲完成，共取得 {len(results)} 款")
+    return results
+
+
+async def run_preview_crawler() -> int:
+    """預告爬蟲流程：抓取 + 存入 DB"""
+    data = await fetch_preview_scratchcards()
     if data:
         save_to_database(data)
     return len(data)

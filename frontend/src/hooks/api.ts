@@ -35,6 +35,7 @@ export interface ScratchcardListItem {
     grandPrizeCount: number
     grandPrizeUnclaimed: number
     isHighWinRate: boolean
+    isPreview: boolean
     issueDate: string
     endDate: string
     overallWinRate: string
@@ -78,6 +79,7 @@ export async function fetchScratchcards(params?: {
     order?: string
     price?: number
     highWinOnly?: boolean
+    isPreview?: boolean
 }): Promise<ScratchcardListItem[]> {
     const { data } = await api.get('/api/scratchcards', {
         params: {
@@ -85,9 +87,17 @@ export async function fetchScratchcards(params?: {
             order: params?.order,
             price: params?.price,
             high_win_only: params?.highWinOnly,
+            is_preview: params?.isPreview,
         },
     })
     return data
+}
+
+/**
+ * 取得預告（即將發售）刮刮樂列表
+ */
+export async function fetchPreviewScratchcards(): Promise<ScratchcardListItem[]> {
+    return fetchScratchcards({ isPreview: true, sortBy: 'issueDate', order: 'asc' })
 }
 
 /**
