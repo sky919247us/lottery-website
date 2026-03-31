@@ -935,3 +935,44 @@
         padding: var(--spacing-md);
     }
 }
+
+/* === 即將發售專區 === */
+
+.home__preview {
+    margin-bottom: var(--spacing-2xl);
+}
+
+.home__preview-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    gap: var(--spacing-lg);
+    margin-top: var(--spacing-md);
+}
+
+/* 預告卡片 — 藍綠色邊框 + 微透明 */
+.scratch-card--preview {
+    border: 2px solid rgba(14, 165, 233, 0.35);
+    position: relative;
+}
+
+.scratch-card--preview::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    background: linear-gradient(135deg, rgba(14, 165, 233, 0.06), transparent 60%);
+    pointer-events: none;
+}
+
+/* 即將發售標籤 — 藍綠底白字 */
+.scratch-card__tag--preview {
+    background: #0EA5E9;
+    color: #FFFFFF;
+}
+
+@media (max-width: 480px) {
+    .home__preview-grid {
+        grid-template-columns: repeat(2, 1fr);
+        gap: var(--spacing-md);
+    }
+}

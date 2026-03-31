@@ -5,8 +5,8 @@
 import { useEffect, useState, useMemo } from 'react'
 import { Link } from 'react-router-dom'
 import { motion } from 'framer-motion'
-import { Search, AlertTriangle, TrendingUp, Trophy, Flame, Sparkles, Percent, SlidersHorizontal, X } from 'lucide-react'
-import { fetchScratchcards, type ScratchcardListItem } from '../hooks/api'
+import { Search, AlertTriangle, TrendingUp, Trophy, Flame, Sparkles, Percent, SlidersHorizontal, X, CalendarClock } from 'lucide-react'
+import { fetchScratchcards, fetchPreviewScratchcards, type ScratchcardListItem } from '../hooks/api'
 import SeoHead from '../components/SeoHead'
 import './Home.css'
 
@@ -99,6 +99,7 @@ function isSoldOut(card: ScratchcardListItem): boolean {
 
 export default function Home() {
     const [cards, setCards] = useState<ScratchcardListItem[]>([])
+    const [previewCards, setPreviewCards] = useState<ScratchcardListItem[]>([])
     const [loading, setLoading] = useState(true)
     const [search, setSearch] = useState('')
     const [sortMode, setSortMode] = useState<SortMode>('newest')
@@ -120,10 +121,15 @@ export default function Home() {
     async function loadData() {
         try {
             setLoading(true)
-            const data = await fetchScratchcards({ sortBy: 'issueDate', order: 'desc' })
+            const [data, previews] = await Promise.all([
+                fetchScratchcards({ sortBy: 'issueDate', order: 'desc', isPreview: false }),
+                fetchPreviewScratchcards(),
+            ])
             setCards(data)
+            setPreviewCards(previews)
         } catch {
             setCards([])
+            setPreviewCards([])
         } finally {
             setLoading(false)
         }
@@ -489,6 +495,59 @@ export default function Home() {
                             ))}
                         </div>
                     )}
+                </section>
+            )}
+
+            {/* 即將發售專區 */}
+            {previewCards.length > 0 && !loading && (
+                <section className="home__preview container">
+                    <h2 className="home__section-title">
+                        <CalendarClock size={18} />
+                        即將發售
+                    </h2>
+                    <div className="home__preview-grid">
+                        {previewCards.map((card, index) => (
+                            <motion.div
+                                key={card.id}
+                                initial={{ opacity: 0, y: 20 }}
+                                animate={{ opacity: 1, y: 0 }}
+                                transition={{ duration: 0.4, delay: index * 0.05 }}
+                            >
+                                <Link to={`/detail/${card.id}`} className="card-link">
+                                    <article className="scratch-card glass-card scratch-card--preview">
+                                        <div className="scratch-card__tags">
+                                            <span className="scratch-card__tag scratch-card__tag--preview">即將發售</span>
+                                        </div>
+                                        <div className="scratch-card__image">
+                                            {card.imageUrl ? (
+                                                <img src={card.imageUrl} alt={card.name} loading="lazy" />
+                                            ) : (
+                                                <div className="scratch-card__placeholder">🎫</div>
+                                            )}
+                                        </div>
+                                        <div className="scratch-card__info">
+                                            <h3 className="scratch-card__name">{card.name}</h3>
+                                            <span className="scratch-card__price">${card.price}</span>
+                                            <div className="scratch-card__stats">
+                                                {card.issueDate && (
+                                                    <div className="stat">
+                                                        <CalendarClock size={14} />
+                                                        <span>預計上市 {card.issueDate}</span>
+                                                    </div>
+                                                )}
+                                                {card.overallWinRate && card.overallWinRate !== '—' && (
+                                                    <div className="stat">
+                                                        <Percent size={14} />
+                                                        <span>中獎率 {card.overallWinRate}</span>
+                                                    </div>
+                                                )}
+                                            </div>
+                                        </div>
+                                    </article>
+                                </Link>
+                            </motion.div>
+                        ))}
+                    </div>
                 </section>
             )}
 

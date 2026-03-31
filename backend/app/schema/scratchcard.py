@@ -30,6 +30,7 @@ class ScratchcardListItem(BaseModel):
     grandPrizeCount: int = 0
     grandPrizeUnclaimed: int = 0
     isHighWinRate: bool = False
+    isPreview: bool = False
     issueDate: str = ""
     endDate: str = ""
     overallWinRate: str = ""
@@ -56,6 +57,7 @@ class ScratchcardDetail(BaseModel):
     grandPrizeCount: int = 0
     grandPrizeUnclaimed: int = 0
     isHighWinRate: bool = False
+    isPreview: bool = False
     overallWinRate: str = ""
     prizeInfoUrl: str = ""
     imageUrl: str = ""
