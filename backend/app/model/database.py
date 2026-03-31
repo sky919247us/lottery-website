@@ -56,7 +56,7 @@ class Scratchcard(Base):
     __tablename__ = "scratchcards"
 
     id = Column(Integer, primary_key=True, autoincrement=True)
-    gameId = Column(String(20), unique=True, nullable=False, index=True, comment="官方編號")
+    gameId = Column(String(64), unique=True, nullable=False, index=True, comment="官方編號")
     name = Column(String(100), nullable=False, comment="遊戲名稱")
     price = Column(BigInteger, default=0, comment="售價（新台幣）")
     maxPrize = Column(String(50), default="", comment="最高獎金文字")
@@ -186,6 +186,7 @@ def _run_migrations():
             # PostgreSQL：用 ALTER TABLE ... ADD COLUMN IF NOT EXISTS 新增欄位
             pg_migrations = [
                 'ALTER TABLE scratchcards ADD COLUMN IF NOT EXISTS "isPreview" BOOLEAN DEFAULT false',
+                'ALTER TABLE scratchcards ALTER COLUMN "gameId" TYPE VARCHAR(64)',
             ]
             for sql in pg_migrations:
                 try:
