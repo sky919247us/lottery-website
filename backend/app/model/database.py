@@ -182,7 +182,19 @@ def _run_migrations():
                 if col_name not in existing_cols:
                     conn.execute(text(f"ALTER TABLE retailers ADD COLUMN {col_name} {col_type}"))
             conn.commit()
-        # PostgreSQL 不需要手動遷移，create_all 會處理所有欄位
+        else:
+            # PostgreSQL：用 ALTER TABLE ... ADD COLUMN IF NOT EXISTS 新增欄位
+            pg_migrations = [
+                'ALTER TABLE scratchcards ADD COLUMN IF NOT EXISTS "isPreview" BOOLEAN DEFAULT false',
+            ]
+            for sql in pg_migrations:
+                try:
+                    conn.execute(text(sql))
+                    conn.commit()
+                except Exception:
+                    pass
+            conn.execute(text('UPDATE scratchcards SET "isPreview" = false WHERE "isPreview" IS NULL'))
+            conn.commit()
 
 
 def init_db():
