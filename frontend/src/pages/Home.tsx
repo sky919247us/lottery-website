@@ -440,91 +440,6 @@ export default function Home() {
                 )}
             </section>
 
-            {/* 本週推薦 — 輪播多張 */}
-            {recommendedCards.length > 0 && !loading && (
-                <section className="home__featured container">
-                    <h2 className="home__section-title">
-                        <Sparkles size={18} />
-                        本週推薦
-                    </h2>
-
-                    {/* 推薦 Tab 切換 */}
-                    <div className="featured-tabs">
-                        {recommendedCards.map((slot, i) => (
-                            <button
-                                key={i}
-                                className={`featured-tab ${i === featuredIndex ? 'featured-tab--active' : ''}`}
-                                onClick={() => setFeaturedIndex(i)}
-                            >
-                                <span className="featured-tab__emoji">{slot.emoji}</span>
-                                <span className="featured-tab__title">{slot.title}</span>
-                            </button>
-                        ))}
-                    </div>
-
-                    {/* 推薦卡片 */}
-                    {recommendedCards[featuredIndex] && (() => {
-                        const slot = recommendedCards[featuredIndex]
-                        const card = slot.card!
-                        return (
-                            <Link to={`/detail/${card.id}`} className="card-link">
-                                <motion.div
-                                    className="featured-card"
-                                    key={card.id}
-                                    initial={{ opacity: 0, x: 20 }}
-                                    animate={{ opacity: 1, x: 0 }}
-                                    transition={{ duration: 0.35 }}
-                                >
-                                    <div className="featured-card__image">
-                                        {card.imageUrl ? (
-                                            <img src={card.imageUrl} alt={card.name} loading="lazy" />
-                                        ) : (
-                                            <div className="featured-card__placeholder">🎫</div>
-                                        )}
-                                    </div>
-                                    <div className="featured-card__info">
-                                        <div className="featured-card__recommend-tag">
-                                            <span>{slot.emoji}</span>
-                                            <span>{slot.subtitle}</span>
-                                        </div>
-                                        {card.maxPrizeAmount > 0 && (
-                                            <div className="featured-card__prize-badge">
-                                                最高獎金 {card.maxPrizeAmount >= 10000
-                                                    ? `${card.maxPrizeAmount / 10000}萬元`
-                                                    : `${card.maxPrizeAmount.toLocaleString()}元`}
-                                            </div>
-                                        )}
-                                        <h3 className="featured-card__name">{card.name}</h3>
-                                        <div className="featured-card__meta">
-                                            <span>每張售價 ${card.price.toLocaleString()}</span>
-                                            {card.overallWinRate && (
-                                                <span className="featured-card__winrate">
-                                                    <TrendingUp size={14} />
-                                                    中獎率 {card.overallWinRate}
-                                                </span>
-                                            )}
-                                        </div>
-                                    </div>
-                                </motion.div>
-                            </Link>
-                        )
-                    })()}
-
-                    {/* 輪播指示器 */}
-                    {recommendedCards.length > 1 && (
-                        <div className="featured-dots">
-                            {recommendedCards.map((_, i) => (
-                                <button
-                                    key={i}
-                                    className={`featured-dot ${i === featuredIndex ? 'featured-dot--active' : ''}`}
-                                    onClick={() => setFeaturedIndex(i)}
-                                />
-                            ))}
-                        </div>
-                    )}
-                </section>
-            )}
-
             {/* 即將發售專區 */}
             {previewCards.length > 0 && !loading && (
                 <section className="home__preview container">
@@ -575,6 +490,91 @@ export default function Home() {
                             </motion.div>
                         ))}
                     </div>
+                </section>
+            )}
+
+            {/* 本週推薦 — 輪播多張 */}
+            {recommendedCards.length > 0 && !loading && (
+                <section className="home__featured container">
+                    <h2 className="home__section-title">
+                        <Sparkles size={18} />
+                        本週推薦
+                    </h2>
+
+                    {/* 推薦 Tab 切換 */}
+                    <div className="featured-tabs">
+                        {recommendedCards.map((slot, i) => (
+                            <button
+                                key={i}
+                                className={`featured-tab ${i === featuredIndex ? 'featured-tab--active' : ''}`}
+                                onClick={() => setFeaturedIndex(i)}
+                            >
+                                <span className="featured-tab__emoji">{slot.emoji}</span>
+                                <span className="featured-tab__title">{slot.title}</span>
+                            </button>
+                        ))}
+                    </div>
+
+                    {/* 推薦卡片 */}
+                    {recommendedCards[featuredIndex] && (() => {
+                        const slot = recommendedCards[featuredIndex]
+                        const card = slot.card!
+                        return (
+                            <Link to={`/detail/${card.id}`} className="card-link">
+                                <motion.div
+                                    className="featured-card"
+                                    key={`featured-${card.id}`}
+                                    initial={false}
+                                    animate={{ opacity: 1 }}
+                                    transition={{ duration: 0.3 }}
+                                >
+                                    <div className="featured-card__image">
+                                        {card.imageUrl ? (
+                                            <img src={card.imageUrl} alt={card.name} loading="lazy" />
+                                        ) : (
+                                            <div className="featured-card__placeholder">🎫</div>
+                                        )}
+                                    </div>
+                                    <div className="featured-card__info">
+                                        <div className="featured-card__recommend-tag">
+                                            <span>{slot.emoji}</span>
+                                            <span>{slot.subtitle}</span>
+                                        </div>
+                                        {card.maxPrizeAmount > 0 && (
+                                            <div className="featured-card__prize-badge">
+                                                最高獎金 {card.maxPrizeAmount >= 10000
+                                                    ? `${card.maxPrizeAmount / 10000}萬元`
+                                                    : `${card.maxPrizeAmount.toLocaleString()}元`}
+                                            </div>
+                                        )}
+                                        <h3 className="featured-card__name">{card.name}</h3>
+                                        <div className="featured-card__meta">
+                                            <span>每張售價 ${card.price.toLocaleString()}</span>
+                                            {card.overallWinRate && (
+                                                <span className="featured-card__winrate">
+                                                    <TrendingUp size={14} />
+                                                    中獎率 {card.overallWinRate}
+                                                </span>
+                                            )}
+                                        </div>
+                                    </div>
+                                </motion.div>
+                            </Link>
+                        )
+                    })()}
+
+                    {/* 輪播指示器 */}
+                    {recommendedCards.length > 1 && (
+                        <div className="featured-dots">
+                            {recommendedCards.map((_, i) => (
+                                <button
+                                    key={i}
+                                    className={`featured-dot ${i === featuredIndex ? 'featured-dot--active' : ''}`}
+                                    onClick={() => setFeaturedIndex(i)}
+                                />
+                            ))}
+                        </div>
+                    )}
                 </section>
             )}
 

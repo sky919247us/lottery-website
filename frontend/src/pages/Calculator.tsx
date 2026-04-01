@@ -8,9 +8,9 @@ import { Link } from 'react-router-dom'
 import { motion } from 'framer-motion'
 import {
     Search, AlertTriangle, TrendingUp, Trophy, Flame,
-    Percent, Calculator
+    Percent, Calculator, CalendarClock
 } from 'lucide-react'
-import { fetchScratchcards, type ScratchcardListItem } from '../hooks/api'
+import { fetchScratchcards, fetchPreviewScratchcards, type ScratchcardListItem } from '../hooks/api'
 import SeoHead from '../components/SeoHead'
 import './Home.css'
 
@@ -87,8 +87,12 @@ export default function CalculatorPage() {
     async function loadData() {
         try {
             setLoading(true)
-            const data = await fetchScratchcards({ sortBy: 'issueDate', order: 'desc' })
-            setCards(data)
+            const [data, previews] = await Promise.all([
+                fetchScratchcards({ sortBy: 'issueDate', order: 'desc', isPreview: false }),
+                fetchPreviewScratchcards(),
+            ])
+            // 預告款排在最前面
+            setCards([...previews, ...data])
         } catch {
             setCards([])
         } finally {
@@ -234,16 +238,19 @@ export default function CalculatorPage() {
                                     transition={{ duration: 0.4, delay: index * 0.03 }}
                                 >
                                     <Link to={`/detail/${card.id}`} className="card-link">
-                                        <article className={`scratch-card glass-card ${card.isHighWinRate ? 'scratch-card--alert' : ''}`}>
+                                        <article className={`scratch-card glass-card ${card.isHighWinRate ? 'scratch-card--alert' : ''} ${card.isPreview ? 'scratch-card--preview' : ''}`}>
                                             {/* 標籤群組 */}
                                             <div className="scratch-card__tags">
-                                                {isTop10 && !soldOut && (
+                                                {card.isPreview && (
+                                                    <span className="scratch-card__tag scratch-card__tag--preview">即將發售</span>
+                                                )}
+                                                {isTop10 && !soldOut && !card.isPreview && (
                                                     <span className="scratch-card__tag scratch-card__tag--top">Top 10%</span>
                                                 )}
-                                                {hot && !soldOut && (
+                                                {hot && !soldOut && !card.isPreview && (
                                                     <span className="scratch-card__tag scratch-card__tag--hot">🔥 熱門</span>
                                                 )}
-                                                {isNew && (
+                                                {isNew && !card.isPreview && (
                                                     <span className="scratch-card__tag scratch-card__tag--new">NEW</span>
                                                 )}
                                                 {soldOut && (
@@ -273,12 +280,17 @@ export default function CalculatorPage() {
                                                 <h3 className="scratch-card__name">{card.name}</h3>
                                                 <span className="scratch-card__price">${card.price}</span>
                                                 <div className="scratch-card__stats">
-                                                    {card.salesRate && (
+                                                    {card.isPreview && card.issueDate ? (
+                                                        <div className="stat">
+                                                            <CalendarClock size={14} />
+                                                            <span>預計上市 {card.issueDate}</span>
+                                                        </div>
+                                                    ) : card.salesRate ? (
                                                         <div className="stat">
                                                             <TrendingUp size={14} />
                                                             <span>銷售率 {card.salesRate}</span>
                                                         </div>
-                                                    )}
+                                                    ) : null}
                                                     <div className="stat">
                                                         <Percent size={14} />
                                                         <span>中獎率 {card.overallWinRate || '-'}</span>

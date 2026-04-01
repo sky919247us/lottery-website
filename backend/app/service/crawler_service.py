@@ -538,12 +538,92 @@ async def fetch_preview_scratchcards() -> list[dict[str, Any]]:
                 except (ValueError, IndexError):
                     issue_date_roc = listing_date
 
+            # 解析最高獎金
+            first_prize = detail.get("firstPrize", "")
+            max_prize_amount = parse_money(str(first_prize)) if first_prize else 0
+            max_prize_text = str(first_prize) if first_prize else ""
+
+            # 嘗試從 moreDesc 解析獎金結構
+            prize_list = []
+            more_desc = detail.get("moreDesc", "")
+            if more_desc:
+                try:
+                    soup = BeautifulSoup(more_desc, "html.parser")
+                    tables = soup.find_all("table")
+                    for table in tables:
+                        rows = table.find_all("tr")
+                        for tr in rows:
+                            cols = tr.find_all(["td", "th"])
+                            if len(cols) < 2:
+                                continue
+
+                            pairs = []
+                            if len(cols) >= 4:
+                                pairs.append((cols[0], cols[1]))
+                                pairs.append((cols[2], cols[3]))
+                            else:
+                                pairs.append((cols[0], cols[1]))
+
+                            for col_prize, col_count in pairs:
+                                prize_lines = [
+                                    line.strip() for line in col_prize.get_text(separator="\n").split("\n")
+                                    if line.strip()
+                                ]
+                                count_lines = [
+                                    line.strip() for line in col_count.get_text(separator="\n").split("\n")
+                                    if line.strip()
+                                ]
+                                if not prize_lines or not count_lines:
+                                    continue
+                                first_p = prize_lines[0]
+                                first_c = count_lines[0]
+                                if "獎項" in first_p or "金額" in first_p or "張數" in first_c:
+                                    continue
+                                for idx_p, p_text in enumerate(prize_lines):
+                                    if not p_text:
+                                        continue
+                                    is_valid = (
+                                        "NT" in p_text or "$" in p_text or "元" in p_text
+                                    ) or re.search(r"[頭壹貳參肆伍陸柒捌玖\d]+獎", p_text)
+                                    if not is_valid:
+                                        continue
+                                    amount = 0
+                                    amount_match = re.search(r"[\d][\d,]*", p_text)
+                                    if amount_match:
+                                        try:
+                                            amount = int(amount_match.group().replace(",", ""))
+                                        except ValueError:
+                                            pass
+                                    count = 0
+                                    if idx_p < len(count_lines):
+                                        c_text = count_lines[idx_p].replace(",", "")
+                                        count_match = re.search(r"\d+", c_text)
+                                        if count_match:
+                                            try:
+                                                count = int(count_match.group())
+                                            except ValueError:
+                                                pass
+                                    prize_list.append({
+                                        "prizeName": p_text,
+                                        "prizeAmount": min(amount, MAX_SAFE_INT),
+                                        "totalCount": min(count, MAX_SAFE_INT),
+                                    })
+                    if prize_list:
+                        logger.info(f"    📊 解析到 {len(prize_list)} 個獎項")
+                except Exception as e:
+                    logger.warning(f"    ⚠️ 解析預告獎金結構失敗: {e}")
+
+            # 從獎金結構推算最高獎金（若 firstPrize 為空）
+            if not max_prize_amount and prize_list:
+                max_prize_amount = max(p["prizeAmount"] for p in prize_list)
+                max_prize_text = f"NT${max_prize_amount:,}"
+
             row = {
                 "gameId": scratch_id,
                 "name": detail.get("scratchName", item.get("scratchName", "未命名")),
                 "price": detail.get("money", 0),
-                "maxPrize": "",
-                "maxPrizeAmount": 0,
+                "maxPrize": max_prize_text,
+                "maxPrizeAmount": max_prize_amount,
                 "issueDate": issue_date_roc,
                 "endDate": "",
                 "redeemDeadline": "",
@@ -557,7 +637,7 @@ async def fetch_preview_scratchcards() -> list[dict[str, Any]]:
                 "isPreview": True,
                 "prizeInfoUrl": "",
                 "imageUrl": image_url,
-                "prizes": [],
+                "prizes": prize_list,
             }
             results.append(row)
             logger.info(f"    ✅ 預告: {row['name']} (${row['price']}) - 預計 {issue_date_roc}")
