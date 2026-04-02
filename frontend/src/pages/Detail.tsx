@@ -281,7 +281,11 @@ export default function Detail() {
                 <header className="detail__header glass-card">
                     <div className="detail__header-content">
                         <div>
-                            <div className="detail__game-id">NO. {detail.gameId}</div>
+                            <div className="detail__game-id">
+                                {detail.isPreview
+                                    ? <span className="detail__preview-badge">即將發售</span>
+                                    : `NO. ${detail.gameId}`}
+                            </div>
                             <h1 className="detail__title">{detail.name}</h1>
                         </div>
                         <div className="detail__tags">
@@ -418,7 +422,11 @@ export default function Detail() {
                             </p>
                         </div>
                     ) : (
-                        <p className="detail__empty">暫無獎金結構資料</p>
+                        <p className="detail__empty">
+                            {detail.isPreview
+                                ? '預告款尚未公佈完整獎金結構，正式發售後將自動更新'
+                                : '暫無獎金結構資料'}
+                        </p>
                     )}
                 </section>
 

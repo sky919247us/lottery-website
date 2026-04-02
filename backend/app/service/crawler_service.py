@@ -538,85 +538,70 @@ async def fetch_preview_scratchcards() -> list[dict[str, Any]]:
                 except (ValueError, IndexError):
                     issue_date_roc = listing_date
 
-            # 解析最高獎金
-            first_prize = detail.get("firstPrize", "")
-            max_prize_amount = parse_money(str(first_prize)) if first_prize else 0
-            max_prize_text = str(first_prize) if first_prize else ""
-
-            # 嘗試從 moreDesc 解析獎金結構
-            prize_list = []
+            # 解析最高獎金與描述（從 moreDesc 文字中擷取）
+            # 預告款的 moreDesc 不含獎金結構表格，只有文字描述如 "頭獎200萬元"
+            max_prize_amount = 0
+            max_prize_text = ""
             more_desc = detail.get("moreDesc", "")
+            web_memo = item.get("webMemo", "")
+            desc_text = ""
+
             if more_desc:
                 try:
                     soup = BeautifulSoup(more_desc, "html.parser")
-                    tables = soup.find_all("table")
-                    for table in tables:
-                        rows = table.find_all("tr")
-                        for tr in rows:
-                            cols = tr.find_all(["td", "th"])
-                            if len(cols) < 2:
-                                continue
+                    desc_text = soup.get_text()
+                except Exception:
+                    desc_text = more_desc
 
-                            pairs = []
-                            if len(cols) >= 4:
-                                pairs.append((cols[0], cols[1]))
-                                pairs.append((cols[2], cols[3]))
-                            else:
-                                pairs.append((cols[0], cols[1]))
+            # 嘗試從 moreDesc 或 webMemo 解析頭獎金額
+            for text_source in [desc_text, web_memo]:
+                if max_prize_amount > 0:
+                    break
+                if not text_source:
+                    continue
+                # 匹配 "頭獎200萬元" 或 "頭獎2,000,000元" 等格式
+                m = re.search(r'頭獎\s*([\d,]+)\s*萬\s*元', text_source)
+                if m:
+                    try:
+                        max_prize_amount = int(m.group(1).replace(",", "")) * 10000
+                        max_prize_text = f"NT${max_prize_amount:,}"
+                        logger.info(f"    💰 解析到頭獎: {max_prize_amount:,} 元")
+                    except ValueError:
+                        pass
+                if max_prize_amount == 0:
+                    # 匹配 "頭獎2,000,000元" 格式
+                    m2 = re.search(r'頭獎\s*([\d,]+)\s*元', text_source)
+                    if m2:
+                        try:
+                            max_prize_amount = int(m2.group(1).replace(",", ""))
+                            max_prize_text = f"NT${max_prize_amount:,}"
+                        except ValueError:
+                            pass
 
-                            for col_prize, col_count in pairs:
-                                prize_lines = [
-                                    line.strip() for line in col_prize.get_text(separator="\n").split("\n")
-                                    if line.strip()
-                                ]
-                                count_lines = [
-                                    line.strip() for line in col_count.get_text(separator="\n").split("\n")
-                                    if line.strip()
-                                ]
-                                if not prize_lines or not count_lines:
-                                    continue
-                                first_p = prize_lines[0]
-                                first_c = count_lines[0]
-                                if "獎項" in first_p or "金額" in first_p or "張數" in first_c:
-                                    continue
-                                for idx_p, p_text in enumerate(prize_lines):
-                                    if not p_text:
-                                        continue
-                                    is_valid = (
-                                        "NT" in p_text or "$" in p_text or "元" in p_text
-                                    ) or re.search(r"[頭壹貳參肆伍陸柒捌玖\d]+獎", p_text)
-                                    if not is_valid:
-                                        continue
-                                    amount = 0
-                                    amount_match = re.search(r"[\d][\d,]*", p_text)
-                                    if amount_match:
-                                        try:
-                                            amount = int(amount_match.group().replace(",", ""))
-                                        except ValueError:
-                                            pass
-                                    count = 0
-                                    if idx_p < len(count_lines):
-                                        c_text = count_lines[idx_p].replace(",", "")
-                                        count_match = re.search(r"\d+", c_text)
-                                        if count_match:
-                                            try:
-                                                count = int(count_match.group())
-                                            except ValueError:
-                                                pass
-                                    prize_list.append({
-                                        "prizeName": p_text,
-                                        "prizeAmount": min(amount, MAX_SAFE_INT),
-                                        "totalCount": min(count, MAX_SAFE_INT),
-                                    })
-                    if prize_list:
-                        logger.info(f"    📊 解析到 {len(prize_list)} 個獎項")
-                except Exception as e:
-                    logger.warning(f"    ⚠️ 解析預告獎金結構失敗: {e}")
+            # 預告款通常沒有完整獎金結構表格，僅記錄頭獎
+            prize_list = []
+            if max_prize_amount > 0:
+                prize_list.append({
+                    "prizeName": "頭獎",
+                    "prizeAmount": min(max_prize_amount, MAX_SAFE_INT),
+                    "totalCount": 0,
+                })
 
-            # 從獎金結構推算最高獎金（若 firstPrize 為空）
-            if not max_prize_amount and prize_list:
-                max_prize_amount = max(p["prizeAmount"] for p in prize_list)
-                max_prize_text = f"NT${max_prize_amount:,}"
+            # 解析下市日與兌獎截止日
+            def _to_roc(date_str: str) -> str:
+                if not date_str:
+                    return ""
+                try:
+                    clean = date_str.replace("-", "/").split("T")[0]
+                    parts = clean.split("/")
+                    if len(parts) == 3:
+                        return f"{int(parts[0]) - 1911}/{parts[1]}/{parts[2]}"
+                except (ValueError, IndexError):
+                    pass
+                return ""
+
+            end_date_roc = _to_roc(detail.get("downDate", ""))
+            redeem_deadline_roc = _to_roc(detail.get("exchangeLastDate", ""))
 
             row = {
                 "gameId": scratch_id,
@@ -625,14 +610,14 @@ async def fetch_preview_scratchcards() -> list[dict[str, Any]]:
                 "maxPrize": max_prize_text,
                 "maxPrizeAmount": max_prize_amount,
                 "issueDate": issue_date_roc,
-                "endDate": "",
-                "redeemDeadline": "",
+                "endDate": end_date_roc,
+                "redeemDeadline": redeem_deadline_roc,
                 "totalIssued": detail.get("issuedCount", 0),
                 "salesRate": "",
                 "salesRateValue": 0.0,
                 "grandPrizeCount": 0,
                 "grandPrizeUnclaimed": 0,
-                "overallWinRate": detail.get("oddsOfWinning", ""),
+                "overallWinRate": f"{detail.get('oddsOfWinning', '')}%" if detail.get("oddsOfWinning") else "",
                 "isHighWinRate": False,
                 "isPreview": True,
                 "prizeInfoUrl": "",
@@ -647,8 +632,51 @@ async def fetch_preview_scratchcards() -> list[dict[str, Any]]:
 
 
 async def run_preview_crawler() -> int:
-    """預告爬蟲流程：抓取 + 存入 DB"""
+    """
+    預告爬蟲流程：抓取 + 存入 DB
+    同時清理已正式上架的舊預告記錄（名稱相同且已有正式版本的預告款）
+    """
     data = await fetch_preview_scratchcards()
     if data:
         save_to_database(data)
+
+    # 清理：刪除已經不在台彩預告列表中的舊預告款
+    # 以及已經有同名正式版本的預告款（代表已正式上架）
+    db: Session = SessionLocal()
+    try:
+        preview_cards = db.query(Scratchcard).filter(Scratchcard.isPreview == True).all()
+        current_preview_ids = {d["gameId"] for d in data}
+
+        removed = 0
+        for card in preview_cards:
+            should_remove = False
+
+            # 1. 如果台彩預告列表中已經沒有這款了（代表已下架或已正式上架）
+            if card.gameId not in current_preview_ids:
+                should_remove = True
+
+            # 2. 如果同名的正式版本已存在
+            if not should_remove:
+                formal = db.query(Scratchcard).filter(
+                    Scratchcard.name == card.name,
+                    Scratchcard.isPreview == False,
+                ).first()
+                if formal:
+                    should_remove = True
+
+            if should_remove:
+                db.query(PrizeStructure).filter(PrizeStructure.scratchcardId == card.id).delete()
+                db.delete(card)
+                removed += 1
+                logger.info(f"🗑️ 清除舊預告款: {card.name} (gameId={card.gameId})")
+
+        if removed:
+            db.commit()
+            logger.info(f"🧹 共清除 {removed} 筆過時的預告記錄")
+    except Exception as e:
+        db.rollback()
+        logger.error(f"❌ 清理預告記錄失敗: {e}")
+    finally:
+        db.close()
+
     return len(data)

@@ -455,38 +455,46 @@ export default function Home() {
                                 animate={{ opacity: 1, y: 0 }}
                                 transition={{ duration: 0.4, delay: index * 0.05 }}
                             >
-                                <Link to={`/detail/${card.id}`} className="card-link">
-                                    <article className="scratch-card glass-card scratch-card--preview">
-                                        <div className="scratch-card__tags">
-                                            <span className="scratch-card__tag scratch-card__tag--preview">即將發售</span>
-                                        </div>
-                                        <div className="scratch-card__image">
-                                            {card.imageUrl ? (
-                                                <img src={card.imageUrl} alt={card.name} loading="lazy" />
-                                            ) : (
-                                                <div className="scratch-card__placeholder">🎫</div>
+                                <article className="scratch-card glass-card scratch-card--preview">
+                                    <div className="scratch-card__tags">
+                                        <span className="scratch-card__tag scratch-card__tag--preview">即將發售</span>
+                                    </div>
+                                    <div className="scratch-card__image">
+                                        {card.imageUrl ? (
+                                            <img src={card.imageUrl} alt={card.name} loading="lazy" />
+                                        ) : (
+                                            <div className="scratch-card__placeholder">🎫</div>
+                                        )}
+                                    </div>
+                                    <div className="scratch-card__info">
+                                        <h3 className="scratch-card__name">{card.name}</h3>
+                                        <span className="scratch-card__price">${card.price}</span>
+                                        {card.maxPrizeAmount > 0 && (
+                                            <div className="scratch-card__max-prize">
+                                                <span className="scratch-card__max-prize-label">頭獎</span>
+                                                <strong className="scratch-card__max-prize-value">
+                                                    {card.maxPrizeAmount >= 10000
+                                                        ? `${card.maxPrizeAmount / 10000}萬元`
+                                                        : `${card.maxPrizeAmount.toLocaleString()}元`}
+                                                </strong>
+                                            </div>
+                                        )}
+                                        <div className="scratch-card__stats">
+                                            {card.issueDate && (
+                                                <div className="stat">
+                                                    <CalendarClock size={14} />
+                                                    <span>預計上市 {card.issueDate}</span>
+                                                </div>
+                                            )}
+                                            {card.overallWinRate && card.overallWinRate !== '—' && (
+                                                <div className="stat">
+                                                    <Percent size={14} />
+                                                    <span>中獎率 {card.overallWinRate}</span>
+                                                </div>
                                             )}
                                         </div>
-                                        <div className="scratch-card__info">
-                                            <h3 className="scratch-card__name">{card.name}</h3>
-                                            <span className="scratch-card__price">${card.price}</span>
-                                            <div className="scratch-card__stats">
-                                                {card.issueDate && (
-                                                    <div className="stat">
-                                                        <CalendarClock size={14} />
-                                                        <span>預計上市 {card.issueDate}</span>
-                                                    </div>
-                                                )}
-                                                {card.overallWinRate && card.overallWinRate !== '—' && (
-                                                    <div className="stat">
-                                                        <Percent size={14} />
-                                                        <span>中獎率 {card.overallWinRate}</span>
-                                                    </div>
-                                                )}
-                                            </div>
-                                        </div>
-                                    </article>
-                                </Link>
+                                    </div>
+                                </article>
                             </motion.div>
                         ))}
                     </div>

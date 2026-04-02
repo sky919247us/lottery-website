@@ -237,20 +237,59 @@ export default function CalculatorPage() {
                                     animate={{ opacity: 1, y: 0 }}
                                     transition={{ duration: 0.4, delay: index * 0.03 }}
                                 >
+                                    {card.isPreview ? (
+                                        <article className="scratch-card glass-card scratch-card--preview">
+                                            <div className="scratch-card__tags">
+                                                <span className="scratch-card__tag scratch-card__tag--preview">即將發售</span>
+                                            </div>
+                                            <div className="scratch-card__image">
+                                                {card.imageUrl ? (
+                                                    <img src={card.imageUrl} alt={card.name} loading="lazy" />
+                                                ) : (
+                                                    <div className="scratch-card__placeholder">🎫</div>
+                                                )}
+                                            </div>
+                                            <div className="scratch-card__info">
+                                                <h3 className="scratch-card__name">{card.name}</h3>
+                                                <span className="scratch-card__price">${card.price}</span>
+                                                {card.maxPrizeAmount > 0 && (
+                                                    <div className="scratch-card__max-prize">
+                                                        <span className="scratch-card__max-prize-label">頭獎</span>
+                                                        <strong className="scratch-card__max-prize-value">
+                                                            {card.maxPrizeAmount >= 10000
+                                                                ? `${card.maxPrizeAmount / 10000}萬元`
+                                                                : `${card.maxPrizeAmount.toLocaleString()}元`}
+                                                        </strong>
+                                                    </div>
+                                                )}
+                                                <div className="scratch-card__stats">
+                                                    {card.issueDate && (
+                                                        <div className="stat">
+                                                            <CalendarClock size={14} />
+                                                            <span>預計上市 {card.issueDate}</span>
+                                                        </div>
+                                                    )}
+                                                    {card.overallWinRate && card.overallWinRate !== '—' && (
+                                                        <div className="stat">
+                                                            <Percent size={14} />
+                                                            <span>中獎率 {card.overallWinRate}</span>
+                                                        </div>
+                                                    )}
+                                                </div>
+                                            </div>
+                                        </article>
+                                    ) : (
                                     <Link to={`/detail/${card.id}`} className="card-link">
-                                        <article className={`scratch-card glass-card ${card.isHighWinRate ? 'scratch-card--alert' : ''} ${card.isPreview ? 'scratch-card--preview' : ''}`}>
+                                        <article className={`scratch-card glass-card ${card.isHighWinRate ? 'scratch-card--alert' : ''}`}>
                                             {/* 標籤群組 */}
                                             <div className="scratch-card__tags">
-                                                {card.isPreview && (
-                                                    <span className="scratch-card__tag scratch-card__tag--preview">即將發售</span>
-                                                )}
-                                                {isTop10 && !soldOut && !card.isPreview && (
+                                                {isTop10 && !soldOut && (
                                                     <span className="scratch-card__tag scratch-card__tag--top">Top 10%</span>
                                                 )}
-                                                {hot && !soldOut && !card.isPreview && (
+                                                {hot && !soldOut && (
                                                     <span className="scratch-card__tag scratch-card__tag--hot">🔥 熱門</span>
                                                 )}
-                                                {isNew && !card.isPreview && (
+                                                {isNew && (
                                                     <span className="scratch-card__tag scratch-card__tag--new">NEW</span>
                                                 )}
                                                 {soldOut && (
@@ -280,12 +319,7 @@ export default function CalculatorPage() {
                                                 <h3 className="scratch-card__name">{card.name}</h3>
                                                 <span className="scratch-card__price">${card.price}</span>
                                                 <div className="scratch-card__stats">
-                                                    {card.isPreview && card.issueDate ? (
-                                                        <div className="stat">
-                                                            <CalendarClock size={14} />
-                                                            <span>預計上市 {card.issueDate}</span>
-                                                        </div>
-                                                    ) : card.salesRate ? (
+                                                    {card.salesRate ? (
                                                         <div className="stat">
                                                             <TrendingUp size={14} />
                                                             <span>銷售率 {card.salesRate}</span>
@@ -311,6 +345,7 @@ export default function CalculatorPage() {
                                             </div>
                                         </article>
                                     </Link>
+                                    )}
                                 </motion.div>
                             )
                         })

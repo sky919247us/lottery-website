@@ -82,6 +82,18 @@
     margin-bottom: 4px;
 }
 
+.detail__preview-badge {
+    display: inline-block;
+    background: linear-gradient(135deg, #0EA5E9, #06B6D4);
+    color: #fff;
+    font-size: 0.75rem;
+    font-weight: 700;
+    padding: 2px 10px;
+    border-radius: 4px;
+    letter-spacing: 0.05em;
+    text-transform: none;
+}
+
 .detail__title {
     font-family: var(--font-display);
     font-size: clamp(1.4rem, 3vw, 1.8rem);
