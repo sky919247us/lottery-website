@@ -640,8 +640,8 @@ async def run_preview_crawler() -> int:
     if data:
         save_to_database(data)
 
-    # 清理：刪除已經不在台彩預告列表中的舊預告款
-    # 以及已經有同名正式版本的預告款（代表已正式上架）
+    # 清理：只刪除已不在台彩預告列表中的舊預告款
+    # 注意：不用名稱比對，因為台彩會重複使用相同名稱（不同系列）
     db: Session = SessionLocal()
     try:
         preview_cards = db.query(Scratchcard).filter(Scratchcard.isPreview == True).all()
@@ -649,22 +649,7 @@ async def run_preview_crawler() -> int:
 
         removed = 0
         for card in preview_cards:
-            should_remove = False
-
-            # 1. 如果台彩預告列表中已經沒有這款了（代表已下架或已正式上架）
             if card.gameId not in current_preview_ids:
-                should_remove = True
-
-            # 2. 如果同名的正式版本已存在
-            if not should_remove:
-                formal = db.query(Scratchcard).filter(
-                    Scratchcard.name == card.name,
-                    Scratchcard.isPreview == False,
-                ).first()
-                if formal:
-                    should_remove = True
-
-            if should_remove:
                 db.query(PrizeStructure).filter(PrizeStructure.scratchcardId == card.id).delete()
                 db.delete(card)
                 removed += 1
