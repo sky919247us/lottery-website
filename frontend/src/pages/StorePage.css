@@ -2,23 +2,22 @@
    StorePage.css — 商家專屬頁面樣式
    ==================================================== */
 
-/* CSS 變數 */
+/* CSS 變數 — 與全站主色調一致 */
 .store-page {
-    --sp-green: #22c55e;
-    --sp-orange: #f59e0b;
-    --sp-red: #ef4444;
-    --sp-muted: #94a3b8;
-    --sp-accent: #d4af37;
-    --sp-bg: #0f172a;
-    --sp-surface: rgba(255, 255, 255, 0.06);
-    --sp-border: rgba(255, 255, 255, 0.1);
-    --sp-text: #f1f5f9;
-    --sp-text-secondary: #cbd5e1;
+    --sp-green: #1E8449;
+    --sp-orange: #F39C12;
+    --sp-red: #D32F2F;
+    --sp-muted: #868E96;
+    --sp-accent: #0B192C;
+    --sp-bg: var(--color-bg-primary, #FFFFFF);
+    --sp-surface: var(--color-bg-card, #FFFFFF);
+    --sp-border: var(--color-border, #DEE2E6);
+    --sp-text: var(--color-text-primary, #0B192C);
+    --sp-text-secondary: var(--color-text-secondary, #5A6268);
 
-    /* 強制深色背景，避免全站白底 CSS 覆蓋 */
-    background-color: #0f172a !important;
+    background-color: var(--color-bg-secondary, #F8F9FA) !important;
     min-height: 100vh;
-    color: #f1f5f9;
+    color: var(--color-text-primary, #0B192C);
 }
 
 /* === 載入與錯誤狀態 === */
@@ -47,13 +46,13 @@
     align-items: flex-end;
     background-size: cover;
     background-position: center;
-    background-color: #1a2540;
+    background-color: var(--color-bg-tertiary, #F1F3F5);
     overflow: hidden;
 }
 .sp-hero__overlay {
     position: absolute;
     inset: 0;
-    background: linear-gradient(to top, rgba(15, 23, 42, 0.95), rgba(15, 23, 42, 0.3));
+    background: linear-gradient(to top, rgba(11, 25, 44, 0.85), rgba(11, 25, 44, 0.2));
 }
 .sp-hero__content {
     position: relative;
@@ -81,8 +80,8 @@
 .sp-hero__announcement {
     margin-top: 0.75rem;
     padding: 0.5rem 1rem;
-    background: rgba(212, 175, 55, 0.15);
-    border: 1px solid rgba(212, 175, 55, 0.3);
+    background: rgba(255, 255, 255, 0.2);
+    border: 1px solid rgba(255, 255, 255, 0.35);
     border-radius: 8px;
     color: #fbbf24;
     font-size: 0.9rem;
@@ -126,38 +125,37 @@
     box-shadow: 0 4px 12px rgba(59, 130, 246, 0.4);
 }
 .sp-action-btn--phone {
-    background: rgba(34, 197, 94, 0.1);
+    background: rgba(30, 132, 73, 0.08);
     color: var(--sp-green);
-    border-color: rgba(34, 197, 94, 0.3);
+    border-color: rgba(30, 132, 73, 0.25);
 }
 .sp-action-btn--phone:hover {
-    background: rgba(34, 197, 94, 0.2);
+    background: rgba(30, 132, 73, 0.15);
 }
 .sp-action-btn--line {
-    background: rgba(0, 185, 0, 0.1);
-    color: #00c300;
-    border-color: rgba(0, 185, 0, 0.3);
+    background: rgba(0, 185, 0, 0.08);
+    color: #00a300;
+    border-color: rgba(0, 185, 0, 0.25);
 }
 .sp-action-btn--line:hover {
-    background: rgba(0, 185, 0, 0.2);
+    background: rgba(0, 185, 0, 0.15);
 }
 .sp-action-btn--fb {
-    background: rgba(66, 103, 178, 0.1);
-    color: #4267b2;
-    border-color: rgba(66, 103, 178, 0.3);
+    background: rgba(66, 103, 178, 0.08);
+    color: #3b5998;
+    border-color: rgba(66, 103, 178, 0.25);
 }
 .sp-action-btn--fb:hover {
-    background: rgba(66, 103, 178, 0.2);
+    background: rgba(66, 103, 178, 0.15);
 }
 
 /* === 通用 Section === */
 .sp-section {
     margin-bottom: 1.5rem;
     padding: 1.5rem;
-    /* 覆蓋全站 glass-card 的白色背景 */
-    background: rgba(255, 255, 255, 0.06) !important;
-    border: 1px solid rgba(255, 255, 255, 0.1) !important;
-    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3) !important;
+    background: var(--color-bg-card, #FFFFFF) !important;
+    border: 1px solid var(--color-border, #DEE2E6) !important;
+    box-shadow: var(--shadow-md, 0 2px 8px rgba(0, 0, 0, 0.08)) !important;
 }
 .sp-section__title {
     display: flex;
@@ -181,7 +179,7 @@
     display: flex;
     align-items: center;
     gap: 0.4rem;
-    color: var(--sp-accent);
+    color: var(--color-info, #2980B9);
     font-size: 0.9rem;
 }
 
@@ -197,9 +195,9 @@
     gap: 0.3rem;
     padding: 0.35rem 0.75rem;
     border-radius: 20px;
-    background: rgba(212, 175, 55, 0.08);
-    border: 1px solid rgba(212, 175, 55, 0.2);
-    color: var(--sp-accent);
+    background: rgba(11, 25, 44, 0.05);
+    border: 1px solid var(--color-border, #DEE2E6);
+    color: var(--sp-text);
     font-size: 0.82rem;
     font-weight: 500;
 }
@@ -225,8 +223,9 @@
     scroll-snap-align: start;
     border-radius: 12px;
     overflow: hidden;
-    background: var(--sp-surface);
-    border: 1px solid var(--sp-border);
+    background: var(--color-bg-card, #FFFFFF);
+    border: 1px solid var(--color-border, #DEE2E6);
+    box-shadow: var(--shadow-sm, 0 1px 3px rgba(0, 0, 0, 0.06));
     transition: transform 0.2s;
 }
 .sp-carousel-card:hover {
@@ -251,18 +250,20 @@
     width: 36px;
     height: 36px;
     border-radius: 50%;
-    background: rgba(15, 23, 42, 0.8);
-    border: 1px solid var(--sp-border);
+    background: rgba(255, 255, 255, 0.9);
+    border: 1px solid var(--color-border, #DEE2E6);
     color: var(--sp-text);
     display: flex;
     align-items: center;
     justify-content: center;
     cursor: pointer;
     z-index: 2;
-    transition: background 0.2s;
+    transition: all 0.2s;
+    box-shadow: var(--shadow-md, 0 2px 8px rgba(0, 0, 0, 0.08));
 }
 .sp-carousel-btn:hover {
-    background: rgba(15, 23, 42, 0.95);
+    background: #FFFFFF;
+    box-shadow: var(--shadow-lg, 0 4px 16px rgba(0, 0, 0, 0.1));
 }
 .sp-carousel-btn--left {
     left: -12px;
@@ -280,8 +281,9 @@
 .sp-gallery-item {
     border-radius: 10px;
     overflow: hidden;
-    background: var(--sp-surface);
-    border: 1px solid var(--sp-border);
+    background: var(--color-bg-card, #FFFFFF);
+    border: 1px solid var(--color-border, #DEE2E6);
+    box-shadow: var(--shadow-sm, 0 1px 3px rgba(0, 0, 0, 0.06));
     transition: transform 0.2s;
 }
 .sp-gallery-item:hover {
@@ -312,8 +314,8 @@
     gap: 0.75rem;
     padding: 0.75rem;
     border-radius: 10px;
-    background: var(--sp-surface);
-    border: 1px solid var(--sp-border);
+    background: var(--color-bg-card, #FFFFFF);
+    border: 1px solid var(--color-border, #DEE2E6);
 }
 .sp-inventory-img {
     width: 48px;
@@ -352,13 +354,13 @@
     padding: 2rem 0;
 }
 .sp-back-link {
-    color: var(--sp-accent);
+    color: var(--color-navy, #0B192C);
     text-decoration: none;
     font-weight: 600;
     transition: color 0.2s;
 }
 .sp-back-link:hover {
-    color: #fbbf24;
+    color: var(--color-info, #2980B9);
 }
 
 /* === 響應式 === */
