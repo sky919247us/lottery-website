@@ -25,9 +25,10 @@ import { DataGrid, type GridColDef } from '@mui/x-data-grid'
 import AddIcon from '@mui/icons-material/Add'
 import EditIcon from '@mui/icons-material/Edit'
 import DeleteIcon from '@mui/icons-material/Delete'
+import LockResetIcon from '@mui/icons-material/LockReset'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useSnackbar } from 'notistack'
-import { fetchAdminUsers, createAdminUser, updateAdminUser, deleteAdminUser, searchRetailers } from '../api'
+import { fetchAdminUsers, createAdminUser, updateAdminUser, deleteAdminUser, resetAdminPassword, searchRetailers } from '../api'
 
 const ROLES = [
   { value: 'SUPER_ADMIN', label: '超級管理員' },
@@ -103,6 +104,16 @@ export default function AdminAccounts() {
     onSuccess: () => {
       enqueueSnackbar('帳號已刪除', { variant: 'info' })
       queryClient.invalidateQueries({ queryKey: ['adminAccounts'] })
+    }
+  })
+
+  const resetPasswordMutation = useMutation({
+    mutationFn: resetAdminPassword,
+    onSuccess: (data) => {
+      enqueueSnackbar(data.message, { variant: 'success' })
+    },
+    onError: (err: any) => {
+      enqueueSnackbar(err.response?.data?.detail || '重設失敗', { variant: 'error' })
     }
   })
 
@@ -204,17 +215,24 @@ export default function AdminAccounts() {
     {
       field: 'actions',
       headerName: '操作',
-      width: 120,
+      width: 160,
       renderCell: (params) => (
-        <Stack direction="row" spacing={1}>
-          <IconButton size="small" color="primary" onClick={() => handleEditClick(params.row)}>
+        <Stack direction="row" spacing={0.5}>
+          <IconButton size="small" color="primary" onClick={() => handleEditClick(params.row)} title="編輯">
             <EditIcon />
+          </IconButton>
+          <IconButton size="small" color="warning" onClick={() => {
+            if(window.confirm(`確定要重設「${params.row.username}」的密碼嗎？\n密碼將重設為帳號名稱「${params.row.username}」`)) {
+              resetPasswordMutation.mutate(params.row.id)
+            }
+          }} title="重設密碼">
+            <LockResetIcon />
           </IconButton>
           <IconButton size="small" color="error" onClick={() => {
             if(window.confirm('確定要刪除此管理員帳號嗎？')) {
               deleteMutation.mutate(params.row.id)
             }
-          }} disabled={params.row.role === 'SUPER_ADMIN'}>
+          }} disabled={params.row.role === 'SUPER_ADMIN'} title="刪除">
             <DeleteIcon />
           </IconButton>
         </Stack>

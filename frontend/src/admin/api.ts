@@ -159,6 +159,12 @@ export async function deleteAdminUser(userId: number): Promise<void> {
   await adminApi.delete(`/users/${userId}`)
 }
 
+/** 重設管理員密碼（超級管理員用） */
+export async function resetAdminPassword(userId: number): Promise<{ message: string }> {
+  const res = await adminApi.post(`/users/${userId}/reset-password`)
+  return res.data
+}
+
 /** 更新管理員帳號（角色、retailerId 等） */
 export async function updateAdminUser(userId: number, data: {
   displayName?: string

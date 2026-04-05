@@ -222,6 +222,27 @@ async def update_admin_user(
     return _admin_to_dict(target, db)
 
 
+@router.post("/users/{user_id}/reset-password")
+async def reset_user_password(
+    user_id: int,
+    admin: AdminUser = Depends(require_role(ROLE_SUPER_ADMIN)),
+    db: Session = Depends(get_db),
+):
+    """超級管理員重設其他帳號密碼（重設為帳號名稱）"""
+    target = db.query(AdminUser).filter(AdminUser.id == user_id).first()
+    if not target:
+        raise HTTPException(status_code=404, detail="帳號不存在")
+
+    # 重設密碼為使用者名稱（帳號名稱）
+    new_password = target.username
+    hashed, salt = hash_password(new_password)
+    target.passwordHash = hashed
+    target.passwordSalt = salt
+    db.commit()
+    logger.info(f"超級管理員 [{admin.username}] 重設了 [{target.username}] 的密碼")
+    return {"status": "ok", "message": f"密碼已重設為帳號名稱「{target.username}」"}
+
+
 @router.delete("/users/{user_id}")
 async def delete_admin_user(
     user_id: int,
