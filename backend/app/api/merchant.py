@@ -23,12 +23,23 @@ from app.service.r2_service import upload_image
 from app.service.admin_auth_service import require_role, get_current_admin
 
 
-def _verify_merchant_owns_retailer(admin: AdminUser, retailer_id: int):
+def _verify_merchant_owns_retailer(admin: AdminUser, retailer_id: int, db: Session = None):
     """驗證商家帳號是否擁有此店家"""
     if admin.role == ROLE_SUPER_ADMIN or admin.role == ROLE_ADMIN:
         return  # 管理員可操作任何店家
-    if admin.retailerId != retailer_id:
-        raise HTTPException(status_code=403, detail="無權操作此店家")
+    # 先查 mapping 表
+    if db:
+        from app.model.admin import AdminRetailerMapping
+        mapping = db.query(AdminRetailerMapping).filter(
+            AdminRetailerMapping.adminId == admin.id,
+            AdminRetailerMapping.retailerId == retailer_id,
+        ).first()
+        if mapping:
+            return
+    # 向下相容
+    if admin.retailerId == retailer_id:
+        return
+    raise HTTPException(status_code=403, detail="無權操作此店家")
 
 router = APIRouter(prefix="/api/merchant", tags=["店家管理"])
 
@@ -87,7 +98,7 @@ def update_tags(
     db: Session = Depends(get_db),
 ):
     """更新店家設施標籤（需已認領且為店家擁有者）"""
-    _verify_merchant_owns_retailer(admin, retailer_id)
+    _verify_merchant_owns_retailer(admin, retailer_id, db)
     retailer = db.query(Retailer).filter(Retailer.id == retailer_id).first()
     if not retailer:
         raise HTTPException(status_code=404, detail="經銷商不存在")
@@ -108,7 +119,7 @@ def update_business_status(
     db: Session = Depends(get_db),
 ):
     """更新營業狀態（需為店家擁有者）"""
-    _verify_merchant_owns_retailer(admin, retailer_id)
+    _verify_merchant_owns_retailer(admin, retailer_id, db)
     retailer = db.query(Retailer).filter(Retailer.id == retailer_id).first()
     if not retailer:
         raise HTTPException(status_code=404, detail="經銷商不存在")
@@ -126,7 +137,7 @@ def create_announcement(
     db: Session = Depends(get_db),
 ):
     """發佈臨時公告（需為店家擁有者）"""
-    _verify_merchant_owns_retailer(admin, retailer_id)
+    _verify_merchant_owns_retailer(admin, retailer_id, db)
     # 找到認領
     claim = db.query(MerchantClaim).filter(
         MerchantClaim.retailerId == retailer_id,

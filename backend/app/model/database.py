@@ -182,6 +182,28 @@ def _run_migrations():
                 if col_name not in existing_cols:
                     conn.execute(text(f"ALTER TABLE retailers ADD COLUMN {col_name} {col_type}"))
             conn.commit()
+            # 建立 admin_retailer_mapping 表（如果不存在）
+            result = conn.execute(text("SELECT name FROM sqlite_master WHERE type='table' AND name='admin_retailer_mapping'"))
+            if not result.fetchone():
+                conn.execute(text("""
+                    CREATE TABLE admin_retailer_mapping (
+                        id INTEGER PRIMARY KEY AUTOINCREMENT,
+                        adminId INTEGER NOT NULL REFERENCES admin_users(id) ON DELETE CASCADE,
+                        retailerId INTEGER NOT NULL REFERENCES retailers(id) ON DELETE CASCADE,
+                        createdAt DATETIME DEFAULT CURRENT_TIMESTAMP,
+                        UNIQUE(adminId, retailerId)
+                    )
+                """))
+                conn.execute(text("CREATE INDEX IF NOT EXISTS ix_arm_adminId ON admin_retailer_mapping(adminId)"))
+                conn.execute(text("CREATE INDEX IF NOT EXISTS ix_arm_retailerId ON admin_retailer_mapping(retailerId)"))
+                # 回填：將現有 admin_users.retailerId 資料搬到 mapping 表
+                conn.execute(text("""
+                    INSERT OR IGNORE INTO admin_retailer_mapping (adminId, retailerId, createdAt)
+                    SELECT id, retailerId, createdAt FROM admin_users
+                    WHERE retailerId IS NOT NULL AND role = 'MERCHANT'
+                """))
+                conn.commit()
+
         else:
             # PostgreSQL：用 ALTER TABLE ... ADD COLUMN IF NOT EXISTS 新增欄位
             pg_migrations = [
@@ -196,6 +218,33 @@ def _run_migrations():
                     pass
             conn.execute(text('UPDATE scratchcards SET "isPreview" = false WHERE "isPreview" IS NULL'))
             conn.commit()
+
+            # 建立 admin_retailer_mapping 表
+            try:
+                conn.execute(text("""
+                    CREATE TABLE IF NOT EXISTS admin_retailer_mapping (
+                        id SERIAL PRIMARY KEY,
+                        "adminId" INTEGER NOT NULL REFERENCES admin_users(id) ON DELETE CASCADE,
+                        "retailerId" INTEGER NOT NULL REFERENCES retailers(id) ON DELETE CASCADE,
+                        "createdAt" TIMESTAMP DEFAULT NOW(),
+                        UNIQUE("adminId", "retailerId")
+                    )
+                """))
+                conn.execute(text('CREATE INDEX IF NOT EXISTS ix_arm_adminId ON admin_retailer_mapping("adminId")'))
+                conn.execute(text('CREATE INDEX IF NOT EXISTS ix_arm_retailerId ON admin_retailer_mapping("retailerId")'))
+                conn.commit()
+            except Exception:
+                pass
+
+            # 回填現有資料（只在 mapping 表為空時）
+            result = conn.execute(text("SELECT COUNT(*) FROM admin_retailer_mapping"))
+            if result.scalar() == 0:
+                conn.execute(text("""
+                    INSERT INTO admin_retailer_mapping ("adminId", "retailerId", "createdAt")
+                    SELECT id, "retailerId", "createdAt" FROM admin_users
+                    WHERE "retailerId" IS NOT NULL AND role = 'MERCHANT'
+                """))
+                conn.commit()
 
 
 def init_db():

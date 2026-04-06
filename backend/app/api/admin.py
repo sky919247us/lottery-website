@@ -12,6 +12,7 @@ from sqlalchemy.orm import Session
 from app.model.database import get_db, Scratchcard, Checkin
 from app.model.admin import (
     AdminUser,
+    AdminRetailerMapping,
     ROLE_SUPER_ADMIN,
     ROLE_ADMIN,
     ROLE_MERCHANT,
@@ -47,12 +48,24 @@ router = APIRouter(prefix="/api/admin", tags=["後台管理"])
 
 def _admin_to_dict(admin: AdminUser, db: Session = None) -> dict:
     """將 AdminUser 物件轉為前端需要的字典"""
+    # 取得此帳號管理的所有店家 ID
+    retailer_ids = []
+    if db and admin.role == ROLE_MERCHANT:
+        mappings = db.query(AdminRetailerMapping).filter(
+            AdminRetailerMapping.adminId == admin.id
+        ).all()
+        retailer_ids = [m.retailerId for m in mappings]
+        # 向下相容：如果 mapping 表為空但 retailerId 有值
+        if not retailer_ids and admin.retailerId:
+            retailer_ids = [admin.retailerId]
+
     result = {
         "id": admin.id,
         "username": admin.username,
         "displayName": admin.displayName or admin.username,
         "role": admin.role,
         "retailerId": admin.retailerId,
+        "retailerIds": retailer_ids,
         "isActive": admin.isActive,
         "expireAt": admin.expireAt.isoformat() if admin.expireAt else None,
         "lastLoginAt": admin.lastLoginAt.isoformat() if admin.lastLoginAt else None,
@@ -69,6 +82,30 @@ def _admin_to_dict(admin: AdminUser, db: Session = None) -> dict:
         if claim and claim.proExpiresAt:
             result["proExpiresAt"] = claim.proExpiresAt.isoformat()
     return result
+
+
+def _resolve_retailer_id(admin: AdminUser, db: Session, retailer_id: int | None = None) -> int:
+    """
+    解析商家帳號的目標店家 ID。
+    如果指定了 retailer_id，驗證此帳號是否有權管理該店。
+    否則使用 admin.retailerId（預設店家）。
+    """
+    if retailer_id:
+        # 驗證帳號是否有權管理此店
+        mapping = db.query(AdminRetailerMapping).filter(
+            AdminRetailerMapping.adminId == admin.id,
+            AdminRetailerMapping.retailerId == retailer_id,
+        ).first()
+        if mapping:
+            return retailer_id
+        # 向下相容：如果 mapping 表尚未回填，但 retailerId 吻合
+        if admin.retailerId == retailer_id:
+            return retailer_id
+        raise HTTPException(status_code=403, detail="無權管理此店家")
+
+    if not admin.retailerId:
+        raise HTTPException(status_code=404, detail="尚未關聯店家，請聯繫管理員設定")
+    return admin.retailerId
 
 
 # ─── 登入 ───────────────────────────────────────────
@@ -448,29 +485,27 @@ async def approve_claim(
         retailer.isClaimed = True
         retailer.merchantTier = claim.tier
 
-    # 自動建立商家後台帳號
-    import secrets
-    import string
-    from app.model.admin import AdminUser, ROLE_MERCHANT, hash_password
+    # 自動建立商家後台帳號（支援多店：同手機號碼的帳號只建一次，後續只加 mapping）
+    from app.model.admin import AdminUser, AdminRetailerMapping, ROLE_MERCHANT, hash_password
     from app.model.user import User
 
     user = db.query(User).filter(User.id == claim.userId).first()
     store_name = retailer.name if retailer else "店家"
 
-    # 檢查是否已有帳號
+    merchant_username = claim.contactPhone or f"merchant_{claim.retailerId}"
+    merchant_password = None
+    is_new_account = False
+
+    # 優先用手機號碼（即帳號名稱）找既有商家帳號
     existing_account = db.query(AdminUser).filter(
-        AdminUser.retailerId == claim.retailerId,
+        AdminUser.username == merchant_username,
         AdminUser.role == ROLE_MERCHANT,
     ).first()
 
-    merchant_username = None
-    merchant_password = None
-
     if not existing_account:
-        # 產生帳號：用手機號碼或 merchant_ + retailerId
-        merchant_username = claim.contactPhone or f"merchant_{claim.retailerId}"
-        # 預設密碼 = 手機號碼（與帳號相同）
-        merchant_password = claim.contactPhone or f"merchant_{claim.retailerId}"
+        # 全新帳號：建立 AdminUser + mapping
+        is_new_account = True
+        merchant_password = merchant_username  # 預設密碼 = 手機號碼
 
         hashed, salt = hash_password(merchant_password)
         new_admin = AdminUser(
@@ -483,20 +518,36 @@ async def approve_claim(
             isActive=1,
         )
         db.add(new_admin)
+        db.flush()  # 取得 new_admin.id
+
+        mapping = AdminRetailerMapping(
+            adminId=new_admin.id,
+            retailerId=claim.retailerId,
+        )
+        db.add(mapping)
     else:
-        merchant_username = existing_account.username
-        # 帳號已存在，不重新產生密碼
+        # 既有帳號：只新增 mapping（如果尚未存在）
+        existing_mapping = db.query(AdminRetailerMapping).filter(
+            AdminRetailerMapping.adminId == existing_account.id,
+            AdminRetailerMapping.retailerId == claim.retailerId,
+        ).first()
+        if not existing_mapping:
+            mapping = AdminRetailerMapping(
+                adminId=existing_account.id,
+                retailerId=claim.retailerId,
+            )
+            db.add(mapping)
 
     db.commit()
 
-    # 發送 LINE 通知（含帳密）
+    # 發送 LINE 通知
     try:
         from app.service.line_notify import notify_claim_approved
         if user and user.lineUserId:
             notify_claim_approved(
                 user.lineUserId, store_name, claim.id,
                 username=merchant_username,
-                password=merchant_password,
+                password=merchant_password if is_new_account else None,
             )
     except Exception as e:
         logger.warning(f"[LINE] 通知發送失敗（不影響審核）: {e}")
@@ -884,16 +935,53 @@ async def bulk_ban_community_users(
 
 # ─── 商家後台專屬店鋪讀取 ──────────────────────────────
 
+@router.get("/merchant/my-stores")
+async def get_my_stores(
+    admin: AdminUser = Depends(require_role(ROLE_MERCHANT, ROLE_ADMIN, ROLE_SUPER_ADMIN)),
+    db: Session = Depends(get_db),
+):
+    """取得商家帳號管理的所有店家清單（多店切換用）"""
+    from app.model.merchant import MerchantClaim
+
+    mappings = db.query(AdminRetailerMapping).filter(
+        AdminRetailerMapping.adminId == admin.id
+    ).all()
+    retailer_ids = [m.retailerId for m in mappings]
+
+    # 向下相容
+    if not retailer_ids and admin.retailerId:
+        retailer_ids = [admin.retailerId]
+
+    if not retailer_ids:
+        return []
+
+    retailers = db.query(Retailer).filter(Retailer.id.in_(retailer_ids)).all()
+    result = []
+    for r in retailers:
+        claim = db.query(MerchantClaim).filter(
+            MerchantClaim.retailerId == r.id,
+            MerchantClaim.status == "approved",
+        ).first()
+        result.append({
+            "id": r.id,
+            "name": r.name,
+            "address": r.address,
+            "merchantTier": r.merchantTier,
+            "tierExpireAt": r.tierExpireAt.isoformat() if getattr(r, 'tierExpireAt', None) else None,
+            "proExpiresAt": claim.proExpiresAt.isoformat() if claim and claim.proExpiresAt else None,
+        })
+    return result
+
+
 @router.get("/merchant/my-store")
 async def get_my_store(
+    retailer_id: int | None = None,
     admin: AdminUser = Depends(require_role(ROLE_MERCHANT, ROLE_ADMIN, ROLE_SUPER_ADMIN)),
     db: Session = Depends(get_db),
 ):
     """取得商家自己關聯的店家（給商家後台看板與設定使用）"""
-    if not admin.retailerId:
-        raise HTTPException(status_code=404, detail="尚未關聯店家，請聯繫管理員設定")
-        
-    retailer = db.query(Retailer).filter(Retailer.id == admin.retailerId).first()
+    rid = _resolve_retailer_id(admin, db, retailer_id)
+    retailer = db.query(Retailer).filter(Retailer.id == rid).first()
     if not retailer:
         raise HTTPException(status_code=404, detail="關聯的店家記錄不存在")
 
@@ -973,14 +1061,13 @@ async def get_checkout_url(
 @router.put("/merchant/my-store")
 async def update_my_store(
     data: dict,
+    retailer_id: int | None = None,
     admin: AdminUser = Depends(require_role(ROLE_MERCHANT, ROLE_ADMIN, ROLE_SUPER_ADMIN)),
     db: Session = Depends(get_db),
 ):
     """更新商家自己關聯的店家（公告與設施標籤）"""
-    if not admin.retailerId:
-        raise HTTPException(status_code=404, detail="尚未關聯店家")
-        
-    retailer = db.query(Retailer).filter(Retailer.id == admin.retailerId).first()
+    rid = _resolve_retailer_id(admin, db, retailer_id)
+    retailer = db.query(Retailer).filter(Retailer.id == rid).first()
     if not retailer:
         raise HTTPException(status_code=404, detail="關聯的店家記錄不存在")
 
@@ -1003,17 +1090,17 @@ async def update_my_store(
 
 @router.get("/merchant/inventory")
 async def get_merchant_inventory(
+    retailer_id: int | None = None,
     admin: AdminUser = Depends(require_role(ROLE_MERCHANT, ROLE_ADMIN, ROLE_SUPER_ADMIN)),
     db: Session = Depends(get_db),
 ):
     """取得商家自己的庫存清單"""
-    if not admin.retailerId:
-        raise HTTPException(status_code=404, detail="尚未關聯店家")
+    rid = _resolve_retailer_id(admin, db, retailer_id)
 
     from app.model.merchant_inventory import MerchantInventory
 
     items = db.query(MerchantInventory).filter(
-        MerchantInventory.retailerId == admin.retailerId,
+        MerchantInventory.retailerId == rid,
     ).order_by(MerchantInventory.itemPrice.desc()).all()
 
     return [
@@ -1034,12 +1121,12 @@ async def get_merchant_inventory(
 @router.put("/merchant/inventory")
 async def update_merchant_inventory(
     items: list[dict],
+    retailer_id: int | None = None,
     admin: AdminUser = Depends(require_role(ROLE_MERCHANT, ROLE_ADMIN, ROLE_SUPER_ADMIN)),
     db: Session = Depends(get_db),
 ):
     """批量更新商家庫存狀態"""
-    if not admin.retailerId:
-        raise HTTPException(status_code=404, detail="尚未關聯店家")
+    rid = _resolve_retailer_id(admin, db, retailer_id)
 
     from app.model.merchant_inventory import MerchantInventory
 
@@ -1048,7 +1135,7 @@ async def update_merchant_inventory(
             # 更新現有品項
             existing = db.query(MerchantInventory).filter(
                 MerchantInventory.id == item_data["id"],
-                MerchantInventory.retailerId == admin.retailerId,
+                MerchantInventory.retailerId == rid,
             ).first()
             if existing:
                 existing.status = item_data.get("status", existing.status)
@@ -1056,7 +1143,7 @@ async def update_merchant_inventory(
         else:
             # 新增品項
             new_item = MerchantInventory(
-                retailerId=admin.retailerId,
+                retailerId=rid,
                 scratchcardId=item_data.get("scratchcardId"),
                 itemName=item_data.get("itemName", ""),
                 itemPrice=item_data.get("itemPrice", 0),
@@ -1072,18 +1159,18 @@ async def update_merchant_inventory(
 @router.delete("/merchant/inventory/{item_id}")
 async def delete_merchant_inventory_item(
     item_id: int,
+    retailer_id: int | None = None,
     admin: AdminUser = Depends(require_role(ROLE_MERCHANT, ROLE_ADMIN, ROLE_SUPER_ADMIN)),
     db: Session = Depends(get_db),
 ):
     """刪除庫存品項"""
-    if not admin.retailerId:
-        raise HTTPException(status_code=404, detail="尚未關聯店家")
+    rid = _resolve_retailer_id(admin, db, retailer_id)
 
     from app.model.merchant_inventory import MerchantInventory
 
     item = db.query(MerchantInventory).filter(
         MerchantInventory.id == item_id,
-        MerchantInventory.retailerId == admin.retailerId,
+        MerchantInventory.retailerId == rid,
     ).first()
     if not item:
         raise HTTPException(status_code=404, detail="品項不存在")
@@ -1142,52 +1229,18 @@ async def search_scratchcards_for_merchant(
 
 @router.get("/merchant/photos")
 async def get_merchant_photos(
+    retailer_id: int | None = None,
     admin: AdminUser = Depends(require_role(ROLE_MERCHANT, ROLE_ADMIN, ROLE_SUPER_ADMIN)),
     db: Session = Depends(get_db),
 ):
-    """取得商家自己的所有圖片（僅 PRO 商家）"""
-    if not admin.retailerId:
-        raise HTTPException(status_code=404, detail="尚未關聯店家")
-
-    retailer = db.query(Retailer).filter(Retailer.id == admin.retailerId).first()
-    if not retailer or retailer.merchantTier != "pro":
-        raise HTTPException(status_code=403, detail="此功能僅限 PRO 方案商家使用")
+    """取得商家自己的所有圖片"""
+    rid = _resolve_retailer_id(admin, db, retailer_id)
 
     from app.model.merchant_photo import MerchantPhoto
 
     photos = (
         db.query(MerchantPhoto)
-        .filter(MerchantPhoto.retailerId == admin.retailerId)
-        .order_by(MerchantPhoto.category, MerchantPhoto.sortOrder, MerchantPhoto.createdAt.desc())
-        .all()
-    )
-
-    gallery = [
-        {"id": p.id, "imageUrl": p.imageUrl, "caption": p.caption}
-        for p in photos if p.category == "gallery"
-    ]
-    winning_wall = [
-        {"id": p.id, "imageUrl": p.imageUrl, "caption": p.caption}
-        for p in photos if p.category == "winning_wall"
-    ]
-
-    return {"gallery": gallery, "winningWall": winning_wall}
-
-
-@router.get("/merchant/photos")
-async def get_merchant_photos(
-    admin: AdminUser = Depends(require_role(ROLE_MERCHANT, ROLE_ADMIN, ROLE_SUPER_ADMIN)),
-    db: Session = Depends(get_db),
-):
-    """取得商家自己的所有圖片（不受 PRO 限制，供後台編輯使用）"""
-    if not admin.retailerId:
-        raise HTTPException(status_code=404, detail="尚未關聯店家")
-
-    from app.model.merchant_photo import MerchantPhoto
-
-    photos = (
-        db.query(MerchantPhoto)
-        .filter(MerchantPhoto.retailerId == admin.retailerId)
+        .filter(MerchantPhoto.retailerId == rid)
         .order_by(MerchantPhoto.category, MerchantPhoto.sortOrder, MerchantPhoto.createdAt.desc())
         .all()
     )

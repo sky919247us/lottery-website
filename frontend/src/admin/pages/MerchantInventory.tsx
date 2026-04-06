@@ -32,6 +32,7 @@ import {
   type MerchantInventoryItem,
   type ScratchcardOption,
 } from '../api'
+import { useAdminAuth } from '../AdminAuthContext'
 
 /** 狀態選項 */
 const STATUS_OPTIONS = [
@@ -73,6 +74,7 @@ export default function MerchantInventory() {
   const [saving, setSaving] = useState(false)
   const [success, setSuccess] = useState(false)
   const [error, setError] = useState('')
+  const { currentRetailerId } = useAdminAuth()
 
   // 搜尋刮刮樂
   const [showAddForm, setShowAddForm] = useState(false)
@@ -83,15 +85,16 @@ export default function MerchantInventory() {
 
   /** 載入庫存資料 */
   const loadInventory = useCallback(async () => {
+    setLoading(true)
     try {
-      const data = await fetchMerchantInventory()
+      const data = await fetchMerchantInventory(currentRetailerId ?? undefined)
       setItems(data)
     } catch {
       // NOTE: 錯誤由 axios 攔截器統一處理
     } finally {
       setLoading(false)
     }
-  }, [])
+  }, [currentRetailerId])
 
   useEffect(() => { loadInventory() }, [loadInventory])
 
@@ -168,7 +171,7 @@ export default function MerchantInventory() {
   const handleDeleteItem = async (item: MerchantInventoryItem, idx: number) => {
     if (item.id) {
       try {
-        await deleteMerchantInventoryItem(item.id)
+        await deleteMerchantInventoryItem(item.id, currentRetailerId ?? undefined)
       } catch {
         setError('刪除失敗')
         return
@@ -183,7 +186,7 @@ export default function MerchantInventory() {
     setSuccess(false)
     setError('')
     try {
-      await updateMerchantInventory(items)
+      await updateMerchantInventory(items, currentRetailerId ?? undefined)
       setSuccess(true)
       setTimeout(() => setSuccess(false), 3000)
       await loadInventory()

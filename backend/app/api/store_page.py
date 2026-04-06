@@ -110,12 +110,13 @@ async def get_store_page(retailer_id: int, db: Session = Depends(get_db)):
 @router.put("/api/admin/merchant/store-page")
 async def update_store_page(
     data: dict,
+    retailer_id: int | None = None,
     db: Session = Depends(get_db),
     admin: AdminUser = Depends(get_current_admin),
 ):
     """更新商家專屬頁面資訊（文字欄位）"""
     # 取得商家對應的經銷商
-    retailer = _get_merchant_retailer(admin, db)
+    retailer = _get_merchant_retailer(admin, db, retailer_id)
 
     # PRO 才能編輯
     if retailer.merchantTier != "pro":
@@ -140,11 +141,12 @@ async def upload_store_photo(
     file: UploadFile = File(...),
     category: str = Form("gallery"),
     caption: str = Form(""),
+    retailer_id: int | None = None,
     db: Session = Depends(get_db),
     admin: AdminUser = Depends(get_current_admin),
 ):
     """上傳商家圖片至 Cloudflare R2"""
-    retailer = _get_merchant_retailer(admin, db)
+    retailer = _get_merchant_retailer(admin, db, retailer_id)
 
     if retailer.merchantTier != "pro":
         raise HTTPException(status_code=403, detail="此功能僅限 PRO 方案商家使用")
@@ -235,11 +237,12 @@ async def delete_store_photo(
 @router.post("/api/admin/merchant/banner")
 async def upload_banner(
     file: UploadFile = File(...),
+    retailer_id: int | None = None,
     db: Session = Depends(get_db),
     admin: AdminUser = Depends(get_current_admin),
 ):
     """上傳或更換商家頁面橫幅圖片"""
-    retailer = _get_merchant_retailer(admin, db)
+    retailer = _get_merchant_retailer(admin, db, retailer_id)
 
     if retailer.merchantTier != "pro":
         raise HTTPException(status_code=403, detail="此功能僅限 PRO 方案商家使用")
@@ -300,12 +303,25 @@ async def admin_get_store_photos(
 
 # ─── 內部工具函式 ──────────────────────────────────────
 
-def _get_merchant_retailer(admin: AdminUser, db: Session) -> Retailer:
-    """根據商家帳號取得關聯的經銷商"""
-    if not admin.retailerId:
-        raise HTTPException(status_code=400, detail="此帳號未關聯任何店家")
+def _get_merchant_retailer(admin: AdminUser, db: Session, retailer_id: int | None = None) -> Retailer:
+    """根據商家帳號取得關聯的經銷商（支援多店切換）"""
+    from app.model.admin import AdminRetailerMapping
 
-    retailer = db.query(Retailer).filter(Retailer.id == admin.retailerId).first()
+    if retailer_id:
+        # 驗證帳號有權管理此店
+        mapping = db.query(AdminRetailerMapping).filter(
+            AdminRetailerMapping.adminId == admin.id,
+            AdminRetailerMapping.retailerId == retailer_id,
+        ).first()
+        if not mapping and admin.retailerId != retailer_id:
+            raise HTTPException(status_code=403, detail="無權管理此店家")
+        rid = retailer_id
+    else:
+        if not admin.retailerId:
+            raise HTTPException(status_code=400, detail="此帳號未關聯任何店家")
+        rid = admin.retailerId
+
+    retailer = db.query(Retailer).filter(Retailer.id == rid).first()
     if not retailer:
         raise HTTPException(status_code=404, detail="關聯的店家不存在")
 

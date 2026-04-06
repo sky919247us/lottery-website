@@ -53,10 +53,20 @@ export interface AdminUser {
   displayName: string
   role: 'SUPER_ADMIN' | 'ADMIN' | 'MERCHANT'
   retailerId: number | null
+  retailerIds: number[]
   isActive: number
   expireAt: string | null
   lastLoginAt: string | null
   createdAt: string | null
+}
+
+export interface MerchantStore {
+  id: number
+  name: string
+  address: string
+  merchantTier: string
+  tierExpireAt: string | null
+  proExpiresAt: string | null
 }
 
 export interface DashboardStats {
@@ -243,15 +253,21 @@ export async function fetchScratchcards(params: { page?: number; pageSize?: numb
 
 // ─── 商家專屬 API ───────────────────────────────────
 
+/** 取得商家管理的所有店家清單 */
+export async function fetchMyStores(): Promise<MerchantStore[]> {
+  const res = await adminApi.get('/merchant/my-stores')
+  return res.data
+}
+
 /** 取得商家自己的店舖 */
-export async function fetchMyStore() {
-  const res = await adminApi.get('/merchant/my-store')
+export async function fetchMyStore(retailerId?: number) {
+  const res = await adminApi.get('/merchant/my-store', { params: retailerId ? { retailer_id: retailerId } : {} })
   return res.data
 }
 
 /** 更新商家自己的店舖 */
-export async function updateMyStore(data: Record<string, unknown>): Promise<void> {
-  await adminApi.put('/merchant/my-store', data)
+export async function updateMyStore(data: Record<string, unknown>, retailerId?: number): Promise<void> {
+  await adminApi.put('/merchant/my-store', data, { params: retailerId ? { retailer_id: retailerId } : {} })
 }
 
 /** 取得 PRO 升級結帳連結 */
@@ -298,24 +314,24 @@ export async function searchScratchcards(q: string): Promise<ScratchcardOption[]
 }
 
 /** 取得商家庫存清單 */
-export async function fetchMerchantInventory(): Promise<MerchantInventoryItem[]> {
-  const res = await adminApi.get('/merchant/inventory')
+export async function fetchMerchantInventory(retailerId?: number): Promise<MerchantInventoryItem[]> {
+  const res = await adminApi.get('/merchant/inventory', { params: retailerId ? { retailer_id: retailerId } : {} })
   return res.data
 }
 
 /** 批量更新庫存狀態 */
-export async function updateMerchantInventory(items: MerchantInventoryItem[]): Promise<void> {
-  await adminApi.put('/merchant/inventory', items)
+export async function updateMerchantInventory(items: MerchantInventoryItem[], retailerId?: number): Promise<void> {
+  await adminApi.put('/merchant/inventory', items, { params: retailerId ? { retailer_id: retailerId } : {} })
 }
 
 /** 刪除庫存品項 */
-export async function deleteMerchantInventoryItem(itemId: number): Promise<void> {
-  await adminApi.delete(`/merchant/inventory/${itemId}`)
+export async function deleteMerchantInventoryItem(itemId: number, retailerId?: number): Promise<void> {
+  await adminApi.delete(`/merchant/inventory/${itemId}`, { params: retailerId ? { retailer_id: retailerId } : {} })
 }
 
 /** 取得商家自己的照片（後台專用，僅 PRO） */
-export async function fetchMerchantPhotos(): Promise<{ gallery: any[]; winningWall: any[] }> {
-  const res = await adminApi.get('/merchant/photos')
+export async function fetchMerchantPhotos(retailerId?: number): Promise<{ gallery: any[]; winningWall: any[] }> {
+  const res = await adminApi.get('/merchant/photos', { params: retailerId ? { retailer_id: retailerId } : {} })
   return res.data
 }
 
@@ -409,18 +425,19 @@ export default adminApi
 // ─── 商家專屬頁面管理 API ────────────────────────────────
 
 /** 更新商家專屬頁面文字資訊 */
-export async function updateStorePage(data: Record<string, unknown>): Promise<void> {
-    await adminApi.put('/merchant/store-page', data)
+export async function updateStorePage(data: Record<string, unknown>, retailerId?: number): Promise<void> {
+    await adminApi.put('/merchant/store-page', data, { params: retailerId ? { retailer_id: retailerId } : {} })
 }
 
 /** 上傳商家圖片（相簿或中獎牆） */
-export async function uploadStorePhoto(file: File, category: string, caption: string) {
+export async function uploadStorePhoto(file: File, category: string, caption: string, retailerId?: number) {
     const formData = new FormData()
     formData.append('file', file)
     formData.append('category', category)
     formData.append('caption', caption)
     const res = await adminApi.post('/merchant/photos', formData, {
         headers: { 'Content-Type': 'multipart/form-data' },
+        params: retailerId ? { retailer_id: retailerId } : {},
     })
     return res.data
 }
@@ -431,11 +448,12 @@ export async function deleteStorePhoto(photoId: number): Promise<void> {
 }
 
 /** 上傳商家 Banner */
-export async function uploadStoreBanner(file: File) {
+export async function uploadStoreBanner(file: File, retailerId?: number) {
     const formData = new FormData()
     formData.append('file', file)
     const res = await adminApi.post('/merchant/banner', formData, {
         headers: { 'Content-Type': 'multipart/form-data' },
+        params: retailerId ? { retailer_id: retailerId } : {},
     })
     return res.data as { bannerUrl: string }
 }

@@ -8,7 +8,7 @@ import hashlib
 import os
 from datetime import datetime
 
-from sqlalchemy import Column, DateTime, ForeignKey, Integer, String, Text
+from sqlalchemy import Column, DateTime, ForeignKey, Integer, String, Text, UniqueConstraint
 from sqlalchemy.orm import relationship
 
 from app.model.database import Base
@@ -44,6 +44,19 @@ def verify_password(password: str, hashed: str, salt: str) -> bool:
     return check_hash == hashed
 
 
+class AdminRetailerMapping(Base):
+    """管理員-店家多對多關聯表（一個商家帳號可管理多家店）"""
+    __tablename__ = "admin_retailer_mapping"
+    __table_args__ = (
+        UniqueConstraint("adminId", "retailerId", name="uq_admin_retailer"),
+    )
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    adminId = Column(Integer, ForeignKey("admin_users.id", ondelete="CASCADE"), nullable=False, index=True)
+    retailerId = Column(Integer, ForeignKey("retailers.id", ondelete="CASCADE"), nullable=False, index=True)
+    createdAt = Column(DateTime, default=datetime.utcnow)
+
+
 class AdminUser(Base):
     """後台管理員帳號"""
     __tablename__ = "admin_users"
@@ -54,9 +67,13 @@ class AdminUser(Base):
     passwordSalt = Column(String(64), nullable=False, comment="密碼鹽值")
     displayName = Column(String(100), default="", comment="顯示名稱")
     role = Column(String(20), nullable=False, default=ROLE_ADMIN, comment="角色：SUPER_ADMIN / ADMIN / MERCHANT")
-    retailerId = Column(Integer, ForeignKey("retailers.id"), nullable=True, comment="關聯店家 ID（僅 MERCHANT 角色）")
+    retailerId = Column(Integer, ForeignKey("retailers.id"), nullable=True, comment="預設店家 ID（向下相容，多店用 admin_retailer_mapping）")
     isActive = Column(Integer, default=1, comment="是否啟用 (0=停用, 1=啟用)")
     expireAt = Column(DateTime, nullable=True, comment="帳號過期時間 (針對 MERCHANT)")
     lastLoginAt = Column(DateTime, nullable=True, comment="最後登入時間")
     createdAt = Column(DateTime, default=datetime.utcnow)
     updatedAt = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    # 多店關聯
+    retailer_mappings = relationship("AdminRetailerMapping", backref="admin", cascade="all, delete-orphan",
+                                     foreign_keys=[AdminRetailerMapping.adminId])

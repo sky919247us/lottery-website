@@ -32,6 +32,8 @@ import {
   TextField,
   Alert,
   Snackbar,
+  Select,
+  type SelectChangeEvent,
 } from '@mui/material'
 import MenuIcon from '@mui/icons-material/Menu'
 import DashboardIcon from '@mui/icons-material/Dashboard'
@@ -58,7 +60,7 @@ const ROLE_CONFIG: Record<string, { label: string; color: 'error' | 'primary' | 
 }
 
 export default function AdminLayout() {
-  const { admin, logout, isSuperAdmin, isMerchant } = useAdminAuth()
+  const { admin, logout, isSuperAdmin, isMerchant, stores, currentRetailerId, switchStore } = useAdminAuth()
   const navigate = useNavigate()
   const location = useLocation()
   const theme = useTheme()
@@ -218,6 +220,28 @@ export default function AdminLayout() {
           sx={{ fontWeight: 600 }}
         />
       </Box>
+
+      {/* 多店切換器（僅商家且有多店時顯示） */}
+      {isMerchant && stores.length > 1 && (
+        <Box sx={{ px: 2, pb: 1.5 }}>
+          <Typography variant="caption" color="text.secondary" sx={{ mb: 0.5, display: 'block' }}>
+            管理店家
+          </Typography>
+          <Select
+            size="small"
+            fullWidth
+            value={currentRetailerId ?? ''}
+            onChange={(e: SelectChangeEvent<number | string>) => switchStore(Number(e.target.value))}
+            sx={{ fontSize: 13 }}
+          >
+            {stores.map(s => (
+              <MenuItem key={s.id} value={s.id} sx={{ fontSize: 13 }}>
+                {s.name}
+              </MenuItem>
+            ))}
+          </Select>
+        </Box>
+      )}
 
       {/* 導航選單 */}
       <List sx={{ px: 1.5, flex: 1 }}>

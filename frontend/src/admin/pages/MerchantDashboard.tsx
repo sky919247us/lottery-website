@@ -16,6 +16,7 @@ import StorefrontIcon from '@mui/icons-material/Storefront'
 import LocationIcon from '@mui/icons-material/LocationOn'
 import WorkspacePremiumIcon from '@mui/icons-material/WorkspacePremium'
 import { fetchMyStore, createPaymentOrder } from '../api'
+import { useAdminAuth } from '../AdminAuthContext'
 import { useSnackbar } from 'notistack'
 
 interface StoreData {
@@ -40,11 +41,13 @@ export default function MerchantDashboard() {
   const [loading, setLoading] = useState(true)
   const [upgrading, setUpgrading] = useState(false)
   const { enqueueSnackbar } = useSnackbar()
+  const { currentRetailerId } = useAdminAuth()
 
   useEffect(() => {
     async function load() {
+      setLoading(true)
       try {
-        const data = await fetchMyStore()
+        const data = await fetchMyStore(currentRetailerId ?? undefined)
         setStore(data)
       } catch {
         // NOTE: 錯誤由 axios 攔截器統一處理
@@ -53,7 +56,7 @@ export default function MerchantDashboard() {
       }
     }
     load()
-  }, [])
+  }, [currentRetailerId])
 
   if (loading) {
     return (

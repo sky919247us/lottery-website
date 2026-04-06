@@ -16,6 +16,7 @@ import {
 } from '@mui/material'
 import SaveIcon from '@mui/icons-material/Save'
 import { fetchMyStore, updateMyStore } from '../api'
+import { useAdminAuth } from '../AdminAuthContext'
 
 /** 設施標籤元資料 */
 const FACILITY_TAGS = [
@@ -43,11 +44,13 @@ export default function MerchantProfile() {
   const [saving, setSaving] = useState(false)
   const [success, setSuccess] = useState(false)
   const [error, setError] = useState('')
+  const { currentRetailerId } = useAdminAuth()
 
   useEffect(() => {
     async function load() {
+      setLoading(true)
       try {
-        const data = await fetchMyStore()
+        const data = await fetchMyStore(currentRetailerId ?? undefined)
         setAnnouncement(data.announcement || '')
         setStoreName(data.name || '')
         setStoreAddress(data.address || '')
@@ -64,7 +67,7 @@ export default function MerchantProfile() {
       }
     }
     load()
-  }, [])
+  }, [currentRetailerId])
 
   /** 切換單個設施標籤 */
   const toggleFacility = (key: string) => {
@@ -80,7 +83,7 @@ export default function MerchantProfile() {
       await updateMyStore({
         announcement,
         ...facilities,
-      })
+      }, currentRetailerId ?? undefined)
       setSuccess(true)
       setTimeout(() => setSuccess(false), 3000)
     } catch {

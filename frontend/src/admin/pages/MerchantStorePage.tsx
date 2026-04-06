@@ -19,8 +19,7 @@ import {
 import { useAdminAuth } from '../AdminAuthContext'
 
 export default function MerchantStorePage() {
-    const { admin } = useAdminAuth()
-    const retailerId = admin?.retailerId
+    const { currentRetailerId } = useAdminAuth()
 
     // 文字資訊
     const [description, setDescription] = useState('')
@@ -50,12 +49,13 @@ export default function MerchantStorePage() {
 
     useEffect(() => {
         loadData()
-    }, [])
+    }, [currentRetailerId])
 
     async function loadData() {
         try {
             setLoading(true)
-            const data = await fetchMyStore()
+            const rid = currentRetailerId ?? undefined
+            const data = await fetchMyStore(rid)
             setDescription(data.description || '')
             setBusinessHours(data.businessHours || '')
             setContactLine(data.contactLine || '')
@@ -65,14 +65,14 @@ export default function MerchantStorePage() {
 
             // 圖片從後台專用 API 取得（僅 PRO 商家）
             try {
-                const photosData = await fetchMerchantPhotos()
+                const photosData = await fetchMerchantPhotos(rid)
                 setGalleryPhotos(photosData.gallery || [])
                 setWinningWallPhotos(photosData.winningWall || [])
             } catch {
                 // 尚無照片
             }
         } catch {
-            setError('載入失敗，請重新整理')
+            setError('載入失��，請重新整理')
         } finally {
             setLoading(false)
         }
@@ -90,7 +90,7 @@ export default function MerchantStorePage() {
                 contactLine,
                 contactFb,
                 contactPhone,
-            })
+            }, currentRetailerId ?? undefined)
             setSuccess('專屬頁面資訊已儲存！')
             setTimeout(() => setSuccess(''), 3000)
         } catch {
@@ -106,7 +106,7 @@ export default function MerchantStorePage() {
         if (!file) return
         setUploading(true)
         try {
-            const res = await uploadStoreBanner(file)
+            const res = await uploadStoreBanner(file, currentRetailerId ?? undefined)
             setBannerUrl(res.bannerUrl)
             setSuccess('Banner 已更新！')
             setTimeout(() => setSuccess(''), 3000)
@@ -130,7 +130,7 @@ export default function MerchantStorePage() {
         if (!file) return
         setUploading(true)
         try {
-            const res = await uploadStorePhoto(file, uploadCategory, uploadCaption)
+            const res = await uploadStorePhoto(file, uploadCategory, uploadCaption, currentRetailerId ?? undefined)
             const newPhoto = res.photo
             if (uploadCategory === 'gallery') {
                 setGalleryPhotos(prev => [...prev, newPhoto])
@@ -178,9 +178,9 @@ export default function MerchantStorePage() {
                 <Typography variant="h5" fontWeight={700}>
                     ✨ 專屬頁面編輯
                 </Typography>
-                {retailerId && (
+                {currentRetailerId && (
                     <Button
-                        href={`/store/${retailerId}`}
+                        href={`/store/${currentRetailerId}`}
                         target="_blank"
                         startIcon={<OpenInNewIcon />}
                         size="small"
