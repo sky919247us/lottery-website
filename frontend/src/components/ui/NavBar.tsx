@@ -15,6 +15,7 @@ const NAV_LINKS: NavLink[] = [
   { to: '/videos', label: '影片列表', icon: null },
   { to: '/calculator', label: '計算機', icon: null },
   { to: '/wallet', label: '我的錢包', icon: null },
+  { to: '/favorites', label: '我的收藏', icon: null },
   { to: '/map', label: '中獎地圖', icon: null },
   { to: 'https://bingo.i168.win/', label: '賓果研究室', icon: null, external: true },
 ]

@@ -389,6 +389,33 @@ async def scrape_all_scratchcards() -> list[dict[str, Any]]:
     return results
 
 
+def _enrich_prize(prize: dict, total_issued: int, max_prize_amount: int) -> dict:
+    """補充 oddsDenominator / isJackpot / prizeLevel 三個分析用欄位。"""
+    name = prize.get("prizeName", "") or ""
+    amount = prize.get("prizeAmount", 0) or 0
+    count = prize.get("totalCount", 0) or 0
+
+    # 中獎機率分母（幾張中一張）
+    odds = 0
+    if count > 0 and total_issued > 0:
+        odds = int(total_issued / count)
+    prize["oddsDenominator"] = odds
+
+    # 頭獎/特獎判定：名稱含關鍵字 或 金額等於最高獎金
+    is_jackpot = bool(re.search(r"頭獎|特獎", name)) or (
+        max_prize_amount > 0 and amount == max_prize_amount
+    )
+    prize["isJackpot"] = is_jackpot
+
+    # 獎項等級：從名稱抽取「頭獎/貳獎/...」字樣
+    level = ""
+    m = re.search(r"(頭獎|特獎|[壹貳參肆伍陸柒捌玖拾]+獎|\d+獎)", name)
+    if m:
+        level = m.group(1)
+    prize["prizeLevel"] = level
+    return prize
+
+
 def save_to_database(data_list: list[dict[str, Any]]) -> int:
     """
     將爬蟲結果存入 SQLite 資料庫
@@ -400,6 +427,11 @@ def save_to_database(data_list: list[dict[str, Any]]) -> int:
 
     try:
         for data in data_list:
+            total_issued = data.get("totalIssued", 0) or 0
+            max_prize_amount = data.get("maxPrizeAmount", 0) or 0
+            for prize in data.get("prizes", []):
+                _enrich_prize(prize, total_issued, max_prize_amount)
+
             # 查詢是否已存在
             existing = db.query(Scratchcard).filter(Scratchcard.gameId == data["gameId"]).first()
 
@@ -439,10 +471,16 @@ def save_to_database(data_list: list[dict[str, Any]]) -> int:
 
 
 async def run_crawler():
-    """完整爬蟲流程：爬取 + 存入 DB"""
+    """完整爬蟲流程：爬取 + 存入 DB + 寫入每日快照"""
     data = await scrape_all_scratchcards()
     if data:
         save_to_database(data)
+        # 爬蟲成功後寫入今日快照（時間序列分析基礎）
+        try:
+            from app.service.snapshot_service import write_daily_snapshots
+            write_daily_snapshots()
+        except Exception as e:
+            logger.warning(f"⚠️ 每日快照寫入失敗（不影響爬蟲結果）: {e}")
     return len(data)
 
 

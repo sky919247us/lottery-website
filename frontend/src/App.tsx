@@ -35,6 +35,7 @@ const UserProfile = lazy(() => import('./pages/UserProfile'))
 const LevelRules = lazy(() => import('./pages/LevelRules'))
 const MerchantClaimForm = lazy(() => import('./pages/MerchantClaimForm'))
 const StorePage = lazy(() => import('./pages/StorePage'))
+const Favorites = lazy(() => import('./pages/Favorites'))
 const AdminRoutes = lazy(() => import('./admin/AdminRoutes'))
 
 /** 載入中的 Fallback UI */
@@ -90,6 +91,7 @@ export default function App() {
                     <Route path="/profile" element={<UserProfile />} />
                     <Route path="/levels" element={<LevelRules />} />
                     <Route path="/store/:id" element={<StorePage />} />
+                    <Route path="/favorites" element={<Favorites />} />
                   </Routes>
                 </Suspense>
               </main>

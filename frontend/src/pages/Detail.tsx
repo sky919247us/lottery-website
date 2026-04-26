@@ -14,6 +14,7 @@ import {
     type ScratchcardDetail as DetailType, type NearbyStockStore
 } from '../hooks/api'
 import SeoHead from '../components/SeoHead'
+import FavoriteButton from '../components/FavoriteButton'
 import './Detail.css'
 
 /** YouTube 新品實測播放清單 ID */
@@ -250,9 +251,12 @@ export default function Detail() {
                     <ArrowLeft size={18} />
                     返回列表
                 </Link>
-                <button className="detail__share-btn" onClick={() => navigator.clipboard?.writeText(window.location.href)}>
-                    <Share2 size={16} />
-                </button>
+                <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+                    {detail && <FavoriteButton scratchcardId={detail.id} />}
+                    <button className="detail__share-btn" onClick={() => navigator.clipboard?.writeText(window.location.href)}>
+                        <Share2 size={16} />
+                    </button>
+                </div>
             </div>
 
             <motion.div

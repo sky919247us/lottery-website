@@ -90,6 +90,10 @@ class PrizeStructure(Base):
     prizeAmount = Column(BigInteger, default=0, comment="獎金金額")
     totalCount = Column(BigInteger, default=0, comment="該獎項總張數")
     perBookDesc = Column(String(100), default="", comment="每本描述（如 每本保底 2 張）")
+    # --- 升級規格新增欄位 ---
+    oddsDenominator = Column(BigInteger, default=0, comment="幾張中一張（中獎機率分母，用於排除大獎回收率計算）")
+    isJackpot = Column(Boolean, default=False, comment="是否為頭獎/特獎等大獎")
+    prizeLevel = Column(String(30), default="", comment="獎項等級（頭獎/貳獎/...）")
 
     scratchcard = relationship("Scratchcard", back_populates="prizes")
 
@@ -124,6 +128,8 @@ from app.model.merchant_photo import MerchantPhoto  # noqa: F401
 from app.model.rating import RetailerRating  # noqa: F401
 from app.model.admin import AdminUser  # noqa: F401
 from app.model.jackpot_store import JackpotStore  # noqa: F401
+from app.model.ticket_snapshot import TicketSnapshot  # noqa: F401
+from app.model.favorite import Favorite  # noqa: F401
 
 
 def _create_composite_indexes():
@@ -165,6 +171,19 @@ def _run_migrations():
                 conn.commit()
             # 確保既有資料的 isPreview 不為 NULL（SQLite ALTER TABLE 不會回填既有資料）
             conn.execute(text("UPDATE scratchcards SET isPreview = 0 WHERE isPreview IS NULL"))
+            conn.commit()
+
+            # --- 升級規格：prize_structures 補欄位 ---
+            result = conn.execute(text("PRAGMA table_info(prize_structures)"))
+            existing_cols = {row[1] for row in result.fetchall()}
+            prize_extra_cols = {
+                "oddsDenominator": "BIGINT DEFAULT 0",
+                "isJackpot": "BOOLEAN DEFAULT 0",
+                "prizeLevel": "VARCHAR(30) DEFAULT ''",
+            }
+            for col_name, col_type in prize_extra_cols.items():
+                if col_name not in existing_cols:
+                    conn.execute(text(f"ALTER TABLE prize_structures ADD COLUMN {col_name} {col_type}"))
             conn.commit()
 
             result = conn.execute(text("PRAGMA table_info(retailers)"))
@@ -209,6 +228,9 @@ def _run_migrations():
             pg_migrations = [
                 'ALTER TABLE scratchcards ADD COLUMN IF NOT EXISTS "isPreview" BOOLEAN DEFAULT false',
                 'ALTER TABLE scratchcards ALTER COLUMN "gameId" TYPE VARCHAR(64)',
+                'ALTER TABLE prize_structures ADD COLUMN IF NOT EXISTS "oddsDenominator" BIGINT DEFAULT 0',
+                'ALTER TABLE prize_structures ADD COLUMN IF NOT EXISTS "isJackpot" BOOLEAN DEFAULT false',
+                'ALTER TABLE prize_structures ADD COLUMN IF NOT EXISTS "prizeLevel" VARCHAR(30) DEFAULT \'\'',
             ]
             for sql in pg_migrations:
                 try:

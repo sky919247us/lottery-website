@@ -543,3 +543,120 @@ export async function fetchStorePage(retailerId: number) {
     const res = await api.get(`/api/store/${retailerId}`)
     return res.data
 }
+
+/* === 分析 API（公開）=== */
+
+export interface ReturnRateBreakdown {
+    id: number
+    prizeName: string
+    prizeAmount: number
+    totalCount: number
+    oddsDenominator: number
+    excluded: boolean
+}
+
+export interface ReturnRateResult {
+    scratchcardId: number
+    name: string
+    price: number
+    totalIssued: number
+    mode: string
+    modeLabel: string
+    returnRate: number
+    returnRatePercent: string
+    expectedValuePerTicket: number
+    excludedPrizeIds: number[]
+    breakdown: ReturnRateBreakdown[]
+    note: string
+}
+
+export interface JackpotSurvival {
+    scratchcardId: number
+    name: string
+    grandPrizeTotal: number
+    grandPrizeUnclaimed: number
+    survivalRate: number
+    survivalRatePercent: string
+    remainingTicketsEstimate: number
+    ticketsPerJackpot: number | null
+    note: string
+}
+
+export async function fetchReturnRate(
+    scratchcardId: number,
+    mode: 'full' | 'exclude_threshold' | 'exclude_ids' = 'full',
+    options: { threshold?: number; excludeIds?: number[] } = {}
+): Promise<ReturnRateResult> {
+    const { data } = await api.post(`/api/analytics/scratchcards/${scratchcardId}/return-rate`, {
+        mode,
+        threshold: options.threshold ?? 100000,
+        excludeIds: options.excludeIds ?? [],
+    })
+    return data
+}
+
+export async function fetchJackpotSurvival(scratchcardId: number): Promise<JackpotSurvival> {
+    const { data } = await api.get(`/api/analytics/scratchcards/${scratchcardId}/jackpot-survival`)
+    return data
+}
+
+export async function fetchLeaderboard(
+    price: number,
+    metric: 'full_return_rate' | 'exclude_jackpot_return_rate' | 'grand_prize_multiplier' | 'sales_rate' = 'full_return_rate',
+    includeEnded = true
+) {
+    const { data } = await api.get('/api/analytics/leaderboard', {
+        params: { price, metric, include_ended: includeEnded },
+    })
+    return data as Array<{
+        id: number
+        gameId: string
+        name: string
+        price: number
+        fullReturnRate: number
+        excludeJackpotReturnRate: number
+        grandPrizeMultiplier: number
+        salesRateValue: number
+        isPreview: boolean
+        imageUrl: string
+    }>
+}
+
+/* === 收藏 / 停售提醒 API（需 LINE 綁定）=== */
+
+export interface FavoriteItem {
+    id: number
+    scratchcardId: number
+    gameId: string
+    name: string
+    price: number
+    imageUrl: string
+    salesRate: string
+    salesRateValue: number
+    endDate: string
+    redeemDeadline: string
+    isPreview: boolean
+    daysToEnd: number | null
+    daysToRedeemDeadline: number | null
+    endingSoon: boolean
+    redeemingSoon: boolean
+}
+
+export async function fetchFavorites(): Promise<FavoriteItem[]> {
+    const { data } = await api.get('/api/favorites')
+    return data
+}
+
+export async function addFavorite(scratchcardId: number): Promise<FavoriteItem> {
+    const { data } = await api.post('/api/favorites', { scratchcardId })
+    return data
+}
+
+export async function removeFavorite(scratchcardId: number): Promise<void> {
+    await api.delete(`/api/favorites/${scratchcardId}`)
+}
+
+export async function checkFavorite(scratchcardId: number): Promise<boolean> {
+    const { data } = await api.get(`/api/favorites/check/${scratchcardId}`)
+    return !!data.favorited
+}
