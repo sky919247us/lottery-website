@@ -10,6 +10,7 @@
   - 頭獎存活機率：頭獎尚未被領走的比例。
 """
 
+import math
 from typing import Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Query
@@ -298,5 +299,161 @@ def jackpot_survival(scratchcard_id: int, db: Session = Depends(get_db)):
         survivalRatePercent=f"{survival * 100:.2f}%",
         remainingTicketsEstimate=remaining,
         ticketsPerJackpot=tickets_per_jackpot,
+        note=note,
+    )
+
+
+# ============================================================
+# 端點：相似遊戲推薦（獎金結構相似度）
+# ============================================================
+
+class SimilarItem(BaseModel):
+    id: int
+    gameId: str
+    name: str
+    price: int
+    imageUrl: str
+    issueDate: str
+    isPreview: bool
+    similarity: float
+    similarityPercent: str
+    fullReturnRate: float
+    grandPrizeMultiplier: float
+    prizeLevelCount: int
+    reasons: list[str]
+
+
+class SimilarResponse(BaseModel):
+    targetId: int
+    targetName: str
+    price: int
+    items: list[SimilarItem]
+    note: str
+
+
+def _prize_vector(prizes: list[PrizeStructure]) -> dict[int, int]:
+    """以「獎金金額 → 張數」當特徵向量。"""
+    vec: dict[int, int] = {}
+    for p in prizes:
+        amt = int(p.prizeAmount or 0)
+        cnt = int(p.totalCount or 0)
+        if amt <= 0 or cnt <= 0:
+            continue
+        vec[amt] = vec.get(amt, 0) + cnt
+    return vec
+
+
+def _cosine(a: dict[int, int], b: dict[int, int]) -> float:
+    """以「獎金金額」對齊兩向量計算餘弦相似度。"""
+    if not a or not b:
+        return 0.0
+    keys = set(a.keys()) | set(b.keys())
+    dot = 0.0
+    na = 0.0
+    nb = 0.0
+    for k in keys:
+        va = a.get(k, 0)
+        vb = b.get(k, 0)
+        dot += va * vb
+        na += va * va
+        nb += vb * vb
+    if na == 0 or nb == 0:
+        return 0.0
+    return dot / (math.sqrt(na) * math.sqrt(nb))
+
+
+def _explain(target: Scratchcard, candidate: Scratchcard,
+             target_rate: float, cand_rate: float,
+             target_mult: float, cand_mult: float) -> list[str]:
+    """產生「為什麼相似」的人話說明。"""
+    reasons: list[str] = []
+    if target.price == candidate.price:
+        reasons.append(f"同價位 ${target.price}")
+    rate_diff = abs(target_rate - cand_rate) * 100
+    if rate_diff < 2:
+        reasons.append(f"完整回收率接近（差 {rate_diff:.1f}%）")
+    mult_diff_ratio = abs(target_mult - cand_mult) / max(target_mult, 1)
+    if mult_diff_ratio < 0.15 and target_mult > 0:
+        reasons.append(f"頭獎倍率相近（{cand_mult:.0f}x）")
+    if abs(len(target.prizes) - len(candidate.prizes)) <= 1:
+        reasons.append(f"獎項層數相同（{len(candidate.prizes)} 層）")
+    return reasons
+
+
+@router.get("/scratchcards/{scratchcard_id}/similar", response_model=SimilarResponse)
+def get_similar_scratchcards(
+    scratchcard_id: int,
+    limit: int = Query(5, ge=1, le=20),
+    include_preview: bool = Query(False, description="是否納入預告款"),
+    same_price_only: bool = Query(True, description="只比較同價位"),
+    db: Session = Depends(get_db),
+):
+    """新款（或任何一款）刮刮樂的歷史相似款比對（公開）。
+
+    比對方式（Phase 1：純獎金結構，未含玩法）：
+      1. 過濾候選池：預設只取同價位、排除自己、排除預告款
+      2. 對「獎金金額 → 張數」向量做餘弦相似度
+      3. 產生 top N 並附人話說明（同價位 / 回收率接近 / 頭獎倍率相近 / 獎項層數相同）
+
+    後續 Phase 2 接入玩法 AI 解析後，會再加上 mechanic_similarity 加權。
+    """
+    target = db.query(Scratchcard).options(joinedload(Scratchcard.prizes)).filter(
+        Scratchcard.id == scratchcard_id
+    ).first()
+    if not target:
+        raise HTTPException(status_code=404, detail="找不到刮刮樂")
+
+    q = db.query(Scratchcard).options(joinedload(Scratchcard.prizes)).filter(
+        Scratchcard.id != scratchcard_id
+    )
+    if same_price_only:
+        q = q.filter(Scratchcard.price == target.price)
+    if not include_preview:
+        q = q.filter(Scratchcard.isPreview == False)
+
+    candidates = q.all()
+
+    target_vec = _prize_vector(target.prizes)
+    target_rate = _return_rate(target.prizes, target.totalIssued, target.price)
+    target_mult = (target.maxPrizeAmount / target.price) if target.price else 0.0
+
+    scored: list[tuple[float, Scratchcard, float, float]] = []
+    for c in candidates:
+        sim = _cosine(target_vec, _prize_vector(c.prizes))
+        if sim <= 0:
+            continue
+        c_rate = _return_rate(c.prizes, c.totalIssued, c.price)
+        c_mult = (c.maxPrizeAmount / c.price) if c.price else 0.0
+        scored.append((sim, c, c_rate, c_mult))
+
+    scored.sort(key=lambda x: x[0], reverse=True)
+
+    items: list[SimilarItem] = []
+    for sim, c, c_rate, c_mult in scored[:limit]:
+        items.append(SimilarItem(
+            id=c.id,
+            gameId=c.gameId,
+            name=c.name,
+            price=c.price,
+            imageUrl=c.imageUrl or "",
+            issueDate=c.issueDate or "",
+            isPreview=bool(c.isPreview),
+            similarity=round(sim, 4),
+            similarityPercent=f"{sim * 100:.1f}%",
+            fullReturnRate=round(c_rate, 4),
+            grandPrizeMultiplier=round(c_mult, 2),
+            prizeLevelCount=len(c.prizes),
+            reasons=_explain(target, c, target_rate, c_rate, target_mult, c_mult),
+        ))
+
+    note = (
+        "本相似度僅基於獎金結構（金額分布 + 張數）。"
+        "玩法機制（match3 / 比大小 / 連線等）尚未納入，將於 Phase 2 加上 AI 解析後補完。"
+    )
+    return SimilarResponse(
+        targetId=target.id,
+        targetName=target.name,
+        price=target.price,
+        items=items,
         note=note,
     )

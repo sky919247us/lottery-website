@@ -660,3 +660,43 @@ export async function checkFavorite(scratchcardId: number): Promise<boolean> {
     const { data } = await api.get(`/api/favorites/check/${scratchcardId}`)
     return !!data.favorited
 }
+
+/* === 相似刮刮樂 API（公開）=== */
+
+export interface SimilarItem {
+    id: number
+    gameId: string
+    name: string
+    price: number
+    imageUrl: string
+    issueDate: string
+    isPreview: boolean
+    similarity: number
+    similarityPercent: string
+    fullReturnRate: number
+    grandPrizeMultiplier: number
+    prizeLevelCount: number
+    reasons: string[]
+}
+
+export interface SimilarResponse {
+    targetId: number
+    targetName: string
+    price: number
+    items: SimilarItem[]
+    note: string
+}
+
+export async function fetchSimilarScratchcards(
+    scratchcardId: number,
+    options: { limit?: number; includePreview?: boolean; samePriceOnly?: boolean } = {}
+): Promise<SimilarResponse> {
+    const { data } = await api.get(`/api/analytics/scratchcards/${scratchcardId}/similar`, {
+        params: {
+            limit: options.limit ?? 5,
+            include_preview: options.includePreview ?? false,
+            same_price_only: options.samePriceOnly ?? true,
+        },
+    })
+    return data
+}

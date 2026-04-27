@@ -15,6 +15,7 @@ import {
 } from '../hooks/api'
 import SeoHead from '../components/SeoHead'
 import FavoriteButton from '../components/FavoriteButton'
+import SimilarScratchcards from '../components/SimilarScratchcards'
 import './Detail.css'
 
 /** YouTube 新品實測播放清單 ID */
@@ -713,6 +714,8 @@ export default function Detail() {
                         <strong>{detail.salesRate || '-'}</strong>
                     </div>
                 </div>
+
+                <SimilarScratchcards scratchcardId={detail.id} />
             </motion.div>
         </div>
     )
