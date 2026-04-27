@@ -598,3 +598,86 @@ def get_mechanic(scratchcard_id: int, db: Session = Depends(get_db)):
     if not m:
         raise HTTPException(status_code=404, detail="此款尚未進行 AI 玩法解析")
     return _to_mechanic_response(m)
+
+
+class BatchParseResult(BaseModel):
+    total: int
+    parsed: int
+    skipped: int
+    failed: int
+    errors: list[dict]
+
+
+@router.post("/parse-mechanic-batch", response_model=BatchParseResult)
+def parse_mechanic_batch(
+    only_missing: bool = Query(True, description="只解析尚未解析過的款式"),
+    include_preview: bool = Query(False, description="是否含預告款"),
+    limit: int = Query(0, ge=0, description="最多解析幾張，0=全部"),
+    db: Session = Depends(get_db),
+    _admin=Depends(get_current_admin),
+):
+    """批次以 imageUrl 呼叫 AI 解析所有刮刮樂（限管理員）。"""
+    parser = get_parser()
+
+    q = db.query(Scratchcard)
+    if not include_preview:
+        q = q.filter(Scratchcard.isPreview == False)
+    cards = q.all()
+
+    existing_ids = {
+        m.scratchcardId
+        for m in db.query(GameMechanic.scratchcardId).all()
+    }
+
+    parsed = 0
+    skipped = 0
+    failed = 0
+    errors: list[dict] = []
+
+    targets = cards
+    if limit > 0:
+        targets = targets[:limit + 200]  # 保留容差
+
+    processed = 0
+    for c in targets:
+        if limit > 0 and parsed >= limit:
+            break
+        if only_missing and c.id in existing_ids:
+            skipped += 1
+            continue
+        if not c.imageUrl:
+            skipped += 1
+            continue
+        try:
+            raw = parser.parse_image_url(c.imageUrl)
+            data = normalize(raw)
+            m = db.query(GameMechanic).filter(GameMechanic.scratchcardId == c.id).first()
+            if not m:
+                m = GameMechanic(scratchcardId=c.id)
+                db.add(m)
+            m.sourceType = "image"
+            m.sourceUrl = c.imageUrl
+            m.mechanicTypes = data["mechanic_types"]
+            m.parsedTags = data["parsed_tags"]
+            m.layoutTags = data["layout_tags"]
+            m.complexityScore = data["complexity_score"]
+            m.resultSpeed = data["result_speed"]
+            m.aiDescription = data["ai_description"]
+            m.parseProvider = parser.name
+            m.parseModel = getattr(parser, "model", "")
+            m.parsedAt = datetime.utcnow()
+            db.commit()
+            parsed += 1
+        except Exception as e:
+            db.rollback()
+            failed += 1
+            errors.append({"id": c.id, "name": c.name, "error": str(e)[:200]})
+        processed += 1
+
+    return BatchParseResult(
+        total=len(cards),
+        parsed=parsed,
+        skipped=skipped,
+        failed=failed,
+        errors=errors,
+    )
