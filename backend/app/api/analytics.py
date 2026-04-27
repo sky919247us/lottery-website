@@ -11,6 +11,7 @@
 """
 
 import math
+from datetime import datetime
 from typing import Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Query
@@ -18,6 +19,9 @@ from pydantic import BaseModel
 from sqlalchemy.orm import Session, joinedload
 
 from app.model.database import PrizeStructure, Scratchcard, get_db
+from app.model.game_mechanic import GameMechanic
+from app.service.admin_auth_service import get_current_admin
+from app.service.mechanic_parser_service import get_parser, normalize
 
 router = APIRouter(prefix="/api/analytics", tags=["分析"])
 
@@ -362,6 +366,14 @@ def _cosine(a: dict[int, int], b: dict[int, int]) -> float:
     return dot / (math.sqrt(na) * math.sqrt(nb))
 
 
+def _jaccard(a: set, b: set) -> float:
+    if not a and not b:
+        return 0.0
+    inter = len(a & b)
+    union = len(a | b)
+    return inter / union if union else 0.0
+
+
 def _explain(target: Scratchcard, candidate: Scratchcard,
              target_rate: float, cand_rate: float,
              target_mult: float, cand_mult: float) -> list[str]:
@@ -417,19 +429,42 @@ def get_similar_scratchcards(
     target_rate = _return_rate(target.prizes, target.totalIssued, target.price)
     target_mult = (target.maxPrizeAmount / target.price) if target.price else 0.0
 
-    scored: list[tuple[float, Scratchcard, float, float]] = []
+    target_mech = db.query(GameMechanic).filter(GameMechanic.scratchcardId == target.id).first()
+    target_tags = set(target_mech.parsedTags or []) if target_mech else set()
+
+    cand_ids = [c.id for c in candidates]
+    mech_map: dict[int, GameMechanic] = {}
+    if cand_ids:
+        for m in db.query(GameMechanic).filter(GameMechanic.scratchcardId.in_(cand_ids)).all():
+            mech_map[m.scratchcardId] = m
+
+    scored: list[tuple[float, Scratchcard, float, float, float, float]] = []
     for c in candidates:
-        sim = _cosine(target_vec, _prize_vector(c.prizes))
+        prize_sim = _cosine(target_vec, _prize_vector(c.prizes))
+        cand_mech = mech_map.get(c.id)
+        cand_tags = set(cand_mech.parsedTags or []) if cand_mech else set()
+        # 兩邊都有玩法資料才計算 Jaccard，否則只用獎金結構
+        if target_tags and cand_tags:
+            mech_sim = _jaccard(target_tags, cand_tags)
+            sim = prize_sim * 0.6 + mech_sim * 0.4
+        else:
+            mech_sim = 0.0
+            sim = prize_sim
         if sim <= 0:
             continue
         c_rate = _return_rate(c.prizes, c.totalIssued, c.price)
         c_mult = (c.maxPrizeAmount / c.price) if c.price else 0.0
-        scored.append((sim, c, c_rate, c_mult))
+        scored.append((sim, c, c_rate, c_mult, prize_sim, mech_sim))
 
     scored.sort(key=lambda x: x[0], reverse=True)
 
     items: list[SimilarItem] = []
-    for sim, c, c_rate, c_mult in scored[:limit]:
+    for sim, c, c_rate, c_mult, prize_sim, mech_sim in scored[:limit]:
+        reasons = _explain(target, c, target_rate, c_rate, target_mult, c_mult)
+        if mech_sim >= 0.5:
+            reasons.append(f"玩法機制高度相似（{mech_sim * 100:.0f}%）")
+        elif mech_sim >= 0.25:
+            reasons.append("玩法機制部分相似")
         items.append(SimilarItem(
             id=c.id,
             gameId=c.gameId,
@@ -443,12 +478,12 @@ def get_similar_scratchcards(
             fullReturnRate=round(c_rate, 4),
             grandPrizeMultiplier=round(c_mult, 2),
             prizeLevelCount=len(c.prizes),
-            reasons=_explain(target, c, target_rate, c_rate, target_mult, c_mult),
+            reasons=reasons,
         ))
 
     note = (
-        "本相似度僅基於獎金結構（金額分布 + 張數）。"
-        "玩法機制（match3 / 比大小 / 連線等）尚未納入，將於 Phase 2 加上 AI 解析後補完。"
+        "相似度結合「獎金結構（金額分布 + 張數）」與「玩法機制標籤（AI 解析）」。"
+        "若候選款尚未進行 AI 玩法解析，僅以獎金結構比對。"
     )
     return SimilarResponse(
         targetId=target.id,
@@ -457,3 +492,109 @@ def get_similar_scratchcards(
         items=items,
         note=note,
     )
+
+
+# ============================================================
+# 端點：玩法 AI 解析（Phase 2）
+# ============================================================
+
+class ParseMechanicRequest(BaseModel):
+    text: Optional[str] = None
+    imageUrl: Optional[str] = None
+    sourceUrl: Optional[str] = None
+
+
+class MechanicResponse(BaseModel):
+    scratchcardId: int
+    mechanicTypes: list[str]
+    parsedTags: list[str]
+    layoutTags: list[str]
+    complexityScore: int
+    resultSpeed: str
+    aiDescription: str
+    parseProvider: str
+    parseModel: str
+    parsedAt: Optional[str]
+    sourceType: str
+    sourceUrl: str
+
+
+def _to_mechanic_response(m: GameMechanic) -> MechanicResponse:
+    return MechanicResponse(
+        scratchcardId=m.scratchcardId,
+        mechanicTypes=list(m.mechanicTypes or []),
+        parsedTags=list(m.parsedTags or []),
+        layoutTags=list(m.layoutTags or []),
+        complexityScore=int(m.complexityScore or 0),
+        resultSpeed=m.resultSpeed or "",
+        aiDescription=m.aiDescription or "",
+        parseProvider=m.parseProvider or "",
+        parseModel=m.parseModel or "",
+        parsedAt=m.parsedAt.isoformat() if m.parsedAt else None,
+        sourceType=m.sourceType or "",
+        sourceUrl=m.sourceUrl or "",
+    )
+
+
+@router.post("/scratchcards/{scratchcard_id}/parse-mechanic", response_model=MechanicResponse)
+def parse_mechanic(
+    scratchcard_id: int,
+    payload: ParseMechanicRequest,
+    db: Session = Depends(get_db),
+    _admin=Depends(get_current_admin),
+):
+    """呼叫 AI 解析玩法並 upsert 到 game_mechanics（限管理員，避免外部觸發消耗 API 額度）。"""
+    card = db.query(Scratchcard).filter(Scratchcard.id == scratchcard_id).first()
+    if not card:
+        raise HTTPException(status_code=404, detail="找不到刮刮樂")
+
+    if not (payload.text or payload.imageUrl):
+        raise HTTPException(status_code=400, detail="須提供 text 或 imageUrl 其中之一")
+
+    parser = get_parser()
+    try:
+        if payload.imageUrl:
+            raw = parser.parse_image_url(payload.imageUrl)
+            source_type = "image"
+            source_url = payload.imageUrl
+            raw_text = ""
+        else:
+            raw = parser.parse_text(payload.text or "")
+            source_type = "text"
+            source_url = payload.sourceUrl or ""
+            raw_text = payload.text or ""
+    except Exception as e:
+        raise HTTPException(status_code=502, detail=f"AI 解析失敗：{e}")
+
+    data = normalize(raw)
+
+    m = db.query(GameMechanic).filter(GameMechanic.scratchcardId == scratchcard_id).first()
+    if not m:
+        m = GameMechanic(scratchcardId=scratchcard_id)
+        db.add(m)
+
+    m.rawText = raw_text
+    m.sourceType = source_type
+    m.sourceUrl = source_url
+    m.mechanicTypes = data["mechanic_types"]
+    m.parsedTags = data["parsed_tags"]
+    m.layoutTags = data["layout_tags"]
+    m.complexityScore = data["complexity_score"]
+    m.resultSpeed = data["result_speed"]
+    m.aiDescription = data["ai_description"]
+    m.parseProvider = parser.name
+    m.parseModel = getattr(parser, "model", "")
+    m.parsedAt = datetime.utcnow()
+
+    db.commit()
+    db.refresh(m)
+    return _to_mechanic_response(m)
+
+
+@router.get("/scratchcards/{scratchcard_id}/mechanic", response_model=MechanicResponse)
+def get_mechanic(scratchcard_id: int, db: Session = Depends(get_db)):
+    """讀取已解析的玩法資料（公開）。未解析時回 404。"""
+    m = db.query(GameMechanic).filter(GameMechanic.scratchcardId == scratchcard_id).first()
+    if not m:
+        raise HTTPException(status_code=404, detail="此款尚未進行 AI 玩法解析")
+    return _to_mechanic_response(m)

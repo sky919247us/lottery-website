@@ -130,6 +130,7 @@ from app.model.admin import AdminUser  # noqa: F401
 from app.model.jackpot_store import JackpotStore  # noqa: F401
 from app.model.ticket_snapshot import TicketSnapshot  # noqa: F401
 from app.model.favorite import Favorite  # noqa: F401
+from app.model.game_mechanic import GameMechanic  # noqa: F401
 
 
 def _create_composite_indexes():

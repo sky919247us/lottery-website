@@ -700,3 +700,38 @@ export async function fetchSimilarScratchcards(
     })
     return data
 }
+
+export interface MechanicResponse {
+    scratchcardId: number
+    mechanicTypes: string[]
+    parsedTags: string[]
+    layoutTags: string[]
+    complexityScore: number
+    resultSpeed: string
+    aiDescription: string
+    parseProvider: string
+    parseModel: string
+    parsedAt: string | null
+    sourceType: string
+    sourceUrl: string
+}
+
+export async function fetchMechanic(scratchcardId: number): Promise<MechanicResponse | null> {
+    try {
+        const { data } = await api.get(`/api/analytics/scratchcards/${scratchcardId}/mechanic`)
+        return data
+    } catch {
+        return null
+    }
+}
+
+export async function parseMechanic(
+    scratchcardId: number,
+    payload: { text?: string; imageUrl?: string; sourceUrl?: string }
+): Promise<MechanicResponse> {
+    const { data } = await api.post(
+        `/api/analytics/scratchcards/${scratchcardId}/parse-mechanic`,
+        payload,
+    )
+    return data
+}

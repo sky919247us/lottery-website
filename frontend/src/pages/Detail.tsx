@@ -16,6 +16,7 @@ import {
 import SeoHead from '../components/SeoHead'
 import FavoriteButton from '../components/FavoriteButton'
 import SimilarScratchcards from '../components/SimilarScratchcards'
+import MechanicPanel from '../components/MechanicPanel'
 import './Detail.css'
 
 /** YouTube 新品實測播放清單 ID */
@@ -715,6 +716,7 @@ export default function Detail() {
                     </div>
                 </div>
 
+                <MechanicPanel scratchcardId={detail.id} />
                 <SimilarScratchcards scratchcardId={detail.id} />
             </motion.div>
         </div>
