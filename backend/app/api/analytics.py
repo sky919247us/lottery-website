@@ -612,11 +612,17 @@ class BatchParseResult(BaseModel):
 def parse_mechanic_batch(
     only_missing: bool = Query(True, description="只解析尚未解析過的款式"),
     include_preview: bool = Query(False, description="是否含預告款"),
-    limit: int = Query(0, ge=0, description="最多解析幾張，0=全部"),
+    limit: int = Query(0, ge=0, description="最多嘗試解析幾張，0=全部"),
+    delay_seconds: float = Query(7.0, ge=0, description="每次呼叫間隔秒數（避開 Gemini 免費 10 RPM 限制）"),
     db: Session = Depends(get_db),
     _admin=Depends(get_current_admin),
 ):
-    """批次以 imageUrl 呼叫 AI 解析所有刮刮樂（限管理員）。"""
+    """批次以 imageUrl 呼叫 AI 解析所有刮刮樂（限管理員）。
+
+    Gemini 免費額度：10 RPM / 每日 250 次。預設每次間隔 7 秒，遇 429 自動停止。
+    """
+    import time
+
     parser = get_parser()
 
     q = db.query(Scratchcard)
@@ -629,24 +635,29 @@ def parse_mechanic_batch(
         for m in db.query(GameMechanic.scratchcardId).all()
     }
 
-    parsed = 0
+    # 過濾出真正要打 API 的目標
+    targets: list[Scratchcard] = []
     skipped = 0
-    failed = 0
-    errors: list[dict] = []
-
-    targets = cards
-    if limit > 0:
-        targets = targets[:limit + 200]  # 保留容差
-
-    processed = 0
-    for c in targets:
-        if limit > 0 and parsed >= limit:
-            break
+    for c in cards:
         if only_missing and c.id in existing_ids:
             skipped += 1
             continue
         if not c.imageUrl:
             skipped += 1
+            continue
+        targets.append(c)
+    if limit > 0:
+        targets = targets[:limit]
+
+    parsed = 0
+    failed = 0
+    errors: list[dict] = []
+    quota_hit = False
+
+    for idx, c in enumerate(targets):
+        if quota_hit:
+            failed += 1
+            errors.append({"id": c.id, "name": c.name, "error": "skipped: quota exhausted"})
             continue
         try:
             raw = parser.parse_image_url(c.imageUrl)
@@ -668,11 +679,15 @@ def parse_mechanic_batch(
             m.parsedAt = datetime.utcnow()
             db.commit()
             parsed += 1
+            if delay_seconds > 0 and idx < len(targets) - 1:
+                time.sleep(delay_seconds)
         except Exception as e:
             db.rollback()
             failed += 1
-            errors.append({"id": c.id, "name": c.name, "error": str(e)[:200]})
-        processed += 1
+            msg = str(e)[:200]
+            errors.append({"id": c.id, "name": c.name, "error": msg})
+            if "429" in msg or "quota" in msg.lower():
+                quota_hit = True
 
     return BatchParseResult(
         total=len(cards),
