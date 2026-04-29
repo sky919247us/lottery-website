@@ -6,8 +6,8 @@ import uuid
 from pathlib import Path
 
 from fastapi import APIRouter, Depends, File, UploadFile, HTTPException
-from app.model.admin import AdminUser
-from app.service.admin_auth_service import get_current_admin
+from app.model.user import User
+from app.service.auth_service import get_current_user
 
 router = APIRouter(prefix="/api/upload", tags=["上傳"])
 
@@ -21,9 +21,9 @@ ALLOWED_EXTENSIONS = {".jpg", ".jpeg", ".png", ".webp"}
 @router.post("", response_model=dict, status_code=201)
 async def upload_image(
     file: UploadFile = File(...),
-    admin: AdminUser = Depends(get_current_admin),
+    user: User = Depends(get_current_user),
 ):
-    """上傳單一圖片 (需登入, 限制 5MB 以下之 JPG/PNG/WEBP)"""
+    """上傳單一圖片 (需 LINE 登入, 限制 5MB 以下之 JPG/PNG/WEBP)"""
     ext = Path(file.filename or "").suffix.lower()
     if ext not in ALLOWED_EXTENSIONS:
         raise HTTPException(status_code=400, detail="只允許上傳 .jpg、.png 或 .webp 格式的圖片")
