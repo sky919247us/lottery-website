@@ -148,6 +148,100 @@ def _run_preview_crawler_job():
         logger.error(f"❌ 預告爬蟲失敗: {e}")
 
 
+def _run_mechanic_parse_job():
+    """每日解析尚未取得玩法資料的刮刮樂（自動重試直到 Gemini 額度允許）。
+
+    流程：
+      1. 重抓 INSTANT_LIST 玩法文字（current 31 款 + name 套用同名歷史）
+      2. 對 rawText 已存在但尚未 AI 解析的款式，呼叫 Gemini text 解析
+      3. 7 秒間隔避開 10 RPM 限制；遇 429 直接停止，明日再試
+    """
+    from app.api.analytics import (
+        _fetch_sale_name_to_guid,
+        _fetch_play_method_text,
+    )
+    from app.model.database import Scratchcard
+    from app.model.game_mechanic import GameMechanic
+    from app.service.mechanic_parser_service import get_parser, normalize
+    import time
+
+    logger.info("⏰ 排程觸發：開始補抓玩法文字 + AI 解析...")
+    db = SessionLocal()
+    try:
+        # Step 1: 重抓玩法文字（不呼叫 AI）
+        name_to_guid = _fetch_sale_name_to_guid()
+        name_to_text: dict[str, tuple[str, str]] = {}
+        for name, guid in name_to_guid.items():
+            text = _fetch_play_method_text(guid)
+            if text:
+                name_to_text[name] = (text, guid)
+
+        cards = db.query(Scratchcard).filter(Scratchcard.isPreview == False).all()
+        for c in cards:
+            entry = name_to_text.get(c.name)
+            if not entry:
+                continue
+            text, guid = entry
+            m = db.query(GameMechanic).filter(GameMechanic.scratchcardId == c.id).first()
+            if m and (m.rawText or "").strip():
+                continue
+            if not m:
+                m = GameMechanic(scratchcardId=c.id)
+                db.add(m)
+            m.rawText = text
+            m.sourceType = "text"
+            m.sourceUrl = f"https://api.taiwanlottery.com/TLCAPIWeB/Instant/Detail?ScratchId={guid}"
+            db.commit()
+
+        # Step 2: AI 解析
+        parser = get_parser()
+        if parser is None:
+            logger.warning("⚠️ Gemini parser 未設定，跳過 AI 解析")
+            return
+
+        parsed = 0
+        name_cache: dict[str, dict] = {}
+        for c in cards:
+            m = db.query(GameMechanic).filter(GameMechanic.scratchcardId == c.id).first()
+            if not m or not (m.rawText or "").strip():
+                continue
+            if m.parsedTags:  # 已解析過
+                continue
+            try:
+                if c.name in name_cache:
+                    data = name_cache[c.name]
+                    from_cache = True
+                else:
+                    raw = parser.parse_text(m.rawText)
+                    data = normalize(raw)
+                    name_cache[c.name] = data
+                    from_cache = False
+                m.mechanicTypes = data.get("mechanicTypes")
+                m.parsedTags = data.get("parsedTags")
+                m.layoutTags = data.get("layoutTags")
+                m.complexityScore = data.get("complexityScore")
+                m.resultSpeed = data.get("resultSpeed")
+                m.aiDescription = data.get("aiDescription")
+                m.parseProvider = "gemini"
+                m.parseModel = data.get("_model") or "gemini-2.5-flash"
+                m.parsedAt = datetime.utcnow()
+                db.commit()
+                parsed += 1
+                if not from_cache:
+                    time.sleep(7.0)
+            except Exception as e:
+                msg = str(e)
+                if "429" in msg or "quota" in msg.lower():
+                    logger.warning(f"⚠️ Gemini 額度耗盡，今日已解析 {parsed} 款，明日續跑")
+                    return
+                logger.error(f"❌ 解析失敗 {c.name}: {msg[:100]}")
+        logger.info(f"✅ 玩法解析完成，新增 {parsed} 款")
+    except Exception as e:
+        logger.error(f"❌ 玩法解析任務失敗: {e}")
+    finally:
+        db.close()
+
+
 def _run_backup_job():
     """資料庫備份排程任務"""
     logger.info("⏰ 排程觸發：開始執行資料庫備份...")
@@ -207,6 +301,13 @@ def on_startup():
         _run_backup_job,
         trigger=CronTrigger(hour=20, minute=0),
         id="daily_db_backup",
+        replace_existing=True,
+    )
+    # 每天台灣凌晨 5:00 (UTC 21:00) 補抓玩法文字 + AI 解析（避開 Gemini 額度，遇 429 自動停）
+    scheduler.add_job(
+        _run_mechanic_parse_job,
+        trigger=CronTrigger(hour=21, minute=0),
+        id="daily_mechanic_parse",
         replace_existing=True,
     )
 
