@@ -24,6 +24,7 @@ export default function MerchantClaimForm() {
   const [idCardImage, setIdCardImage] = useState<File | null>(null)
   
   const [submitting, setSubmitting] = useState(false)
+  const [submitted, setSubmitted] = useState(false)
 
   // 取得店家資訊顯示用
   const { data: retailers } = useQuery({
@@ -66,8 +67,9 @@ export default function MerchantClaimForm() {
         idCardUrl: idCardRes.url
       })
       
-      enqueueSnackbar('認領申請已送出！請靜候 1-2 個工作天審核。', { variant: 'success' })
-      navigate(-1) // 回到上一頁
+      enqueueSnackbar('認領申請已送出！', { variant: 'success' })
+      setSubmitted(true)
+      window.scrollTo({ top: 0, behavior: 'smooth' })
 
     } catch (err: any) {
       console.error(err)
@@ -81,6 +83,56 @@ export default function MerchantClaimForm() {
     if (e.target.files && e.target.files.length > 0) {
       setter(e.target.files[0])
     }
+  }
+
+  if (submitted) {
+    const lineAddUrl = 'https://line.me/R/ti/p/@907dlyso'
+    return (
+      <Box sx={{ maxWidth: 560, mx: 'auto', p: 2, pt: { xs: 10, md: 12 }, textAlign: 'center' }}>
+        <Card sx={{ p: 4 }}>
+          <CheckCircleIcon sx={{ color: '#4caf50', fontSize: 64, mb: 2 }} />
+          <Typography variant="h5" fontWeight={700} mb={1}>認領申請已送出</Typography>
+          <Typography variant="body2" color="text.secondary" mb={3}>
+            我們將在 1-2 個工作天內完成審核，審核結果與後台帳號將透過 LINE 通知您。
+          </Typography>
+
+          <Alert severity="warning" sx={{ textAlign: 'left', mb: 3 }}>
+            <Typography variant="body2" fontWeight={700} mb={0.5}>
+              ⚠️ 請務必加入官方 LINE Bot 為好友
+            </Typography>
+            <Typography variant="body2">
+              LINE 規定必須加 Bot 為好友才能收到通知。<b>未加好友將收不到審核結果及後台連結</b>，務必完成此步驟。
+            </Typography>
+          </Alert>
+
+          <Box sx={{ display: 'flex', justifyContent: 'center', mb: 2 }}>
+            <img
+              src={`https://qr-official.line.me/sid/L/907dlyso.png`}
+              alt="LINE Bot QR Code"
+              style={{ width: 200, height: 200, border: '1px solid #ddd', borderRadius: 8 }}
+            />
+          </Box>
+
+          <Button
+            variant="contained"
+            color="success"
+            fullWidth
+            size="large"
+            sx={{ mb: 2 }}
+            onClick={() => window.open(lineAddUrl, '_blank')}
+          >
+            立即加入 LINE Bot 好友
+          </Button>
+
+          <Typography variant="caption" color="text.secondary" display="block" mb={2}>
+            手機 LINE 內請點按鈕；電腦上請用手機掃描上方 QR Code。
+          </Typography>
+
+          <Divider sx={{ my: 2 }} />
+          <Button variant="text" onClick={() => navigate('/')}>返回首頁</Button>
+        </Card>
+      </Box>
+    )
   }
 
   return (
