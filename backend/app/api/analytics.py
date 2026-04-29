@@ -608,16 +608,96 @@ class BatchParseResult(BaseModel):
     errors: list[dict]
 
 
-@router.post("/parse-mechanic-batch", response_model=BatchParseResult)
-def parse_mechanic_batch(
-    only_missing: bool = Query(True, description="只解析尚未解析過的款式"),
-    include_preview: bool = Query(False, description="是否含預告款"),
-    limit: int = Query(0, ge=0, description="最多嘗試解析幾張，0=全部"),
-    delay_seconds: float = Query(7.0, ge=0, description="每次呼叫間隔秒數（避開 Gemini 免費 10 RPM 限制）"),
+def _fetch_play_method_text(scratch_id: str) -> str:
+    """呼叫台彩 INSTANT_DETAIL_API 取得 moreDesc 文字（玩法說明）。下市款多半失敗。"""
+    import requests
+    from bs4 import BeautifulSoup
+
+    if not scratch_id:
+        return ""
+    try:
+        r = requests.get(
+            "https://api.taiwanlottery.com/TLCAPIWeB/Instant/Detail",
+            params={"ScratchId": scratch_id},
+            headers={"User-Agent": "Mozilla/5.0", "Referer": "https://www.taiwanlottery.com/"},
+            timeout=10,
+        )
+        if r.status_code != 200:
+            return ""
+        data = r.json()
+        more_desc = (data.get("content") or {}).get("moreDesc", "") or ""
+        if not more_desc:
+            return ""
+        soup = BeautifulSoup(more_desc, "html.parser")
+        return soup.get_text("\n", strip=True)
+    except Exception:
+        return ""
+
+
+class CrawlPlayMethodResult(BaseModel):
+    total: int
+    fetched: int
+    empty: int
+    items: list[dict]
+
+
+@router.post("/crawl-play-methods", response_model=CrawlPlayMethodResult)
+def crawl_play_methods(
+    only_missing: bool = Query(True, description="只抓尚未取得 rawText 的款式"),
+    include_preview: bool = Query(False),
     db: Session = Depends(get_db),
     _admin=Depends(get_current_admin),
 ):
-    """批次以 imageUrl 呼叫 AI 解析所有刮刮樂（限管理員）。
+    """從台彩 API 抓「玩法說明」文字寫入 game_mechanics.rawText（不呼叫 AI）。
+    僅對在售款（gameId 仍在台彩 API 內）有效，已下市款會回空字串。
+    """
+    q = db.query(Scratchcard)
+    if not include_preview:
+        q = q.filter(Scratchcard.isPreview == False)
+    cards = q.all()
+
+    fetched = 0
+    empty = 0
+    items: list[dict] = []
+    for c in cards:
+        if not c.gameId:
+            continue
+        m = db.query(GameMechanic).filter(GameMechanic.scratchcardId == c.id).first()
+        if only_missing and m and (m.rawText or "").strip():
+            continue
+        text = _fetch_play_method_text(c.gameId)
+        if not text:
+            empty += 1
+            items.append({"id": c.id, "name": c.name, "status": "empty"})
+            continue
+        if not m:
+            m = GameMechanic(scratchcardId=c.id)
+            db.add(m)
+        m.rawText = text
+        m.sourceType = "text"
+        m.sourceUrl = f"https://www.taiwanlottery.com/instant/games/{c.gameId}"
+        db.commit()
+        fetched += 1
+        items.append({"id": c.id, "name": c.name, "status": "ok", "chars": len(text)})
+
+    return CrawlPlayMethodResult(total=len(cards), fetched=fetched, empty=empty, items=items)
+
+
+@router.post("/parse-mechanic-batch", response_model=BatchParseResult)
+def parse_mechanic_batch(
+    only_missing: bool = Query(True, description="只解析尚未解析過的款式（已有 parsedTags）"),
+    include_preview: bool = Query(False, description="是否含預告款"),
+    limit: int = Query(0, ge=0, description="最多嘗試解析幾張，0=全部"),
+    delay_seconds: float = Query(7.0, ge=0, description="每次呼叫間隔秒數（避開 Gemini 免費 10 RPM 限制）"),
+    prefer_text: bool = Query(True, description="優先用 rawText (text mode)，沒有時 fallback 到 imageUrl"),
+    db: Session = Depends(get_db),
+    _admin=Depends(get_current_admin),
+):
+    """批次呼叫 AI 解析玩法（限管理員）。
+
+    解析來源優先序（prefer_text=True 時）：
+      1. game_mechanics.rawText（建議搭配 /crawl-play-methods 預先填好）
+      2. scratchcard.imageUrl（圖片視覺解析）
 
     Gemini 免費額度：10 RPM / 每日 250 次。預設每次間隔 7 秒，遇 429 自動停止。
     """
@@ -630,19 +710,21 @@ def parse_mechanic_batch(
         q = q.filter(Scratchcard.isPreview == False)
     cards = q.all()
 
-    existing_ids = {
-        m.scratchcardId
-        for m in db.query(GameMechanic.scratchcardId).all()
+    mech_map: dict[int, GameMechanic] = {
+        m.scratchcardId: m for m in db.query(GameMechanic).all()
     }
 
-    # 過濾出真正要打 API 的目標
     targets: list[Scratchcard] = []
     skipped = 0
     for c in cards:
-        if only_missing and c.id in existing_ids:
+        m = mech_map.get(c.id)
+        # only_missing 判斷：已有 parsedTags 視為已解析
+        if only_missing and m and (m.parsedTags or []):
             skipped += 1
             continue
-        if not c.imageUrl:
+        has_text = bool(prefer_text and m and (m.rawText or "").strip())
+        has_image = bool(c.imageUrl)
+        if not has_text and not has_image:
             skipped += 1
             continue
         targets.append(c)
@@ -660,14 +742,22 @@ def parse_mechanic_batch(
             errors.append({"id": c.id, "name": c.name, "error": "skipped: quota exhausted"})
             continue
         try:
-            raw = parser.parse_image_url(c.imageUrl)
+            m = mech_map.get(c.id) or db.query(GameMechanic).filter(GameMechanic.scratchcardId == c.id).first()
+            text = (m.rawText if (prefer_text and m) else "") or ""
+            if text.strip():
+                raw = parser.parse_text(text)
+                source_type = "text"
+                source_url = (m.sourceUrl if m else "") or ""
+            else:
+                raw = parser.parse_image_url(c.imageUrl)
+                source_type = "image"
+                source_url = c.imageUrl
             data = normalize(raw)
-            m = db.query(GameMechanic).filter(GameMechanic.scratchcardId == c.id).first()
             if not m:
                 m = GameMechanic(scratchcardId=c.id)
                 db.add(m)
-            m.sourceType = "image"
-            m.sourceUrl = c.imageUrl
+            m.sourceType = source_type
+            m.sourceUrl = source_url
             m.mechanicTypes = data["mechanic_types"]
             m.parsedTags = data["parsed_tags"]
             m.layoutTags = data["layout_tags"]
