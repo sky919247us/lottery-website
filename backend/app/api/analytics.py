@@ -637,7 +637,9 @@ def _fetch_play_method_text(scratch_id: str) -> str:
 class CrawlPlayMethodResult(BaseModel):
     total: int
     fetched: int
+    propagated: int
     empty: int
+    distinct_names: int
     items: list[dict]
 
 
@@ -649,38 +651,64 @@ def crawl_play_methods(
     _admin=Depends(get_current_admin),
 ):
     """從台彩 API 抓「玩法說明」文字寫入 game_mechanics.rawText（不呼叫 AI）。
-    僅對在售款（gameId 仍在台彩 API 內）有效，已下市款會回空字串。
+
+    流程：
+      1. 對 DB 每個 gameId 打台彩 INSTANT_DETAIL_API（在售款會成功）
+      2. 用成功取得的 (name → moreDesc) 建字典
+      3. 將同名 DB 列（含已下市的歷史複刻款）共用同一份玩法文字
     """
     q = db.query(Scratchcard)
     if not include_preview:
         q = q.filter(Scratchcard.isPreview == False)
     cards = q.all()
 
-    fetched = 0
-    empty = 0
+    # Step 1: 試打 API，建立 name -> (text, source_game_id) 字典
+    name_to_text: dict[str, tuple[str, str]] = {}
     items: list[dict] = []
     for c in cards:
-        if not c.gameId:
+        if not c.gameId or not c.name:
             continue
+        if c.name in name_to_text:
+            continue  # 已從其他同名款拿到
+        text = _fetch_play_method_text(c.gameId)
+        if text:
+            name_to_text[c.name] = (text, c.gameId)
+            items.append({"id": c.id, "name": c.name, "status": "fetched", "chars": len(text)})
+
+    # Step 2: 套用到所有同名 DB 列
+    fetched = 0      # 直接從自己的 gameId 取得
+    propagated = 0   # 從同名款套用而來
+    empty = 0
+    for c in cards:
         m = db.query(GameMechanic).filter(GameMechanic.scratchcardId == c.id).first()
         if only_missing and m and (m.rawText or "").strip():
             continue
-        text = _fetch_play_method_text(c.gameId)
-        if not text:
+        entry = name_to_text.get(c.name)
+        if not entry:
             empty += 1
-            items.append({"id": c.id, "name": c.name, "status": "empty"})
             continue
+        text, source_game_id = entry
         if not m:
             m = GameMechanic(scratchcardId=c.id)
             db.add(m)
         m.rawText = text
         m.sourceType = "text"
-        m.sourceUrl = f"https://www.taiwanlottery.com/instant/games/{c.gameId}"
+        if source_game_id == c.gameId:
+            m.sourceUrl = f"https://www.taiwanlottery.com/instant/games/{c.gameId}"
+            fetched += 1
+        else:
+            m.sourceUrl = f"https://www.taiwanlottery.com/instant/games/{source_game_id}（同名款共用）"
+            propagated += 1
         db.commit()
-        fetched += 1
-        items.append({"id": c.id, "name": c.name, "status": "ok", "chars": len(text)})
 
-    return CrawlPlayMethodResult(total=len(cards), fetched=fetched, empty=empty, items=items)
+    return CrawlPlayMethodResult(
+        total=len(cards),
+        fetched=fetched,
+        propagated=propagated,
+        empty=empty,
+        distinct_names=len(name_to_text),
+        items=items,
+    )
 
 
 @router.post("/parse-mechanic-batch", response_model=BatchParseResult)
@@ -735,6 +763,8 @@ def parse_mechanic_batch(
     failed = 0
     errors: list[dict] = []
     quota_hit = False
+    # 同名快取：text-mode 下同名款共用一次 AI 解析，省 Gemini 額度
+    name_cache: dict[str, dict] = {}
 
     for idx, c in enumerate(targets):
         if quota_hit:
@@ -744,15 +774,25 @@ def parse_mechanic_batch(
         try:
             m = mech_map.get(c.id) or db.query(GameMechanic).filter(GameMechanic.scratchcardId == c.id).first()
             text = (m.rawText if (prefer_text and m) else "") or ""
-            if text.strip():
-                raw = parser.parse_text(text)
+            cache_key = c.name if text.strip() else None
+            from_cache = False
+            if cache_key and cache_key in name_cache:
+                data = name_cache[cache_key]
                 source_type = "text"
                 source_url = (m.sourceUrl if m else "") or ""
+                from_cache = True
+            elif text.strip():
+                raw = parser.parse_text(text)
+                data = normalize(raw)
+                source_type = "text"
+                source_url = (m.sourceUrl if m else "") or ""
+                if cache_key:
+                    name_cache[cache_key] = data
             else:
                 raw = parser.parse_image_url(c.imageUrl)
+                data = normalize(raw)
                 source_type = "image"
                 source_url = c.imageUrl
-            data = normalize(raw)
             if not m:
                 m = GameMechanic(scratchcardId=c.id)
                 db.add(m)
@@ -769,7 +809,8 @@ def parse_mechanic_batch(
             m.parsedAt = datetime.utcnow()
             db.commit()
             parsed += 1
-            if delay_seconds > 0 and idx < len(targets) - 1:
+            # 命中同名快取不算一次 API 呼叫，不需 sleep
+            if not from_cache and delay_seconds > 0 and idx < len(targets) - 1:
                 time.sleep(delay_seconds)
         except Exception as e:
             db.rollback()
