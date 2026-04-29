@@ -608,18 +608,39 @@ class BatchParseResult(BaseModel):
     errors: list[dict]
 
 
-def _fetch_play_method_text(scratch_id: str) -> str:
-    """呼叫台彩 INSTANT_DETAIL_API 取得 moreDesc 文字（玩法說明）。下市款多半失敗。"""
+_TLC_HEADERS = {"User-Agent": "Mozilla/5.0", "Referer": "https://www.taiwanlottery.com/"}
+
+
+def _fetch_sale_name_to_guid() -> dict[str, str]:
+    """打 INSTANT_LIST，回傳 {scratchName: GUID scratchId} 映射（現售 ~31 款）。"""
+    import requests
+
+    try:
+        r = requests.get(
+            "https://api.taiwanlottery.com/TLCAPIWeB/Instant/List",
+            headers=_TLC_HEADERS,
+            timeout=10,
+        )
+        if r.status_code != 200:
+            return {}
+        items = (r.json().get("content") or {}).get("scratchListInfos") or []
+        return {x["scratchName"]: x["scratchId"] for x in items if x.get("scratchName") and x.get("scratchId")}
+    except Exception:
+        return {}
+
+
+def _fetch_play_method_text(guid: str) -> str:
+    """呼叫台彩 INSTANT_DETAIL_API（傳 GUID）取得 moreDesc 玩法 HTML，去 tag 後回純文字。"""
     import requests
     from bs4 import BeautifulSoup
 
-    if not scratch_id:
+    if not guid:
         return ""
     try:
         r = requests.get(
             "https://api.taiwanlottery.com/TLCAPIWeB/Instant/Detail",
-            params={"ScratchId": scratch_id},
-            headers={"User-Agent": "Mozilla/5.0", "Referer": "https://www.taiwanlottery.com/"},
+            params={"ScratchId": guid},
+            headers=_TLC_HEADERS,
             timeout=10,
         )
         if r.status_code != 200:
@@ -653,27 +674,28 @@ def crawl_play_methods(
     """從台彩 API 抓「玩法說明」文字寫入 game_mechanics.rawText（不呼叫 AI）。
 
     流程：
-      1. 對 DB 每個 gameId 打台彩 INSTANT_DETAIL_API（在售款會成功）
-      2. 用成功取得的 (name → moreDesc) 建字典
-      3. 將同名 DB 列（含已下市的歷史複刻款）共用同一份玩法文字
+      1. 打 INSTANT_LIST 取得現售 ~31 款的 (scratchName → GUID) 映射
+      2. 對每個 GUID 打 INSTANT_DETAIL 取 moreDesc 玩法文字
+      3. 用 scratchName 對應 DB 中所有同名款（含已下市複刻），共用同一份文字
     """
     q = db.query(Scratchcard)
     if not include_preview:
         q = q.filter(Scratchcard.isPreview == False)
     cards = q.all()
 
-    # Step 1: 試打 API，建立 name -> (text, source_game_id) 字典
+    # Step 1: 從 INSTANT_LIST 拿 name -> GUID
+    name_to_guid = _fetch_sale_name_to_guid()
+
+    # Step 2: 對每個 GUID 抓玩法文字，建立 name -> (text, guid)
     name_to_text: dict[str, tuple[str, str]] = {}
     items: list[dict] = []
-    for c in cards:
-        if not c.gameId or not c.name:
-            continue
-        if c.name in name_to_text:
-            continue  # 已從其他同名款拿到
-        text = _fetch_play_method_text(c.gameId)
+    for name, guid in name_to_guid.items():
+        text = _fetch_play_method_text(guid)
         if text:
-            name_to_text[c.name] = (text, c.gameId)
-            items.append({"id": c.id, "name": c.name, "status": "fetched", "chars": len(text)})
+            name_to_text[name] = (text, guid)
+            items.append({"name": name, "guid": guid, "status": "fetched", "chars": len(text)})
+        else:
+            items.append({"name": name, "guid": guid, "status": "empty", "chars": 0})
 
     # Step 2: 套用到所有同名 DB 列
     fetched = 0      # 直接從自己的 gameId 取得
@@ -687,17 +709,20 @@ def crawl_play_methods(
         if not entry:
             empty += 1
             continue
-        text, source_game_id = entry
+        text, source_guid = entry
         if not m:
             m = GameMechanic(scratchcardId=c.id)
             db.add(m)
         m.rawText = text
         m.sourceType = "text"
-        if source_game_id == c.gameId:
-            m.sourceUrl = f"https://www.taiwanlottery.com/instant/games/{c.gameId}"
+        # 若 DB 此列剛好是現售版（name 在 name_to_guid 中且 c 為當前在售）就算 fetched
+        if name_to_guid.get(c.name) == source_guid and c.id == next(
+            (x.id for x in cards if x.name == c.name and not x.isPreview), c.id
+        ):
+            m.sourceUrl = f"https://api.taiwanlottery.com/TLCAPIWeB/Instant/Detail?ScratchId={source_guid}"
             fetched += 1
         else:
-            m.sourceUrl = f"https://www.taiwanlottery.com/instant/games/{source_game_id}（同名款共用）"
+            m.sourceUrl = f"https://api.taiwanlottery.com/TLCAPIWeB/Instant/Detail?ScratchId={source_guid}（同名款共用）"
             propagated += 1
         db.commit()
 
