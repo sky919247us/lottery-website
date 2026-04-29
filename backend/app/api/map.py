@@ -3,6 +3,8 @@
 提供打卡紀錄查詢與新增功能
 """
 
+from datetime import datetime, timedelta
+
 from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
 
@@ -11,11 +13,21 @@ from app.schema.scratchcard import CheckinCreate, CheckinResponse
 
 router = APIRouter(prefix="/api/map", tags=["中獎地圖"])
 
+# 公開頁面只顯示最近幾天的打卡，避免老資料堆積（個人錢包 PnL 紀錄不受影響）
+PUBLIC_CHECKIN_WINDOW_DAYS = 7
+
 
 @router.get("/checkins", response_model=list[CheckinResponse])
 def get_checkins(db: Session = Depends(get_db)):
-    """取得全台中獎打卡紀錄（依時間倒序）"""
-    return db.query(Checkin).order_by(Checkin.createdAt.desc()).limit(200).all()
+    """取得全台中獎打卡紀錄（公開，只回傳最近 7 天，滾動式更新）"""
+    cutoff = datetime.utcnow() - timedelta(days=PUBLIC_CHECKIN_WINDOW_DAYS)
+    return (
+        db.query(Checkin)
+        .filter(Checkin.createdAt >= cutoff)
+        .order_by(Checkin.createdAt.desc())
+        .limit(200)
+        .all()
+    )
 
 
 @router.post("/checkin", response_model=CheckinResponse, status_code=201)
