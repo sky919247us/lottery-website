@@ -36,6 +36,9 @@ const LevelRules = lazy(() => import('./pages/LevelRules'))
 const MerchantClaimForm = lazy(() => import('./pages/MerchantClaimForm'))
 const StorePage = lazy(() => import('./pages/StorePage'))
 const Favorites = lazy(() => import('./pages/Favorites'))
+const ContactPage = lazy(() => import('./pages/LegalPages').then(m => ({ default: m.ContactPage })))
+const RefundPolicyPage = lazy(() => import('./pages/LegalPages').then(m => ({ default: m.RefundPolicyPage })))
+const DeliveryPolicyPage = lazy(() => import('./pages/LegalPages').then(m => ({ default: m.DeliveryPolicyPage })))
 const AdminRoutes = lazy(() => import('./admin/AdminRoutes'))
 
 /** 載入中的 Fallback UI */
@@ -92,6 +95,9 @@ export default function App() {
                     <Route path="/levels" element={<LevelRules />} />
                     <Route path="/store/:id" element={<StorePage />} />
                     <Route path="/favorites" element={<Favorites />} />
+                    <Route path="/contact" element={<ContactPage />} />
+                    <Route path="/refund-policy" element={<RefundPolicyPage />} />
+                    <Route path="/delivery-policy" element={<DeliveryPolicyPage />} />
                   </Routes>
                 </Suspense>
               </main>

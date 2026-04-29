@@ -43,3 +43,28 @@
     color: var(--color-text-muted);
     font-size: 0.7rem;
 }
+
+.footer__links {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    align-items: center;
+    gap: 8px;
+    font-size: 0.78rem;
+}
+
+.footer__link {
+    color: var(--color-text-tertiary);
+    text-decoration: none;
+    transition: color 0.2s;
+}
+
+.footer__link:hover {
+    color: var(--color-gold-primary);
+    text-decoration: underline;
+}
+
+.footer__sep {
+    color: var(--color-text-muted);
+    opacity: 0.5;
+}
