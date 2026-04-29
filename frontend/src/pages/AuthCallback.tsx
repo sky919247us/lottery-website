@@ -2,7 +2,7 @@
  * LINE 登入回調頁面
  * 處理 LINE OAuth 回傳的 code，完成登入後導回原頁面
  */
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../hooks/useAuth'
 import './AuthCallback.css'
@@ -13,8 +13,12 @@ export default function AuthCallback() {
     const [status, setStatus] = useState<'loading' | 'nickname' | 'error'>('loading')
     const [error, setError] = useState('')
     const [nickname, setNicknameInput] = useState('')
+    const calledRef = useRef(false)
 
     async function processCallback() {
+        // 防止 React StrictMode 或路由重 mount 導致 code 被重複使用
+        if (calledRef.current) return
+        calledRef.current = true
         const params = new URLSearchParams(window.location.search)
         const code = params.get('code')
         const state = params.get('state') || ''
