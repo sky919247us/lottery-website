@@ -169,7 +169,7 @@ export function DeliveryPolicyPage() {
           <b>選擇方案</b>：審核核准後，用戶可在會員後台選擇「一般認領（永久免費）」或「PRO 專業版（年費 NT$1,680）」。
         </li>
         <li>
-          <b>線上付款</b>：選擇 PRO 後將導向第三方金流平台（SHOPLINE / Lemon Squeezy）完成付款。
+          <b>線上付款</b>：選擇 PRO 後將導向第三方金流平台 <b>SHOPLINE</b> 完成付款，支援 <b>LINE Pay、Apple Pay、信用卡</b>三種付款方式。
         </li>
         <li>
           <b>權限自動開通</b>：金流平台付款成功後，系統將於 <b>10 分鐘內</b>自動為該店家帳號啟用 PRO 權限，並透過 LINE 通知用戶。
