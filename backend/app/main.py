@@ -203,19 +203,35 @@ def _run_mechanic_parse_job():
         name_cache: dict[str, dict] = {}
         for c in cards:
             m = db.query(GameMechanic).filter(GameMechanic.scratchcardId == c.id).first()
-            if not m or not (m.rawText or "").strip():
+            if m and m.parsedTags:  # 已解析過
                 continue
-            if m.parsedTags:  # 已解析過
+            has_text = bool(m and (m.rawText or "").strip())
+            has_image = bool(c.imageUrl)
+            if not has_text and not has_image:
                 continue
             try:
                 if c.name in name_cache:
                     data = name_cache[c.name]
                     from_cache = True
-                else:
+                    source_type = "cache"
+                elif has_text:
                     raw = parser.parse_text(m.rawText)
                     data = normalize(raw)
                     name_cache[c.name] = data
                     from_cache = False
+                    source_type = "text"
+                else:
+                    raw = parser.parse_image_url(c.imageUrl)
+                    data = normalize(raw)
+                    name_cache[c.name] = data
+                    from_cache = False
+                    source_type = "image"
+                if not m:
+                    m = GameMechanic(scratchcardId=c.id)
+                    db.add(m)
+                if source_type == "image" and not m.sourceType:
+                    m.sourceType = "image"
+                    m.sourceUrl = c.imageUrl
                 m.mechanicTypes = data.get("mechanicTypes")
                 m.parsedTags = data.get("parsedTags")
                 m.layoutTags = data.get("layoutTags")
