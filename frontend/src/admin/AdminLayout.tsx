@@ -274,6 +274,34 @@ export default function AdminLayout() {
 
       <Divider />
 
+      {/* 法律與政策連結（登入後可見） */}
+      <Box sx={{ px: 2, py: 1.5, display: 'flex', flexWrap: 'wrap', gap: 1, justifyContent: 'center' }}>
+        {[
+          { label: '聯絡我們', path: '/contact' },
+          { label: '退換貨政策', path: '/refund-policy' },
+          { label: '商品交付政策', path: '/delivery-policy' },
+        ].map((item) => (
+          <Typography
+            key={item.path}
+            variant="caption"
+            component="a"
+            href={item.path}
+            target="_blank"
+            rel="noopener noreferrer"
+            sx={{
+              color: 'text.secondary',
+              textDecoration: 'none',
+              fontSize: 11,
+              '&:hover': { color: 'primary.main', textDecoration: 'underline' },
+            }}
+          >
+            {item.label}
+          </Typography>
+        ))}
+      </Box>
+
+      <Divider />
+
       {/* 底部使用者資訊 */}
       <Box sx={{ p: 2, display: 'flex', alignItems: 'center', gap: 1.5 }}>
         <Avatar
