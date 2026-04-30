@@ -882,7 +882,7 @@ def dump_mechanics(
     _admin=Depends(get_current_admin),
 ):
     """匯出全部刮刮樂的玩法資料（含 rawText / imageUrl / parsedTags），供本地快取與離線分析。"""
-    cards = db.query(Scratchcard).filter(Scratchcard.isPredicted == False).all()
+    cards = db.query(Scratchcard).filter(Scratchcard.isPreview == False).all()
     out: list[MechanicDumpItem] = []
     for c in cards:
         m = db.query(GameMechanic).filter(GameMechanic.scratchcardId == c.id).first()
