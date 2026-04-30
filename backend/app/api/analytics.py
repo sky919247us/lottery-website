@@ -852,3 +852,113 @@ def parse_mechanic_batch(
         failed=failed,
         errors=errors,
     )
+
+
+# ============================================================
+# 端點：本地 AI 解析輔助（dump 全部資料 + 直接寫入解析結果）
+# 用途：在本地用 Claude 解析後直接 push，繞過 Gemini 配額限制
+# ============================================================
+
+class MechanicDumpItem(BaseModel):
+    id: int
+    name: str
+    price: int
+    imageUrl: Optional[str] = None
+    rawText: Optional[str] = None
+    parsedTags: list[str] = []
+    mechanicTypes: list[str] = []
+    layoutTags: list[str] = []
+    complexityScore: int = 0
+    resultSpeed: str = ""
+    aiDescription: str = ""
+    parseProvider: str = ""
+    sourceType: str = ""
+    parsedAt: Optional[str] = None
+
+
+@router.get("/mechanics/dump", response_model=list[MechanicDumpItem])
+def dump_mechanics(
+    db: Session = Depends(get_db),
+    _admin=Depends(get_current_admin),
+):
+    """匯出全部刮刮樂的玩法資料（含 rawText / imageUrl / parsedTags），供本地快取與離線分析。"""
+    cards = db.query(Scratchcard).filter(Scratchcard.isPredicted == False).all()
+    out: list[MechanicDumpItem] = []
+    for c in cards:
+        m = db.query(GameMechanic).filter(GameMechanic.scratchcardId == c.id).first()
+        out.append(MechanicDumpItem(
+            id=c.id,
+            name=c.name,
+            price=int(c.price or 0),
+            imageUrl=c.imageUrl,
+            rawText=(m.rawText if m else None),
+            parsedTags=list((m.parsedTags if m else None) or []),
+            mechanicTypes=list((m.mechanicTypes if m else None) or []),
+            layoutTags=list((m.layoutTags if m else None) or []),
+            complexityScore=int((m.complexityScore if m else 0) or 0),
+            resultSpeed=(m.resultSpeed if m else "") or "",
+            aiDescription=(m.aiDescription if m else "") or "",
+            parseProvider=(m.parseProvider if m else "") or "",
+            sourceType=(m.sourceType if m else "") or "",
+            parsedAt=(m.parsedAt.isoformat() if (m and m.parsedAt) else None),
+        ))
+    return out
+
+
+class UpsertMechanicDirectRequest(BaseModel):
+    mechanicTypes: list[str]
+    parsedTags: list[str]
+    layoutTags: list[str]
+    complexityScore: int
+    resultSpeed: str
+    aiDescription: str
+    rawText: Optional[str] = None
+    sourceType: Optional[str] = None  # "text" | "image"
+    sourceUrl: Optional[str] = None
+    parseProvider: Optional[str] = "claude-manual"
+    parseModel: Optional[str] = ""
+
+
+@router.post("/scratchcards/{scratchcard_id}/upsert-mechanic-direct", response_model=MechanicResponse)
+def upsert_mechanic_direct(
+    scratchcard_id: int,
+    payload: UpsertMechanicDirectRequest,
+    db: Session = Depends(get_db),
+    _admin=Depends(get_current_admin),
+):
+    """直接寫入已解析的玩法資料（不呼叫 AI）。供本地 Claude 解析後 push 用。"""
+    card = db.query(Scratchcard).filter(Scratchcard.id == scratchcard_id).first()
+    if not card:
+        raise HTTPException(status_code=404, detail="找不到刮刮樂")
+
+    data = normalize({
+        "mechanic_types": payload.mechanicTypes,
+        "parsed_tags": payload.parsedTags,
+        "layout_tags": payload.layoutTags,
+        "complexity_score": payload.complexityScore,
+        "result_speed": payload.resultSpeed,
+        "ai_description": payload.aiDescription,
+    })
+
+    m = db.query(GameMechanic).filter(GameMechanic.scratchcardId == scratchcard_id).first()
+    if not m:
+        m = GameMechanic(scratchcardId=scratchcard_id)
+        db.add(m)
+
+    if payload.rawText is not None:
+        m.rawText = payload.rawText
+    m.sourceType = payload.sourceType or m.sourceType or "text"
+    m.sourceUrl = payload.sourceUrl or m.sourceUrl or ""
+    m.mechanicTypes = data["mechanic_types"]
+    m.parsedTags = data["parsed_tags"]
+    m.layoutTags = data["layout_tags"]
+    m.complexityScore = data["complexity_score"]
+    m.resultSpeed = data["result_speed"]
+    m.aiDescription = data["ai_description"]
+    m.parseProvider = payload.parseProvider or "claude-manual"
+    m.parseModel = payload.parseModel or ""
+    m.parsedAt = datetime.utcnow()
+
+    db.commit()
+    db.refresh(m)
+    return _to_mechanic_response(m)
