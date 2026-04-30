@@ -254,6 +254,37 @@ export default function MerchantClaimForm() {
         </Typography>
       </Card>
 
+      {/* 法律與政策頁面（金流審核必要） */}
+      <Card sx={{ p: 2.5, mb: 3, bgcolor: '#fafafa' }}>
+        <Typography variant="caption" color="text.secondary" display="block" mb={1.5} fontWeight={600}>
+          相關政策說明
+        </Typography>
+        <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 2 }}>
+          {[
+            { label: '聯絡電話 / 信箱', path: '/contact' },
+            { label: '退換貨政策', path: '/refund-policy' },
+            { label: '商品交付政策', path: '/delivery-policy' },
+          ].map((item) => (
+            <Typography
+              key={item.path}
+              variant="body2"
+              component="a"
+              href={item.path}
+              target="_blank"
+              rel="noopener noreferrer"
+              sx={{
+                color: 'primary.main',
+                textDecoration: 'none',
+                fontSize: 13,
+                '&:hover': { textDecoration: 'underline' },
+              }}
+            >
+              {item.label} →
+            </Typography>
+          ))}
+        </Box>
+      </Card>
+
       {/* 僅當表單填寫完畢才顯示 LINE 客服，避免被濫用 */}
       {(contactName.trim() && contactPhone.trim() && licenseImage && idCardImage) ? (
         <Box sx={{ mt: 3, pt: 3, borderTop: '1px solid #eee', textAlign: 'center' }}>
