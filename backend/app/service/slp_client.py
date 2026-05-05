@@ -82,6 +82,9 @@ def create_checkout_session(
     """
     建立結帳 session。回傳含 sessionId / sessionUrl / status / amount 等欄位。
     """
+    # SLP amount.value 單位是「分」(最小單位 ×100)
+    # 即使 TWD 沒小數，SLP 仍要求 cents (1680 元 → 168000)
+    amount_minor = int(amount) * 100
     safe_ip = client_ip or "0.0.0.0"
     safe_email = customer_email or "no-reply@i168.win"
     safe_first = customer_first_name or "User"
@@ -110,7 +113,7 @@ def create_checkout_session(
     body: dict = {
         "referenceId": reference_id,
         "language": language,
-        "amount": {"value": amount, "currency": currency},
+        "amount": {"value": amount_minor, "currency": currency},
         "expireTime": expire_seconds,
         "returnUrl": return_url,
         "mode": "regular",
@@ -124,7 +127,7 @@ def create_checkout_session(
                     "id": pid,
                     "name": pname,
                     "quantity": 1,
-                    "amount": {"value": amount, "currency": currency},
+                    "amount": {"value": amount_minor, "currency": currency},
                     "desc": item_desc or pname,
                 }
             ],
