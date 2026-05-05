@@ -288,7 +288,7 @@ def on_startup():
     # 每日台灣早上 9:00 (UTC 1:00) 自動執行爬蟲
     scheduler.add_job(
         _run_crawler_job,
-        trigger=CronTrigger(hour=1, minute=1),
+        trigger=CronTrigger(hour=1, minute=10),
         id="daily_crawler",
         replace_existing=True,
     )
