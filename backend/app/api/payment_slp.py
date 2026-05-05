@@ -61,14 +61,46 @@ def _create_session_for_claim(
     frontend_url = os.getenv("FRONTEND_URL", "http://localhost:5173")
     return_url = f"{frontend_url}/admin/merchant/dashboard?payment=slp&ref={reference_id}"
 
+    # 從 claim / retailer 撈使用者資訊 (盡量帶滿，SLP 必填欄位多)
+    retailer = None
+    try:
+        from app.model.retailer import Retailer
+        retailer = db.query(Retailer).filter(Retailer.id == claim.retailerId).first()
+    except Exception:
+        pass
+
+    customer_email = getattr(claim, "contactEmail", None) or getattr(retailer, "email", None) or "no-reply@i168.win"
+    customer_phone = getattr(claim, "contactPhone", None) or getattr(retailer, "phone", None) or "+886900000000"
+    customer_name = getattr(claim, "contactName", "") or ""
+    if customer_name:
+        # 簡單拆姓名 (繁中第一字當姓)
+        first_name = customer_name[1:] if len(customer_name) > 1 else customer_name
+        last_name = customer_name[0]
+    else:
+        first_name, last_name = "User", "i168"
+
+    # 取得真實 client IP (考慮 Cloudflare / proxy)
+    client_ip = (
+        request.headers.get("cf-connecting-ip")
+        or request.headers.get("x-forwarded-for", "").split(",")[0].strip()
+        or (request.client.host if request.client else None)
+        or "0.0.0.0"
+    )
+
     try:
         result = slp_client.create_checkout_session(
             reference_id=reference_id,
             amount=plan["amount"],
             return_url=return_url,
+            customer_email=customer_email,
             customer_ref_id=str(claim.id),
+            customer_first_name=first_name,
+            customer_last_name=last_name,
+            customer_phone=customer_phone,
+            item_id=f"plan_{plan_code.lower()}",
+            item_name=plan["desc"],
             item_desc=plan["desc"],
-            client_ip=request.client.host if request.client else None,
+            client_ip=client_ip,
         )
     except Exception as e:
         logger.exception("SLP create session 失敗")
