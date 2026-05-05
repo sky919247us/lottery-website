@@ -1077,13 +1077,22 @@ async def update_my_store(
         "hasScratchBoard", "hasMagnifier", "hasReadingGlasses",
         "hasNewspaper", "hasSportTV"
     ]
+    # 公告為 PRO 限定功能，非 PRO 不接受 announcement 寫入
+    is_pro = (retailer.merchantTier or "").lower() == "pro"
+    blocked = []
     for field in allowed_fields:
         if field in data:
+            if field == "announcement" and not is_pro:
+                blocked.append(field)
+                continue
             setattr(retailer, field, data[field])
-            
+
     db.commit()
-    logger.info(f"商家 {admin.username} 更新了店舖資訊")
-    return {"status": "ok"}
+    logger.info(
+        "商家 %s 更新店舖資訊 (PRO=%s, 拒絕欄位=%s)",
+        admin.username, is_pro, blocked,
+    )
+    return {"status": "ok", "blocked": blocked}
 
 
 # ─── 商家庫存管理 ──────────────────────────────────────

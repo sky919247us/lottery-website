@@ -17,9 +17,17 @@ import {
     deleteStorePhoto, uploadStoreBanner, fetchMerchantPhotos,
 } from '../api'
 import { useAdminAuth } from '../AdminAuthContext'
+import { Navigate } from 'react-router-dom'
 
 export default function MerchantStorePage() {
-    const { currentRetailerId } = useAdminAuth()
+    const { currentRetailerId, stores } = useAdminAuth()
+    const currentStore = stores.find(s => s.id === currentRetailerId)
+    const isPro = currentStore?.merchantTier === 'pro'
+
+    // 非 PRO 直接導回店舖總覽 (含 hint query 提示需升級)
+    if (currentStore && !isPro) {
+        return <Navigate to="/admin/merchant/dashboard?upgrade=required" replace />
+    }
 
     // 文字資訊
     const [description, setDescription] = useState('')

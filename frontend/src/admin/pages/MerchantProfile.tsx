@@ -44,7 +44,9 @@ export default function MerchantProfile() {
   const [saving, setSaving] = useState(false)
   const [success, setSuccess] = useState(false)
   const [error, setError] = useState('')
-  const { currentRetailerId } = useAdminAuth()
+  const { currentRetailerId, stores } = useAdminAuth()
+  const currentStore = stores.find(s => s.id === currentRetailerId)
+  const isPro = currentStore?.merchantTier === 'pro'
 
   useEffect(() => {
     async function load() {
@@ -81,7 +83,8 @@ export default function MerchantProfile() {
     setError('')
     try {
       await updateMyStore({
-        announcement,
+        // 公告為 PRO 限定，非 PRO 不傳此欄位
+        ...(isPro ? { announcement } : {}),
         ...facilities,
       }, currentRetailerId ?? undefined)
       setSuccess(true)
@@ -141,21 +144,39 @@ export default function MerchantProfile() {
         </CardContent>
       </Card>
 
-      {/* 店舖公告 */}
-      <Card sx={{ mb: 3 }}>
+      {/* 店舖公告 (PRO 限定) */}
+      <Card sx={{ mb: 3, opacity: isPro ? 1 : 0.7 }}>
         <CardContent sx={{ p: 3 }}>
-          <Typography variant="subtitle1" fontWeight={600} mb={2}>
-            📢 店舖公告
-          </Typography>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 2 }}>
+            <Typography variant="subtitle1" fontWeight={600}>
+              📢 店舖公告
+            </Typography>
+            {!isPro && (
+              <Box
+                component="span"
+                sx={{
+                  px: 1, py: 0.25, borderRadius: 1,
+                  bgcolor: 'warning.main', color: 'warning.contrastText',
+                  fontSize: 11, fontWeight: 600,
+                }}
+              >
+                PRO 限定
+              </Box>
+            )}
+          </Box>
           <TextField
             fullWidth
             multiline
             rows={3}
-            placeholder="例如：本週最後一批 2000 元面額刮刮樂到貨！"
-            value={announcement}
+            placeholder={isPro
+              ? "例如：本週最後一批 2000 元面額刮刮樂到貨！"
+              : "升級 PRO 後即可發布店家公告，吸引更多顧客"}
+            value={isPro ? announcement : ''}
             onChange={(e) => setAnnouncement(e.target.value)}
-            disabled={loading}
-            helperText="公告內容會顯示在地圖上您的店家資訊中（最多 200 字）"
+            disabled={loading || !isPro}
+            helperText={isPro
+              ? "公告內容會顯示在地圖上您的店家資訊中（最多 200 字）"
+              : "此功能為 PRO 專業版專屬，請至「店舖總覽」升級"}
             slotProps={{
               htmlInput: { maxLength: 200 },
             }}

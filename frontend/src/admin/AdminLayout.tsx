@@ -99,12 +99,18 @@ export default function AdminLayout() {
     { label: '社群使用者', icon: <PeopleIcon />, path: '/admin/users' },
   ]
 
-  /** 商家側邊欄選單 */
+  /** 商家當前店家 PRO 狀態 */
+  const currentStore = stores.find(s => s.id === currentRetailerId)
+  const isPro = currentStore?.merchantTier === 'pro'
+
+  /** 商家側邊欄選單 (專屬頁面僅 PRO 可見) */
   const merchantMenuItems = [
     { label: '店舖總覽', icon: <DashboardIcon />, path: '/admin/merchant/dashboard' },
     { label: '店舖設定', icon: <SettingsIcon />, path: '/admin/merchant/profile' },
     { label: '現貨管理', icon: <InventoryIcon />, path: '/admin/merchant/inventory' },
-    { label: '專屬頁面', icon: <StorefrontIcon />, path: '/admin/merchant/store-page' },
+    ...(isPro
+      ? [{ label: '專屬頁面', icon: <StorefrontIcon />, path: '/admin/merchant/store-page' }]
+      : []),
   ]
 
   /** 根據角色決定要顯示的選單 */
