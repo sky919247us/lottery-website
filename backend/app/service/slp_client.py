@@ -168,49 +168,20 @@ def create_refund(*, reference_id: str, original_reference_id: str, amount: int,
     )
 
 
-# ---------- Webhook 驗章 (留待實測) ----------
-def _sign_hmac_sha256_sorted_body(body: dict, timestamp: str, request_id: str) -> str:
-    payload = json.dumps(body, sort_keys=True, separators=(",", ":"), ensure_ascii=False)
-    msg = f"{timestamp}{request_id}{payload}"
-    return hmac.new(SLP_SIGN_KEY.encode("utf-8"), msg.encode("utf-8"), hashlib.sha256).hexdigest()
-
-
-def _sign_hmac_sha256_body_only(body: dict, timestamp: str, request_id: str) -> str:
-    payload = json.dumps(body, sort_keys=True, separators=(",", ":"), ensure_ascii=False)
-    return hmac.new(SLP_SIGN_KEY.encode("utf-8"), payload.encode("utf-8"), hashlib.sha256).hexdigest()
-
-
-_SIGN_ALGOS = {
-    "hmac_sha256_sorted_body": _sign_hmac_sha256_sorted_body,
-    "hmac_sha256_body_only": _sign_hmac_sha256_body_only,
-}
-
-
+# ---------- Webhook 驗章 (已透過 sign_solver 驗證) ----------
+# SLP webhook 簽章規則:
+#   message = f"{timestamp}.".encode() + raw_body_bytes
+#   sign    = HMAC-SHA256(SLP_SIGN_KEY 字串, message).hex()
 def verify_webhook_sign(raw_body: bytes, headers: dict) -> bool:
-    """
-    Webhook 驗章。第一次收到 webhook 時把 raw_body + headers 完整 log 出來，
-    再依 SLP 實際送過來的格式調整這個函式。
-    現階段先放寬: 若沒有 sign header 就接受 (測試期), 之後再強制驗。
-    """
-    sign = headers.get("sign") or headers.get("x-shopline-signature")
-    if not sign:
-        logger.warning("webhook 缺 sign header (測試期暫接受). headers=%s", list(headers.keys()))
-        return True  # 測試期; production 強化前改回 False
-
-    timestamp = headers.get("timestamp") or ""
-    request_id = headers.get("requestid") or headers.get("requestid".lower()) or ""
-    try:
-        body_dict = json.loads(raw_body.decode("utf-8"))
-    except Exception:
-        logger.warning("webhook body 非 JSON")
+    sign = headers.get("sign")
+    timestamp = headers.get("timestamp")
+    if not (sign and timestamp):
+        logger.warning("webhook 缺 sign 或 timestamp header")
         return False
 
-    fn = _SIGN_ALGOS.get(SLP_SIGN_ALGO)
-    if not fn:
-        logger.warning("未知 SLP_SIGN_ALGO=%s", SLP_SIGN_ALGO)
-        return False
-    expected = fn(body_dict, timestamp, request_id)
+    msg = f"{timestamp}.".encode("utf-8") + raw_body
+    expected = hmac.new(SLP_SIGN_KEY.encode("utf-8"), msg, hashlib.sha256).hexdigest()
     ok = hmac.compare_digest(expected, sign)
     if not ok:
-        logger.warning("webhook 簽章不符 expected=%s got=%s algo=%s", expected[:8], sign[:8], SLP_SIGN_ALGO)
+        logger.warning("webhook 簽章不符 expected=%s got=%s", expected[:8], sign[:8])
     return ok

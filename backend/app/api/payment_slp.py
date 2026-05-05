@@ -166,19 +166,9 @@ async def slp_webhook(request: Request, db: Session = Depends(get_db)):
     raw = await request.body()
     headers = {k.lower(): v for k, v in request.headers.items()}
 
-    # === 偵錯模式: 完整 dump headers + body 用以反推簽章演算法 ===
-    logger.info("=" * 60)
-    logger.info("SLP webhook RAW HEADERS:")
-    for k, v in headers.items():
-        logger.info("  %s: %s", k, v)
-    logger.info("SLP webhook RAW BODY (%d bytes): %s", len(raw), raw.decode("utf-8", errors="replace"))
-    logger.info("=" * 60)
-
-    sign_ok = slp_client.verify_webhook_sign(raw, headers)
-    # TODO: 找出正確演算法後恢復為強制驗章
-    # 目前暫時放行，避免錯失付款事件
-    if not sign_ok:
-        logger.warning("SLP webhook 驗章失敗 - 暫時放行 (debug 模式)")
+    if not slp_client.verify_webhook_sign(raw, headers):
+        logger.warning("SLP webhook 驗章失敗，拒絕事件")
+        return Response(content="INVALID_SIGN", media_type="text/plain", status_code=401)
 
     try:
         payload = json.loads(raw.decode("utf-8"))
@@ -192,9 +182,16 @@ async def slp_webhook(request: Request, db: Session = Depends(get_db)):
 
     logger.info("SLP webhook event=%s ref=%s status=%s", event_type, reference_id, status_field)
 
+    # 解析 claim_id: 優先 data.referenceId (PRO_CLAIM_X_ts), 否則嘗試 customer.referenceCustomerId
     claim_id = _parse_claim_id(reference_id)
     if not claim_id:
-        logger.info("SLP webhook 非 PRO_CLAIM 格式 ref=%s, 忽略", reference_id)
+        order = data.get("order") or {}
+        ref_customer = (order.get("customer") or {}).get("referenceCustomerId")
+        if ref_customer and str(ref_customer).isdigit():
+            claim_id = int(ref_customer)
+            logger.info("從 customer.referenceCustomerId 解析 claim_id=%s", claim_id)
+    if not claim_id:
+        logger.info("SLP webhook 找不到 claim_id (ref=%s), 忽略", reference_id)
         return Response(content="OK", media_type="text/plain")
 
     claim = db.query(MerchantClaim).filter(MerchantClaim.id == claim_id).first()
