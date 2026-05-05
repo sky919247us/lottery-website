@@ -45,12 +45,15 @@ export default function PlanCard({ claimId, retailerId, userId }: PlanCardProps)
         if (!claimId) return
 
         try {
-            const res = await fetch(`/api/merchant/claim/${claimId}/checkout-url`)
+            const res = await fetch(`/api/payment/slp/claim/${claimId}/checkout-url`)
             const data = await res.json()
             if (data.checkoutUrl) {
                 setCheckoutUrl(data.checkoutUrl)
-                // 跳轉到 Lemonsqueezy
+                // 跳轉到 SHOPLINE Payments 結帳頁
                 window.location.href = data.checkoutUrl
+            } else {
+                console.error('SLP 回應缺 checkoutUrl:', data)
+                alert('結帳連結建立失敗：' + (data.detail || JSON.stringify(data)))
             }
         } catch (err) {
             console.error('取得結帳連結失敗:', err)

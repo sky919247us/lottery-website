@@ -1,13 +1,18 @@
 """
 SHOPLINE Payments (SLP) 串接端點
-- POST /api/payment/slp/create   建立結帳 session 回傳 sessionUrl
-- POST /api/payment/slp/webhook  接 SLP 主動推送的事件 (驗章 + 升級店家)
+- GET  /api/payment/slp/claim/{claim_id}/checkout-url
+       提供一鍵結帳連結 (給前端 PlanCard 替代 Lemonsqueezy)
+- POST /api/payment/slp/create
+       直接以 claim_id + plan 建立 session (供進階呼叫)
+- POST /api/payment/slp/webhook
+       接 SLP 事件 (驗章 → 升級 / 退款降級)
 
-升級對象: Retailer (店家)
-方案 PRO_YEARLY 1,680 / 365 天
+升級對象: MerchantClaim (同步更新 Retailer.merchantTier / tierExpireAt)
+方案 PRO_YEARLY: NT$1,680 / 365 天
 """
 
 import os
+import json
 import logging
 from datetime import datetime, timedelta
 from fastapi import APIRouter, Depends, HTTPException, Request, Response
@@ -15,6 +20,7 @@ from pydantic import BaseModel
 from sqlalchemy.orm import Session
 
 from app.model.database import get_db
+from app.model.merchant import MerchantClaim
 from app.model.retailer import Retailer
 from app.service import slp_client
 
@@ -25,29 +31,33 @@ router = APIRouter(prefix="/api/payment/slp", tags=["金流支付-SHOPLINE"])
 # ---------- 方案表 ----------
 PLAN_TABLE = {
     "PRO_YEARLY": {"amount": 1680, "days": 365, "desc": "刮刮研究室 PRO 專業版 (年費)"},
-    # 未來擴充: PRO_MONTHLY 等
 }
 
 
-class SLPCheckoutRequest(BaseModel):
-    retailer_id: int
-    plan: str = "PRO_YEARLY"
+def _make_reference_id(claim_id: int) -> str:
+    return f"PRO_CLAIM_{claim_id}_{int(datetime.now().timestamp())}"
 
 
-@router.post("/create")
-def create_slp_checkout(req: SLPCheckoutRequest, request: Request, db: Session = Depends(get_db)):
-    """
-    建立 SLP 結帳 session 並回傳 sessionUrl 供前端導轉。
-    """
-    plan = PLAN_TABLE.get(req.plan)
+def _parse_claim_id(reference_id: str) -> int | None:
+    if not reference_id.startswith("PRO_CLAIM_"):
+        return None
+    parts = reference_id.split("_")
+    if len(parts) < 4:
+        return None
+    try:
+        return int(parts[2])
+    except ValueError:
+        return None
+
+
+def _create_session_for_claim(
+    *, claim: MerchantClaim, plan_code: str, request: Request
+) -> dict:
+    plan = PLAN_TABLE.get(plan_code)
     if not plan:
-        raise HTTPException(status_code=400, detail=f"未知方案: {req.plan}")
+        raise HTTPException(status_code=400, detail=f"未知方案: {plan_code}")
 
-    retailer = db.query(Retailer).filter(Retailer.id == req.retailer_id).first()
-    if not retailer:
-        raise HTTPException(status_code=404, detail="找不到此彩券行")
-
-    reference_id = f"PRO_{retailer.id}_{int(datetime.now().timestamp())}"
+    reference_id = _make_reference_id(claim.id)
     frontend_url = os.getenv("FRONTEND_URL", "http://localhost:5173")
     return_url = f"{frontend_url}/admin/merchant/dashboard?payment=slp&ref={reference_id}"
 
@@ -56,7 +66,7 @@ def create_slp_checkout(req: SLPCheckoutRequest, request: Request, db: Session =
             reference_id=reference_id,
             amount=plan["amount"],
             return_url=return_url,
-            customer_ref_id=str(retailer.id),
+            customer_ref_id=str(claim.id),
             item_desc=plan["desc"],
             client_ip=request.client.host if request.client else None,
         )
@@ -65,27 +75,62 @@ def create_slp_checkout(req: SLPCheckoutRequest, request: Request, db: Session =
         raise HTTPException(status_code=502, detail=f"金流建立失敗: {e}")
 
     session_url = result.get("sessionUrl") or result.get("data", {}).get("sessionUrl")
+    session_id = result.get("sessionId") or result.get("data", {}).get("sessionId")
     if not session_url:
         raise HTTPException(status_code=502, detail=f"SLP 回應缺少 sessionUrl: {result}")
 
     return {
-        "status": "success",
-        "data": {
-            "referenceId": reference_id,
-            "sessionId": result.get("sessionId") or result.get("data", {}).get("sessionId"),
-            "sessionUrl": session_url,
-            "amount": plan["amount"],
-            "plan": req.plan,
-        },
+        "referenceId": reference_id,
+        "sessionId": session_id,
+        "sessionUrl": session_url,
+        "amount": plan["amount"],
+        "plan": plan_code,
     }
 
 
+# ---------- 端點 1: 給前端一鍵取得結帳連結 ----------
+@router.get("/claim/{claim_id}/checkout-url")
+def get_slp_checkout_url(claim_id: int, request: Request, db: Session = Depends(get_db)):
+    """
+    取代 Lemonsqueezy /api/merchant/claim/{id}/checkout-url
+    回傳格式相容: { checkoutUrl, price }
+    """
+    claim = db.query(MerchantClaim).filter(MerchantClaim.id == claim_id).first()
+    if not claim:
+        raise HTTPException(status_code=404, detail="申請不存在")
+    if claim.status != "approved":
+        raise HTTPException(status_code=403, detail="申請尚未核准")
+    if claim.tier == "pro" and claim.paymentStatus == "paid":
+        raise HTTPException(status_code=409, detail="已是 PRO，不需重複付款")
+
+    data = _create_session_for_claim(claim=claim, plan_code="PRO_YEARLY", request=request)
+    return {
+        "checkoutUrl": data["sessionUrl"],
+        "sessionId": data["sessionId"],
+        "referenceId": data["referenceId"],
+        "price": "NT$1,680",
+        "provider": "shopline",
+    }
+
+
+# ---------- 端點 2: POST 進階建單 (備用) ----------
+class SLPCheckoutRequest(BaseModel):
+    claim_id: int
+    plan: str = "PRO_YEARLY"
+
+
+@router.post("/create")
+def create_slp_checkout(req: SLPCheckoutRequest, request: Request, db: Session = Depends(get_db)):
+    claim = db.query(MerchantClaim).filter(MerchantClaim.id == req.claim_id).first()
+    if not claim:
+        raise HTTPException(status_code=404, detail="申請不存在")
+    data = _create_session_for_claim(claim=claim, plan_code=req.plan, request=request)
+    return {"status": "success", "data": data}
+
+
+# ---------- 端點 3: webhook ----------
 @router.post("/webhook")
 async def slp_webhook(request: Request, db: Session = Depends(get_db)):
-    """
-    SLP 推送事件 webhook。
-    必須驗章，且做冪等處理 (同 referenceId 不重複升級)。
-    """
     raw = await request.body()
     headers = {k.lower(): v for k, v in request.headers.items()}
 
@@ -94,7 +139,6 @@ async def slp_webhook(request: Request, db: Session = Depends(get_db)):
         return Response(content="INVALID_SIGN", media_type="text/plain", status_code=401)
 
     try:
-        import json
         payload = json.loads(raw.decode("utf-8"))
     except Exception:
         return Response(content="BAD_JSON", media_type="text/plain", status_code=400)
@@ -102,64 +146,65 @@ async def slp_webhook(request: Request, db: Session = Depends(get_db)):
     event_type = payload.get("eventType") or payload.get("type") or ""
     data = payload.get("data") or payload
     reference_id = data.get("referenceId") or ""
-    status = data.get("status") or ""
+    status_field = (data.get("status") or "").upper()
 
-    logger.info("SLP webhook event=%s ref=%s status=%s", event_type, reference_id, status)
+    logger.info("SLP webhook event=%s ref=%s status=%s", event_type, reference_id, status_field)
 
-    # 僅處理付款成功事件
-    is_success = (
+    claim_id = _parse_claim_id(reference_id)
+    if not claim_id:
+        logger.info("SLP webhook 非 PRO_CLAIM 格式 ref=%s, 忽略", reference_id)
+        return Response(content="OK", media_type="text/plain")
+
+    claim = db.query(MerchantClaim).filter(MerchantClaim.id == claim_id).first()
+    if not claim:
+        logger.warning("SLP webhook 找不到 claim_id=%s", claim_id)
+        return Response(content="OK", media_type="text/plain")
+
+    is_paid = (
         event_type in ("session.succeeded", "trade.succeeded")
-        or status in ("SUCCEEDED", "SUCCESS", "PAID")
+        or status_field in ("SUCCEEDED", "SUCCESS", "PAID")
     )
-    if not is_success:
-        return Response(content="OK", media_type="text/plain")
-
-    # 從 referenceId 解出 retailer_id (格式: PRO_{retailer_id}_{ts})
-    if not reference_id.startswith("PRO_"):
-        logger.warning("非 PRO 格式 referenceId: %s", reference_id)
-        return Response(content="OK", media_type="text/plain")
-
-    parts = reference_id.split("_")
-    if len(parts) < 3:
-        return Response(content="OK", media_type="text/plain")
-    try:
-        retailer_id = int(parts[1])
-    except ValueError:
-        return Response(content="OK", media_type="text/plain")
-
-    retailer = db.query(Retailer).filter(Retailer.id == retailer_id).first()
-    if not retailer:
-        logger.warning("找不到 retailer_id=%s", retailer_id)
-        return Response(content="OK", media_type="text/plain")
-
-    # 冪等檢查: 若已升級且到期日 > 此次預期+延長後的時間 - 60s，視為已處理
-    # (簡單做法: 檢查 reference_id 是否處理過; 暫存於 retailer 一個欄位或新 log table)
-    # 這版先用「同 reference 在 5 分鐘內重送 → 略過」的時間冪等
-    last_paid = getattr(retailer, "lastPaymentRef", None)
-    if last_paid == reference_id:
-        logger.info("referenceId %s 已處理過，跳過", reference_id)
-        return Response(content="OK", media_type="text/plain")
-
-    # 推算延長天數
-    amount = (data.get("amount") or {}).get("value") or 0
-    days = 365  # 目前只有 PRO_YEARLY
-    for plan in PLAN_TABLE.values():
-        if plan["amount"] == amount:
-            days = plan["days"]
-            break
-
-    now = datetime.now()
-    current_expire = getattr(retailer, "tierExpireAt", None) or now
-    if current_expire < now:
-        current_expire = now
-    retailer.merchantTier = "pro"
-    retailer.tierExpireAt = current_expire + timedelta(days=days)
-    if hasattr(retailer, "lastPaymentRef"):
-        retailer.lastPaymentRef = reference_id
-    db.commit()
-
-    logger.info(
-        "店家 %s 升級 PRO 成功，到期日延長至 %s",
-        retailer_id, retailer.tierExpireAt.isoformat(),
+    is_refunded = (
+        event_type in ("trade.refund.succeeded",)
+        or status_field in ("REFUNDED",)
     )
+
+    # ---- 升級 ----
+    if is_paid:
+        if claim.paymentStatus == "paid" and claim.tier == "pro":
+            logger.info("claim %s 已是 PRO，跳過 (idempotent)", claim_id)
+            return Response(content="OK", media_type="text/plain")
+
+        if claim.status != "approved":
+            logger.warning("claim %s status=%s 非 approved，仍接受付款但不變更 tier", claim_id, claim.status)
+
+        claim.paymentStatus = "paid"
+        claim.tier = "pro"
+        claim.proExpiresAt = datetime.utcnow() + timedelta(days=365)
+        # 用 lemonsqueezyOrderId 欄位也存 SLP referenceId（共用欄位避免新增 migration）
+        if hasattr(claim, "lemonsqueezyOrderId"):
+            claim.lemonsqueezyOrderId = reference_id
+
+        retailer = db.query(Retailer).filter(Retailer.id == claim.retailerId).first()
+        if retailer:
+            retailer.merchantTier = "pro"
+            retailer.tierExpireAt = claim.proExpiresAt
+        db.commit()
+        logger.info("[SLP] ✅ PRO 已激活 claim=%s retailer=%s ref=%s 到期=%s",
+                    claim_id, claim.retailerId, reference_id, claim.proExpiresAt)
+        return Response(content="OK", media_type="text/plain")
+
+    # ---- 退款降級 ----
+    if is_refunded:
+        claim.paymentStatus = "refunded"
+        claim.tier = "basic"
+        claim.proExpiresAt = None
+        retailer = db.query(Retailer).filter(Retailer.id == claim.retailerId).first()
+        if retailer:
+            retailer.merchantTier = "basic"
+            retailer.tierExpireAt = None
+        db.commit()
+        logger.info("[SLP] ⚠️ PRO 已退款降級 claim=%s ref=%s", claim_id, reference_id)
+        return Response(content="OK", media_type="text/plain")
+
     return Response(content="OK", media_type="text/plain")
