@@ -96,6 +96,16 @@ def create_checkout_session(
         "email": safe_email,
         "phone": safe_phone,
     }
+    # 數位商品也需給一組 address (SLP 必填)，用商家統一地址
+    address = {
+        "countryCode": "TW",
+        "stateCode": "",
+        "state": "",
+        "city": "台北市",
+        "district": "中正區",
+        "street": "重慶南路一段122號",
+        "postcode": "100",
+    }
 
     body: dict = {
         "referenceId": reference_id,
@@ -118,6 +128,12 @@ def create_checkout_session(
                     "desc": item_desc or pname,
                 }
             ],
+            "shipping": {
+                "shippingMethod": "數位",
+                "carrier": "電子交付",
+                "personalInfo": personal_info,
+                "address": address,
+            },
         },
         "customer": {
             "referenceCustomerId": customer_ref_id or pid,
@@ -126,6 +142,7 @@ def create_checkout_session(
         },
         "billing": {
             "personalInfo": personal_info,
+            "address": address,
         },
         "client": {"ip": safe_ip},
     }
