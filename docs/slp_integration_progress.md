@@ -71,8 +71,9 @@ sign    = HMAC-SHA256(SLP_SIGN_KEY 字串, message).hexdigest()
 ## 待完成 ⏳
 
 ### 1. ⏳ 退款 webhook 自動降級驗收（等 SLP 送）
-- 已申請退刷（NT$1,680）
-- SLP 後台顯示「退款中」
+- 已申請退刷（NT$1,680，台灣時間 2026-05-05 13:56:59）
+- SLP 後台顯示「退款中」（13:56 至少 1 hr 後仍同狀態）
+- 卡別 Visa BUSINESS / 發卡行 CHINATRUST，預期數小時 ~ 1 工作日內完成
 - 等 `trade.refund.succeeded` 進來
 - 預期看到 log：
   ```
