@@ -270,9 +270,17 @@ export async function updateMyStore(data: Record<string, unknown>, retailerId?: 
   await adminApi.put('/merchant/my-store', data, { params: retailerId ? { retailer_id: retailerId } : {} })
 }
 
-/** 取得 PRO 升級結帳連結 */
+/** 取得 PRO 升級結帳連結 (改走 SHOPLINE Payments)
+ *  注意: SLP 端點在 /api/payment/slp/... 而非 /api/admin/... 下,
+ *  故繞過 adminApi 的 baseURL prefix, 用獨立的絕對路徑呼叫
+ */
 export async function fetchCheckoutUrl(claimId: number) {
-  const res = await adminApi.get(`/merchant/claim/${claimId}/checkout-url`)
+  const root = import.meta.env.VITE_API_BASE || 'http://localhost:8000'
+  const url = `${root}/api/payment/slp/claim/${claimId}/checkout-url`
+  const token = localStorage.getItem(ADMIN_TOKEN_KEY)
+  const res = await axios.get(url, {
+    headers: token ? { Authorization: `Bearer ${token}` } : {},
+  })
   return res.data
 }
 
