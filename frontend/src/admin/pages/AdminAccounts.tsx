@@ -72,6 +72,29 @@ export default function AdminAccounts() {
   })
   const users = Array.isArray(data) ? data : []
 
+  /** 展開多店帳號為一店一列 (其他角色 1 帳號 1 列) */
+  const rows = users.flatMap((u: any) => {
+    const stores: any[] = u.stores || []
+    if (u.role !== 'MERCHANT' || stores.length <= 1) {
+      return [{
+        ...u,
+        rowId: String(u.id),
+        // 統一 row 資料 (給 columns 用)
+        rowRetailerId: u.retailerId ?? null,
+        rowRetailerName: u.displayName ?? null,
+        rowProExpiresAt: u.proExpiresAt ?? null,
+      }]
+    }
+    return stores.map(s => ({
+      ...u,
+      rowId: `${u.id}-${s.retailerId}`,
+      rowRetailerId: s.retailerId,
+      rowRetailerName: s.retailerName,
+      rowProExpiresAt: s.proExpiresAt,
+      _store: s,
+    }))
+  })
+
 
   const createMutation = useMutation({
     mutationFn: createAdminUser,
@@ -134,16 +157,22 @@ export default function AdminAccounts() {
 
   /** 開啟編輯對話框 */
   const handleEditClick = (row: any) => {
-    const isPermanent = row.proExpiresAt === '9999-12-31T00:00:00'
+    // 多店模式: 編輯該行對應的「店家 PRO 狀態」, 不改帳號本身的主店
+    const proValue = row.rowProExpiresAt ?? row.proExpiresAt ?? null
+    const isPermanent = proValue === '9999-12-31T00:00:00'
+    const targetRetailerId = row._store ? row._store.retailerId : (row.retailerId ?? '')
     setEditData({
       id: row.id,
       displayName: row.displayName || '',
       role: row.role,
-      retailerId: row.retailerId ?? '',
+      retailerId: targetRetailerId,
       isActive: !!row.isActive,
-      proExpiresAt: row.proExpiresAt ? row.proExpiresAt.slice(0, 10) : '',
+      proExpiresAt: proValue ? proValue.slice(0, 10) : '',
       permanentPro: isPermanent,
-    })
+      // 標記是否為「特定店家行」
+      isPerStoreRow: !!row._store,
+      perStoreName: row._store ? row._store.retailerName : '',
+    } as any)
     setRetailerOptions([])
     setRetailerSearch('')
     setEditOpen(true)
@@ -152,12 +181,18 @@ export default function AdminAccounts() {
   /** 儲存編輯 */
   const handleSaveEdit = () => {
     if (!editData) return
+    const isPerStore = (editData as any).isPerStoreRow
     const payload: any = {
       id: editData.id,
       displayName: editData.displayName,
       role: editData.role,
-      retailerId: editData.retailerId ? Number(editData.retailerId) : null,
       isActive: editData.isActive,
+    }
+    // 多店行: 不改主店 retailerId, 改用 targetRetailerId 指定 PRO 操作對象
+    if (isPerStore) {
+      payload.targetRetailerId = Number(editData.retailerId)
+    } else {
+      payload.retailerId = editData.retailerId ? Number(editData.retailerId) : null
     }
     if (editData.role === 'MERCHANT' && editData.retailerId) {
       if (editData.permanentPro) {
@@ -185,33 +220,33 @@ export default function AdminAccounts() {
       }
     },
     {
-      field: 'retailerIds',
-      headerName: '關聯店家 ID',
-      width: 200,
+      field: 'rowRetailerId',
+      headerName: '關聯店家',
+      width: 240,
       sortable: false,
       renderCell: (params) => {
-        // 優先用 retailerIds (多店), 退而用 retailerId (單店向下相容)
-        const ids: number[] = params.row.retailerIds && params.row.retailerIds.length > 0
-          ? params.row.retailerIds
-          : (params.row.retailerId ? [params.row.retailerId] : [])
-        if (ids.length === 0) return <Typography variant="body2" color="text.secondary">—</Typography>
+        const id = params.row.rowRetailerId
+        const name = params.row._store?.retailerName
+        if (!id) return <Typography variant="body2" color="text.secondary">—</Typography>
         return (
-          <Box sx={{ display: 'flex', gap: 0.5, flexWrap: 'wrap', alignItems: 'center' }}>
-            {ids.map(id => (
-              <Chip key={id} label={`#${id}`} size="small" color="success" variant="outlined" />
-            ))}
+          <Box sx={{ display: 'flex', gap: 0.5, alignItems: 'center' }}>
+            <Chip label={`#${id}`} size="small" color="success" variant="outlined" />
+            {name && (
+              <Typography variant="body2" sx={{ ml: 0.5 }}>{name}</Typography>
+            )}
           </Box>
         )
       }
     },
     {
-        field: 'proExpiresAt',
+        field: 'rowProExpiresAt',
         headerName: 'PRO 到期日',
         width: 160,
         renderCell: (params) => {
-          if (!params.value) return <Typography variant="body2" color="text.secondary">—</Typography>
-          if (params.value === '9999-12-31T00:00:00') return <Chip label="永久 PRO" size="small" color="info" />
-          const d = new Date(params.value)
+          const v = params.row.rowProExpiresAt
+          if (!v) return <Typography variant="body2" color="text.secondary">—</Typography>
+          if (v === '9999-12-31T00:00:00') return <Chip label="永久 PRO" size="small" color="info" />
+          const d = new Date(v)
           const isExpired = d < new Date()
           return <Chip label={d.toLocaleDateString()} size="small" color={isExpired ? 'error' : 'success'} />
         }
@@ -259,10 +294,11 @@ export default function AdminAccounts() {
 
       <Card sx={{ height: 600 }}>
         <DataGrid
-          rows={users}
+          rows={rows}
           columns={columns}
           loading={isLoading}
           disableRowSelectionOnClick
+          getRowId={(r: any) => r.rowId}
         />
       </Card>
 
@@ -355,15 +391,25 @@ export default function AdminAccounts() {
                 ))}
               </TextField>
 
-              {/* 關聯店家：支援手動輸入 ID 或搜尋 */}
-              <TextField
-                label="關聯店家 ID"
-                type="number"
-                fullWidth
-                value={editData.retailerId}
-                onChange={(e) => setEditData({ ...editData, retailerId: e.target.value })}
-                helperText="輸入彩券行的 ID 編號即可關聯。可在「彩券行管理」頁面查詢 ID。"
-              />
+              {/* 關聯店家：多店行下鎖定為該行店家 */}
+              {(editData as any).isPerStoreRow ? (
+                <TextField
+                  label="操作目標店家"
+                  fullWidth
+                  value={`#${editData.retailerId} ${(editData as any).perStoreName || ''}`}
+                  disabled
+                  helperText="本列為多店帳號的特定店家行，PRO 升降級僅作用於此店"
+                />
+              ) : (
+                <TextField
+                  label="關聯店家 ID"
+                  type="number"
+                  fullWidth
+                  value={editData.retailerId}
+                  onChange={(e) => setEditData({ ...editData, retailerId: e.target.value })}
+                  helperText="輸入彩券行的 ID 編號即可關聯。可在「彩券行管理」頁面查詢 ID。"
+                />
+              )}
 
               {/* PRO 到期日設定（僅商家角色） */}
               {editData.role === 'MERCHANT' && editData.retailerId && (
@@ -395,7 +441,8 @@ export default function AdminAccounts() {
                 </>
               )}
 
-              {/* 搜尋店家名稱輔助 */}
+              {/* 搜尋店家名稱輔助 (多店行下鎖定不顯示) */}
+              {!(editData as any).isPerStoreRow && (
               <Autocomplete
                 freeSolo
                 options={retailerOptions}
@@ -416,6 +463,7 @@ export default function AdminAccounts() {
                   />
                 )}
               />
+              )}
             </Stack>
           )}
         </DialogContent>

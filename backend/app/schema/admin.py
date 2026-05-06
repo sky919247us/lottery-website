@@ -36,6 +36,8 @@ class AdminUpdateRequest(BaseModel):
     isActive: int | None = None
     expireAt: datetime | None = None
     proExpiresAt: datetime | str | None = None
+    # 多店帳號專用: 指定要操作 PRO 升降級的目標店家 (空時退用 admin.retailerId)
+    targetRetailerId: int | None = None
 
 
 class AdminChangePasswordRequest(BaseModel):

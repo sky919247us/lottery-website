@@ -48,8 +48,9 @@ router = APIRouter(prefix="/api/admin", tags=["後台管理"])
 
 def _admin_to_dict(admin: AdminUser, db: Session = None) -> dict:
     """將 AdminUser 物件轉為前端需要的字典"""
-    # 取得此帳號管理的所有店家 ID
+    # 取得此帳號管理的所有店家 ID + 詳細資訊 (多店時前端可逐店操作)
     retailer_ids = []
+    stores = []
     if db and admin.role == ROLE_MERCHANT:
         mappings = db.query(AdminRetailerMapping).filter(
             AdminRetailerMapping.adminId == admin.id
@@ -58,6 +59,26 @@ def _admin_to_dict(admin: AdminUser, db: Session = None) -> dict:
         # 向下相容：如果 mapping 表為空但 retailerId 有值
         if not retailer_ids and admin.retailerId:
             retailer_ids = [admin.retailerId]
+
+        if retailer_ids:
+            from app.model.merchant import MerchantClaim
+            retailers = db.query(Retailer).filter(Retailer.id.in_(retailer_ids)).all()
+            r_by_id = {r.id: r for r in retailers}
+            claims = db.query(MerchantClaim).filter(
+                MerchantClaim.retailerId.in_(retailer_ids),
+                MerchantClaim.status == "approved",
+            ).all()
+            c_by_rid = {c.retailerId: c for c in claims}
+            for rid in retailer_ids:
+                r = r_by_id.get(rid)
+                c = c_by_rid.get(rid)
+                stores.append({
+                    "retailerId": rid,
+                    "retailerName": r.name if r else f"#{rid}",
+                    "tier": (c.tier if c else r.merchantTier) if (c or r) else "basic",
+                    "proExpiresAt": c.proExpiresAt.isoformat() if c and c.proExpiresAt else None,
+                    "tierExpireAt": r.tierExpireAt.isoformat() if r and r.tierExpireAt else None,
+                })
 
     result = {
         "id": admin.id,
@@ -71,6 +92,7 @@ def _admin_to_dict(admin: AdminUser, db: Session = None) -> dict:
         "lastLoginAt": admin.lastLoginAt.isoformat() if admin.lastLoginAt else None,
         "createdAt": admin.createdAt.isoformat() if admin.createdAt else None,
         "proExpiresAt": None,
+        "stores": stores,
     }
     # 商家角色：查詢 PRO 到期日
     if db and admin.role == ROLE_MERCHANT and admin.retailerId:
@@ -226,16 +248,29 @@ async def update_admin_user(
     # 處理 PRO 到期日更新（同步 MerchantClaim + Retailer）
     # 修正: 用 model_fields_set 判斷欄位是否「明確傳了」
     # (避免前端送 null 時被當作「未設定」而跳過降級)
-    if "proExpiresAt" in data.model_fields_set and target.role == ROLE_MERCHANT and target.retailerId:
+    if "proExpiresAt" in data.model_fields_set and target.role == ROLE_MERCHANT:
         from app.model.merchant import MerchantClaim
         from datetime import datetime as dt
 
+        # 多店帳號: 用 targetRetailerId 指定操作對象, 退用 admin.retailerId (主店)
+        op_retailer_id = data.targetRetailerId or target.retailerId
+        if not op_retailer_id:
+            raise HTTPException(status_code=400, detail="找不到操作目標店家")
+
+        # 安全檢查: 該店必須在此 admin 名下
+        owns = db.query(AdminRetailerMapping).filter(
+            AdminRetailerMapping.adminId == target.id,
+            AdminRetailerMapping.retailerId == op_retailer_id,
+        ).first()
+        if not owns and target.retailerId != op_retailer_id:
+            raise HTTPException(status_code=403, detail=f"此帳號未關聯店家 #{op_retailer_id}")
+
         claim = db.query(MerchantClaim).filter(
-            MerchantClaim.retailerId == target.retailerId,
+            MerchantClaim.retailerId == op_retailer_id,
             MerchantClaim.status == "approved",
         ).first()
 
-        retailer = db.query(Retailer).filter(Retailer.id == target.retailerId).first()
+        retailer = db.query(Retailer).filter(Retailer.id == op_retailer_id).first()
 
         if data.proExpiresAt in (None, ""):
             # 移除 PRO
@@ -246,7 +281,7 @@ async def update_admin_user(
             if retailer:
                 retailer.merchantTier = "basic"
                 retailer.tierExpireAt = None
-            logger.info("超級管理員 [%s] 手動降級店家 retailer=%s", admin.username, target.retailerId)
+            logger.info("超級管理員 [%s] 手動降級店家 retailer=%s", admin.username, op_retailer_id)
         else:
             # 設定 PRO 到期日
             expire_dt = data.proExpiresAt if isinstance(data.proExpiresAt, dt) else dt.fromisoformat(str(data.proExpiresAt))
@@ -256,7 +291,7 @@ async def update_admin_user(
             if retailer:
                 retailer.merchantTier = "pro"
                 retailer.tierExpireAt = expire_dt
-            logger.info("超級管理員 [%s] 手動升級店家 retailer=%s 到期=%s", admin.username, target.retailerId, expire_dt)
+            logger.info("超級管理員 [%s] 手動升級店家 retailer=%s 到期=%s", admin.username, op_retailer_id, expire_dt)
 
     db.commit()
     db.refresh(target)
