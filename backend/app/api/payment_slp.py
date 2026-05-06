@@ -170,6 +170,16 @@ async def slp_webhook(request: Request, db: Session = Depends(get_db)):
         logger.warning("SLP webhook 驗章失敗，拒絕事件")
         return Response(content="INVALID_SIGN", media_type="text/plain", status_code=401)
 
+    # 偵錯: refund 事件 body 結構未知，先 dump
+    try:
+        _peek = json.loads(raw.decode("utf-8"))
+        if (_peek.get("type") or "").startswith("trade.refund"):
+            logger.info("=" * 60)
+            logger.info("REFUND BODY (%d bytes): %s", len(raw), raw.decode("utf-8", errors="replace"))
+            logger.info("=" * 60)
+    except Exception:
+        pass
+
     try:
         payload = json.loads(raw.decode("utf-8"))
     except Exception:
@@ -182,7 +192,10 @@ async def slp_webhook(request: Request, db: Session = Depends(get_db)):
 
     logger.info("SLP webhook event=%s ref=%s status=%s", event_type, reference_id, status_field)
 
-    # 解析 claim_id: 優先 data.referenceId (PRO_CLAIM_X_ts), 否則嘗試 customer.referenceCustomerId
+    # 解析 claim_id: 多重 fallback
+    # 1. data.referenceId (session.succeeded 才有)
+    # 2. data.order.customer.referenceCustomerId (trade.succeeded 才有)
+    # 3. 用 SLP 端的 referenceOrderId / tradeOrderId 反查我方儲存的訂單
     claim_id = _parse_claim_id(reference_id)
     if not claim_id:
         order = data.get("order") or {}
@@ -190,6 +203,28 @@ async def slp_webhook(request: Request, db: Session = Depends(get_db)):
         if ref_customer and str(ref_customer).isdigit():
             claim_id = int(ref_customer)
             logger.info("從 customer.referenceCustomerId 解析 claim_id=%s", claim_id)
+
+    if not claim_id:
+        # refund 事件沒有上述兩個欄位, 用 referenceOrderId / tradeOrderId 反查
+        # (我方在升級時把 PRO_CLAIM_X_ts 存進 lemonsqueezyOrderId, 但 SLP 端的訂單號是 RL01... / 10012...)
+        # 後備: 用 originalReferenceId / originalTradeOrderId 之類
+        candidates = [
+            data.get("originalReferenceId"),
+            data.get("originalTradeOrderId"),
+            data.get("originalReferenceOrderId"),
+            data.get("referenceOrderId"),
+            data.get("tradeOrderId"),
+        ]
+        for ref in candidates:
+            if not ref:
+                continue
+            ref_str = str(ref)
+            cid = _parse_claim_id(ref_str)
+            if cid:
+                claim_id = cid
+                logger.info("從 %s 解析 claim_id=%s", ref_str, claim_id)
+                break
+
     if not claim_id:
         logger.info("SLP webhook 找不到 claim_id (ref=%s), 忽略", reference_id)
         return Response(content="OK", media_type="text/plain")

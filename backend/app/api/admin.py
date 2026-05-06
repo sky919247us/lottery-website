@@ -224,7 +224,9 @@ async def update_admin_user(
         target.expireAt = data.expireAt
 
     # 處理 PRO 到期日更新（同步 MerchantClaim + Retailer）
-    if data.proExpiresAt is not None and target.role == ROLE_MERCHANT and target.retailerId:
+    # 修正: 用 model_fields_set 判斷欄位是否「明確傳了」
+    # (避免前端送 null 時被當作「未設定」而跳過降級)
+    if "proExpiresAt" in data.model_fields_set and target.role == ROLE_MERCHANT and target.retailerId:
         from app.model.merchant import MerchantClaim
         from datetime import datetime as dt
 
@@ -235,14 +237,16 @@ async def update_admin_user(
 
         retailer = db.query(Retailer).filter(Retailer.id == target.retailerId).first()
 
-        if data.proExpiresAt == "" or data.proExpiresAt is None:
+        if data.proExpiresAt in (None, ""):
             # 移除 PRO
             if claim:
                 claim.tier = "basic"
+                claim.paymentStatus = "refunded" if claim.paymentStatus == "paid" else claim.paymentStatus
                 claim.proExpiresAt = None
             if retailer:
                 retailer.merchantTier = "basic"
                 retailer.tierExpireAt = None
+            logger.info("超級管理員 [%s] 手動降級店家 retailer=%s", admin.username, target.retailerId)
         else:
             # 設定 PRO 到期日
             expire_dt = data.proExpiresAt if isinstance(data.proExpiresAt, dt) else dt.fromisoformat(str(data.proExpiresAt))
@@ -252,6 +256,7 @@ async def update_admin_user(
             if retailer:
                 retailer.merchantTier = "pro"
                 retailer.tierExpireAt = expire_dt
+            logger.info("超級管理員 [%s] 手動升級店家 retailer=%s 到期=%s", admin.username, target.retailerId, expire_dt)
 
     db.commit()
     db.refresh(target)
