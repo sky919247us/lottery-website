@@ -122,7 +122,9 @@ def _run_pro_expire_downgrade():
 
 
 def _run_pro_expiry_reminder():
-    """每日掃描 PRO 即將到期的商家，在 7 天前與 1 天前發送 LINE 提醒"""
+    """每日掃描 PRO 即將到期的商家。
+    提醒節奏: 30 / 21 / 14 / 7 / 3 / 1 天前各推一次 LINE 通知 (一個月內每週 + 最後 3 天加強)。
+    """
     from app.model.merchant import MerchantClaim
     from app.model.retailer import Retailer
     from app.model.user import User
@@ -132,7 +134,7 @@ def _run_pro_expiry_reminder():
     db = SessionLocal()
     try:
         now = datetime.utcnow()
-        for days_left in [7, 1]:
+        for days_left in [30, 21, 14, 7, 3, 1]:
             target_date = now + timedelta(days=days_left)
             claims = db.query(MerchantClaim).filter(
                 MerchantClaim.tier == "pro",
@@ -141,6 +143,9 @@ def _run_pro_expiry_reminder():
             ).all()
 
             for claim in claims:
+                # 永久 PRO 跳過
+                if claim.proExpiresAt and claim.proExpiresAt.year >= 9999:
+                    continue
                 user = db.query(User).filter(User.id == claim.userId).first()
                 retailer = db.query(Retailer).filter(Retailer.id == claim.retailerId).first()
                 if user and user.lineUserId and retailer:
