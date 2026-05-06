@@ -132,8 +132,10 @@ def get_slp_checkout_url(claim_id: int, request: Request, db: Session = Depends(
         raise HTTPException(status_code=404, detail="申請不存在")
     if claim.status != "approved":
         raise HTTPException(status_code=403, detail="申請尚未核准")
-    if claim.tier == "pro" and claim.paymentStatus == "paid":
-        raise HTTPException(status_code=409, detail="已是 PRO，不需重複付款")
+    # 不擋 PRO 中再次付款 — 續約會在 webhook 端 MAX(現有到期日, now) + 365 累加
+    # 永久 PRO 才擋 (避免無謂消費)
+    if claim.proExpiresAt and claim.proExpiresAt.year >= 9999:
+        raise HTTPException(status_code=409, detail="本店為永久 PRO，無需付費續約")
 
     data = _create_session_for_claim(claim=claim, plan_code="PRO_YEARLY", request=request)
     return {
