@@ -142,8 +142,8 @@ def _create_composite_indexes():
         if is_postgres:
             # PostgreSQL 複合索引（GIS 查詢最佳化）
             indexes_to_create = [
-                "CREATE INDEX IF NOT EXISTS idx_retailers_active_coords ON retailers (isActive, lat, lng) WHERE isActive = true",
-                "CREATE INDEX IF NOT EXISTS idx_retailers_tier_active ON retailers (merchantTier, isActive) WHERE isActive = true",
+                'CREATE INDEX IF NOT EXISTS idx_retailers_active_coords ON retailers ("isActive", lat, lng) WHERE "isActive" = true',
+                'CREATE INDEX IF NOT EXISTS idx_retailers_tier_active ON retailers ("merchantTier", "isActive") WHERE "isActive" = true',
             ]
             for idx_sql in indexes_to_create:
                 try:

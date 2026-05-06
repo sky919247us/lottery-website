@@ -350,7 +350,7 @@ def on_startup():
     )
 
     scheduler.start()
-    logger.info("⏰ APScheduler 已啟動，每日 09:00 (台灣時間) 自動爬取")
+    logger.info("⏰ APScheduler 已啟動，每日 09:10 (台灣時間) 自動爬取")
 
 
 @app.on_event("shutdown")
