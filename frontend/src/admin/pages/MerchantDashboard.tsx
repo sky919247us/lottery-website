@@ -18,6 +18,7 @@ import WorkspacePremiumIcon from '@mui/icons-material/WorkspacePremium'
 import { fetchMyStore, createPaymentOrder } from '../api'
 import { useAdminAuth } from '../AdminAuthContext'
 import { useSnackbar } from 'notistack'
+import { isStorePro } from '../utils/tier'
 
 interface StoreData {
   id: number
@@ -76,6 +77,14 @@ export default function MerchantDashboard() {
       </Box>
     )
   }
+
+  /** 當前店家 PRO 狀態 (含過期判斷) */
+  const storeIsPro = isStorePro({
+    id: store.id, name: store.name, address: store.address,
+    merchantTier: store.merchantTier,
+    tierExpireAt: store.tierExpireAt ?? null,
+    proExpiresAt: null,
+  })
 
   const handleUpgrade = async (plan: string, amount: number) => {
     try {
@@ -169,22 +178,30 @@ export default function MerchantDashboard() {
                 <LocationIcon fontSize="small" />
                 <Typography variant="body2">{store.address}</Typography>
               </Box>
-              {store.merchantTier && (
-                <Box sx={{ mt: 2, display: 'flex', alignItems: 'center', gap: 2 }}>
-                  <Chip
-                    label={store.merchantTier === 'pro' ? '專業版' : '基礎版'}
-                    color={store.merchantTier === 'pro' ? 'primary' : 'default'}
-                    variant={store.merchantTier === 'pro' ? 'filled' : 'outlined'}
-                    icon={store.merchantTier === 'pro' ? <WorkspacePremiumIcon /> : undefined}
-                  />
-                  {store.merchantTier === 'pro' && store.tierExpireAt && (
-                    <Typography variant="body2" color="text.secondary">
-                      到期日：{new Date(store.tierExpireAt).toLocaleDateString()}
-                    </Typography>
-                  )}
-                </Box>
-              )}
-              {store.merchantTier !== 'pro' && (
+              {(() => {
+                const proActive = storeIsPro
+                return (
+                  <Box sx={{ mt: 2, display: 'flex', alignItems: 'center', gap: 2 }}>
+                    <Chip
+                      label={proActive ? '專業版' : '基礎版'}
+                      color={proActive ? 'primary' : 'default'}
+                      variant={proActive ? 'filled' : 'outlined'}
+                      icon={proActive ? <WorkspacePremiumIcon /> : undefined}
+                    />
+                    {proActive && store.tierExpireAt && (
+                      <Typography variant="body2" color="text.secondary">
+                        到期日：{new Date(store.tierExpireAt).toLocaleDateString()}
+                      </Typography>
+                    )}
+                    {!proActive && store.merchantTier === 'pro' && store.tierExpireAt && (
+                      <Typography variant="body2" color="warning.main">
+                        已過期：{new Date(store.tierExpireAt).toLocaleDateString()}
+                      </Typography>
+                    )}
+                  </Box>
+                )
+              })()}
+              {!storeIsPro && (
                 <Box sx={{ mt: 3, pt: 2, borderTop: '1px solid #eaeaea' }}>
                   <Typography variant="subtitle2" mb={1}>💎 升級 PRO 專業版</Typography>
                   <Typography variant="body2" color="text.secondary" mb={1}>享有專業商家頁面、中獎牆展示、數據分析、優先搜尋排名等進階功能。</Typography>
