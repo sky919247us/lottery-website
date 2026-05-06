@@ -185,14 +185,24 @@ export default function AdminAccounts() {
       }
     },
     {
-      field: 'retailerId',
+      field: 'retailerIds',
       headerName: '關聯店家 ID',
-      width: 120,
-      renderCell: (params) => params.value ? (
-        <Chip label={`#${params.value}`} size="small" color="success" variant="outlined" />
-      ) : (
-        <Typography variant="body2" color="text.secondary">—</Typography>
-      )
+      width: 200,
+      sortable: false,
+      renderCell: (params) => {
+        // 優先用 retailerIds (多店), 退而用 retailerId (單店向下相容)
+        const ids: number[] = params.row.retailerIds && params.row.retailerIds.length > 0
+          ? params.row.retailerIds
+          : (params.row.retailerId ? [params.row.retailerId] : [])
+        if (ids.length === 0) return <Typography variant="body2" color="text.secondary">—</Typography>
+        return (
+          <Box sx={{ display: 'flex', gap: 0.5, flexWrap: 'wrap', alignItems: 'center' }}>
+            {ids.map(id => (
+              <Chip key={id} label={`#${id}`} size="small" color="success" variant="outlined" />
+            ))}
+          </Box>
+        )
+      }
     },
     {
         field: 'proExpiresAt',
