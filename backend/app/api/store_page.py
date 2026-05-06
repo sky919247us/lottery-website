@@ -16,6 +16,7 @@ from app.model.merchant_photo import MerchantPhoto
 from app.model.merchant_inventory import MerchantInventory
 from app.model.admin import AdminUser, ROLE_SUPER_ADMIN, ROLE_ADMIN
 from app.service.admin_auth_service import get_current_admin, require_role
+from app.service.tier_service import is_retailer_pro
 
 logger = logging.getLogger(__name__)
 
@@ -35,7 +36,7 @@ async def get_store_page(retailer_id: int, db: Session = Depends(get_db)):
         raise HTTPException(status_code=404, detail="店家不存在")
 
     # 僅 PRO 等級且已認領的商家才開放專屬頁面
-    if retailer.merchantTier != "pro" or not retailer.isClaimed:
+    if not is_retailer_pro(retailer) or not retailer.isClaimed:
         raise HTTPException(status_code=404, detail="此店家尚未開通專屬頁面")
 
     # 取得圖片
@@ -119,7 +120,7 @@ async def update_store_page(
     retailer = _get_merchant_retailer(admin, db, retailer_id)
 
     # PRO 才能編輯
-    if retailer.merchantTier != "pro":
+    if not is_retailer_pro(retailer):
         raise HTTPException(status_code=403, detail="此功能僅限 PRO 方案商家使用")
 
     # 允許更新的欄位
@@ -148,7 +149,7 @@ async def upload_store_photo(
     """上傳商家圖片至 Cloudflare R2"""
     retailer = _get_merchant_retailer(admin, db, retailer_id)
 
-    if retailer.merchantTier != "pro":
+    if not is_retailer_pro(retailer):
         raise HTTPException(status_code=403, detail="此功能僅限 PRO 方案商家使用")
 
     if category not in ("gallery", "winning_wall"):
@@ -244,7 +245,7 @@ async def upload_banner(
     """上傳或更換商家頁面橫幅圖片"""
     retailer = _get_merchant_retailer(admin, db, retailer_id)
 
-    if retailer.merchantTier != "pro":
+    if not is_retailer_pro(retailer):
         raise HTTPException(status_code=403, detail="此功能僅限 PRO 方案商家使用")
 
     file_data = await file.read()

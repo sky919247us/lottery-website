@@ -18,11 +18,12 @@ import {
 } from '../api'
 import { useAdminAuth } from '../AdminAuthContext'
 import { Navigate } from 'react-router-dom'
+import { isStorePro } from '../utils/tier'
 
 export default function MerchantStorePage() {
     const { currentRetailerId, stores } = useAdminAuth()
     const currentStore = stores.find(s => s.id === currentRetailerId)
-    const isPro = currentStore?.merchantTier === 'pro'
+    const isPro = isStorePro(currentStore)
 
     // 非 PRO 直接導回店舖總覽 (含 hint query 提示需升級)
     if (currentStore && !isPro) {

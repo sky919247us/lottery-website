@@ -1082,8 +1082,9 @@ async def update_my_store(
         "hasScratchBoard", "hasMagnifier", "hasReadingGlasses",
         "hasNewspaper", "hasSportTV"
     ]
-    # 公告為 PRO 限定功能，非 PRO 不接受 announcement 寫入
-    is_pro = (retailer.merchantTier or "").lower() == "pro"
+    # 公告為 PRO 限定功能，非 PRO 或已過期不接受 announcement 寫入
+    from app.service.tier_service import is_retailer_pro
+    is_pro = is_retailer_pro(retailer)
     blocked = []
     for field in allowed_fields:
         if field in data:

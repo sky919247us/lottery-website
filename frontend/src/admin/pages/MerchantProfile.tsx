@@ -17,6 +17,7 @@ import {
 import SaveIcon from '@mui/icons-material/Save'
 import { fetchMyStore, updateMyStore } from '../api'
 import { useAdminAuth } from '../AdminAuthContext'
+import { isStorePro } from '../utils/tier'
 
 /** 設施標籤元資料 */
 const FACILITY_TAGS = [
@@ -46,7 +47,7 @@ export default function MerchantProfile() {
   const [error, setError] = useState('')
   const { currentRetailerId, stores } = useAdminAuth()
   const currentStore = stores.find(s => s.id === currentRetailerId)
-  const isPro = currentStore?.merchantTier === 'pro'
+  const isPro = isStorePro(currentStore)
 
   useEffect(() => {
     async function load() {

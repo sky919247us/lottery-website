@@ -48,6 +48,7 @@ import LockResetIcon from '@mui/icons-material/LockReset'
 import RefreshIcon from '@mui/icons-material/Refresh'
 import AssignmentTurnedInIcon from '@mui/icons-material/AssignmentTurnedIn'
 import { useAdminAuth } from './AdminAuthContext'
+import { isStorePro } from './utils/tier'
 import { changeAdminPassword, triggerJackpotSync } from './api'
 
 const DRAWER_WIDTH = 260
@@ -99,9 +100,9 @@ export default function AdminLayout() {
     { label: '社群使用者', icon: <PeopleIcon />, path: '/admin/users' },
   ]
 
-  /** 商家當前店家 PRO 狀態 */
+  /** 商家當前店家 PRO 狀態 (含到期檢查) */
   const currentStore = stores.find(s => s.id === currentRetailerId)
-  const isPro = currentStore?.merchantTier === 'pro'
+  const isPro = isStorePro(currentStore)
 
   /** 商家側邊欄選單 (專屬頁面僅 PRO 可見) */
   const merchantMenuItems = [

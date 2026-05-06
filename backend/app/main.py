@@ -107,6 +107,20 @@ def _run_crawler_job():
     except Exception as e:
         logger.error(f"❌ 每日爬蟲失敗: {e}")
 
+def _run_pro_expire_downgrade():
+    """每小時掃描 tier=pro 但已過期的店家，自動物理降級為 basic"""
+    from app.service.tier_service import expire_overdue_pro
+    db = SessionLocal()
+    try:
+        n = expire_overdue_pro(db)
+        if n:
+            logger.info("⏰ 過期 PRO 自動降級: %s 筆", n)
+    except Exception as e:
+        logger.error("過期降級任務失敗: %s", e)
+    finally:
+        db.close()
+
+
 def _run_pro_expiry_reminder():
     """每日掃描 PRO 即將到期的商家，在 7 天前與 1 天前發送 LINE 提醒"""
     from app.model.merchant import MerchantClaim
@@ -304,6 +318,13 @@ def on_startup():
         _run_pro_expiry_reminder,
         trigger=CronTrigger(hour=2, minute=0),
         id="daily_pro_expiry_reminder",
+        replace_existing=True,
+    )
+    # 每小時掃描已過期的 PRO 店家自動降級 (tier=pro AND tierExpireAt<now)
+    scheduler.add_job(
+        _run_pro_expire_downgrade,
+        trigger=CronTrigger(minute=15),  # 每小時 15 分執行
+        id="hourly_pro_expire_downgrade",
         replace_existing=True,
     )
     # 每日台灣早上 10:05 (UTC 2:05) 自動執行預告刮刮樂爬蟲
