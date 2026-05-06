@@ -29,7 +29,8 @@ class MerchantClaim(Base):
     rejectReason = Column(String(200), default="", comment="駁回原因")
 
     # Lemonsqueezy PRO 支付
-    lemonsqueezyOrderId = Column(String(100), nullable=True, comment="LM 訂單 ID")
+    lemonsqueezyOrderId = Column(String(100), nullable=True, comment="LM/SLP referenceId — webhook 冪等")
+    slpTradeOrderId = Column(String(64), nullable=True, index=True, comment="SLP trade.succeeded 的 tradeOrderId — 退款反查用")
     paymentStatus = Column(String(20), default="pending", comment="付款狀態：pending / paid / failed")
     proExpiresAt = Column(DateTime, nullable=True, comment="PRO 到期日期（一年後）")
 

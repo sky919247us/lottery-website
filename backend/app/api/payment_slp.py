@@ -197,56 +197,41 @@ async def slp_webhook(request: Request, db: Session = Depends(get_db)):
     # 解析 claim_id: 多重 fallback
     # 1. data.referenceId (session.succeeded 才有)
     # 2. data.order.customer.referenceCustomerId (trade.succeeded 才有)
-    # 3. 用 SLP 端的 referenceOrderId / tradeOrderId 反查我方儲存的訂單
-    claim_id = _parse_claim_id(reference_id)
-    if not claim_id:
+    # ===== 事件分流 =====
+    # SLP 對一筆付款會同時送 trade.succeeded + session.succeeded,
+    # 為避免重複升級, 規則:
+    #   - trade.succeeded → 只把 tradeOrderId 寫入 claim (退款反查用), 不升級
+    #   - session.succeeded → 真正升級 / 續約 (依 referenceId)
+    #   - trade.refund.succeeded → 用 tradeOrderId 反查 claim 並降級
+
+    # ---- trade.succeeded: 純記錄 tradeOrderId, 不升級 ----
+    if event_type == "trade.succeeded":
         order = data.get("order") or {}
         ref_customer = (order.get("customer") or {}).get("referenceCustomerId")
-        if ref_customer and str(ref_customer).isdigit():
-            claim_id = int(ref_customer)
-            logger.info("從 customer.referenceCustomerId 解析 claim_id=%s", claim_id)
-
-    if not claim_id:
-        # refund 事件沒有上述兩個欄位, 用 referenceOrderId / tradeOrderId 反查
-        # (我方在升級時把 PRO_CLAIM_X_ts 存進 lemonsqueezyOrderId, 但 SLP 端的訂單號是 RL01... / 10012...)
-        # 後備: 用 originalReferenceId / originalTradeOrderId 之類
-        candidates = [
-            data.get("originalReferenceId"),
-            data.get("originalTradeOrderId"),
-            data.get("originalReferenceOrderId"),
-            data.get("referenceOrderId"),
-            data.get("tradeOrderId"),
-        ]
-        for ref in candidates:
-            if not ref:
-                continue
-            ref_str = str(ref)
-            cid = _parse_claim_id(ref_str)
-            if cid:
-                claim_id = cid
-                logger.info("從 %s 解析 claim_id=%s", ref_str, claim_id)
-                break
-
-    if not claim_id:
-        logger.info("SLP webhook 找不到 claim_id (ref=%s), 忽略", reference_id)
+        trade_order_id = data.get("tradeOrderId")
+        if not (ref_customer and str(ref_customer).isdigit() and trade_order_id):
+            logger.info("trade.succeeded 缺 referenceCustomerId 或 tradeOrderId, 忽略")
+            return Response(content="OK", media_type="text/plain")
+        cid = int(ref_customer)
+        claim = db.query(MerchantClaim).filter(MerchantClaim.id == cid).first()
+        if claim:
+            if hasattr(claim, "slpTradeOrderId"):
+                claim.slpTradeOrderId = str(trade_order_id)
+                db.commit()
+                logger.info("trade.succeeded 記錄 claim=%s tradeOrderId=%s", cid, trade_order_id)
         return Response(content="OK", media_type="text/plain")
 
-    claim = db.query(MerchantClaim).filter(MerchantClaim.id == claim_id).first()
-    if not claim:
-        logger.warning("SLP webhook 找不到 claim_id=%s", claim_id)
-        return Response(content="OK", media_type="text/plain")
+    # ---- session.succeeded: 升級 / 續約 ----
+    if event_type == "session.succeeded" or status_field in ("SUCCEEDED", "SUCCESS", "PAID"):
+        claim_id = _parse_claim_id(reference_id)
+        if not claim_id:
+            logger.info("session.succeeded 非 PRO_CLAIM 格式 ref=%s, 忽略", reference_id)
+            return Response(content="OK", media_type="text/plain")
+        claim = db.query(MerchantClaim).filter(MerchantClaim.id == claim_id).first()
+        if not claim:
+            logger.warning("session.succeeded 找不到 claim_id=%s", claim_id)
+            return Response(content="OK", media_type="text/plain")
 
-    is_paid = (
-        event_type in ("session.succeeded", "trade.succeeded")
-        or status_field in ("SUCCEEDED", "SUCCESS", "PAID")
-    )
-    is_refunded = (
-        event_type in ("trade.refund.succeeded",)
-        or status_field in ("REFUNDED",)
-    )
-
-    # ---- 升級 / 續約 ----
-    if is_paid:
         # 冪等: 同一筆 referenceId 重送 (SLP webhook retry) -> 跳過
         existing_ref = getattr(claim, "lemonsqueezyOrderId", None)
         if existing_ref == reference_id and claim.tier == "pro":
@@ -258,8 +243,6 @@ async def slp_webhook(request: Request, db: Session = Depends(get_db)):
             logger.warning("claim %s status=%s 非 approved，仍接受付款但不變更 tier",
                            claim_id, claim.status)
 
-        # 續約累加: 從現有到期日 (若仍有效) 或 now 起算 + 方案天數
-        # 由 webhook amount 反查方案 (目前只有 PRO_YEARLY 365 天)
         now = datetime.utcnow()
         amount_minor = (data.get("amount") or {}).get("value") or 0
         days = 365
@@ -275,7 +258,6 @@ async def slp_webhook(request: Request, db: Session = Depends(get_db)):
         claim.paymentStatus = "paid"
         claim.tier = "pro"
         claim.proExpiresAt = new_expire
-        # 用 lemonsqueezyOrderId 欄位也存 SLP referenceId（共用欄位避免新增 migration）
         if hasattr(claim, "lemonsqueezyOrderId"):
             claim.lemonsqueezyOrderId = reference_id
 
@@ -291,8 +273,19 @@ async def slp_webhook(request: Request, db: Session = Depends(get_db)):
         )
         return Response(content="OK", media_type="text/plain")
 
-    # ---- 退款降級 ----
-    if is_refunded:
+    # ---- trade.refund.succeeded: 用 tradeOrderId 反查降級 ----
+    if event_type == "trade.refund.succeeded":
+        trade_order_id = data.get("tradeOrderId")
+        if not trade_order_id:
+            logger.warning("refund 事件缺 tradeOrderId, 忽略")
+            return Response(content="OK", media_type="text/plain")
+        claim = db.query(MerchantClaim).filter(
+            MerchantClaim.slpTradeOrderId == str(trade_order_id)
+        ).first()
+        if not claim:
+            logger.warning("refund 找不到 claim (slpTradeOrderId=%s), 忽略", trade_order_id)
+            return Response(content="OK", media_type="text/plain")
+
         claim.paymentStatus = "refunded"
         claim.tier = "basic"
         claim.proExpiresAt = None
@@ -301,7 +294,8 @@ async def slp_webhook(request: Request, db: Session = Depends(get_db)):
             retailer.merchantTier = "basic"
             retailer.tierExpireAt = None
         db.commit()
-        logger.info("[SLP] ⚠️ PRO 已退款降級 claim=%s ref=%s", claim_id, reference_id)
+        logger.info("[SLP] ⚠️ PRO 已退款降級 claim=%s tradeOrderId=%s", claim.id, trade_order_id)
         return Response(content="OK", media_type="text/plain")
 
+    # 其他事件 (session.expired / trade.failed / trade.cancelled 等) — 不變更 DB
     return Response(content="OK", media_type="text/plain")

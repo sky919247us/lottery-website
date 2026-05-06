@@ -232,6 +232,8 @@ def _run_migrations():
                 'ALTER TABLE prize_structures ADD COLUMN IF NOT EXISTS "oddsDenominator" BIGINT DEFAULT 0',
                 'ALTER TABLE prize_structures ADD COLUMN IF NOT EXISTS "isJackpot" BOOLEAN DEFAULT false',
                 'ALTER TABLE prize_structures ADD COLUMN IF NOT EXISTS "prizeLevel" VARCHAR(30) DEFAULT \'\'',
+                'ALTER TABLE merchant_claims ADD COLUMN IF NOT EXISTS "slpTradeOrderId" VARCHAR(64)',
+                'CREATE INDEX IF NOT EXISTS idx_merchant_claims_slp_trade ON merchant_claims ("slpTradeOrderId")',
             ]
             for sql in pg_migrations:
                 try:
