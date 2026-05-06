@@ -243,18 +243,36 @@ async def slp_webhook(request: Request, db: Session = Depends(get_db)):
         or status_field in ("REFUNDED",)
     )
 
-    # ---- 升級 ----
+    # ---- 升級 / 續約 ----
     if is_paid:
-        if claim.paymentStatus == "paid" and claim.tier == "pro":
-            logger.info("claim %s 已是 PRO，跳過 (idempotent)", claim_id)
+        # 冪等: 同一筆 referenceId 重送 (SLP webhook retry) -> 跳過
+        existing_ref = getattr(claim, "lemonsqueezyOrderId", None)
+        if existing_ref == reference_id and claim.tier == "pro":
+            logger.info("claim %s 同一 referenceId 已處理過 (%s)，跳過 (idempotent)",
+                        claim_id, reference_id)
             return Response(content="OK", media_type="text/plain")
 
         if claim.status != "approved":
-            logger.warning("claim %s status=%s 非 approved，仍接受付款但不變更 tier", claim_id, claim.status)
+            logger.warning("claim %s status=%s 非 approved，仍接受付款但不變更 tier",
+                           claim_id, claim.status)
+
+        # 續約累加: 從現有到期日 (若仍有效) 或 now 起算 + 方案天數
+        # 由 webhook amount 反查方案 (目前只有 PRO_YEARLY 365 天)
+        now = datetime.utcnow()
+        amount_minor = (data.get("amount") or {}).get("value") or 0
+        days = 365
+        for plan in PLAN_TABLE.values():
+            if plan["amount"] * 100 == amount_minor:
+                days = plan["days"]
+                break
+
+        base = claim.proExpiresAt if (claim.proExpiresAt and claim.proExpiresAt > now) else now
+        new_expire = base + timedelta(days=days)
+        is_renewal = claim.tier == "pro" and claim.proExpiresAt and claim.proExpiresAt > now
 
         claim.paymentStatus = "paid"
         claim.tier = "pro"
-        claim.proExpiresAt = datetime.utcnow() + timedelta(days=365)
+        claim.proExpiresAt = new_expire
         # 用 lemonsqueezyOrderId 欄位也存 SLP referenceId（共用欄位避免新增 migration）
         if hasattr(claim, "lemonsqueezyOrderId"):
             claim.lemonsqueezyOrderId = reference_id
@@ -262,10 +280,13 @@ async def slp_webhook(request: Request, db: Session = Depends(get_db)):
         retailer = db.query(Retailer).filter(Retailer.id == claim.retailerId).first()
         if retailer:
             retailer.merchantTier = "pro"
-            retailer.tierExpireAt = claim.proExpiresAt
+            retailer.tierExpireAt = new_expire
         db.commit()
-        logger.info("[SLP] ✅ PRO 已激活 claim=%s retailer=%s ref=%s 到期=%s",
-                    claim_id, claim.retailerId, reference_id, claim.proExpiresAt)
+        logger.info(
+            "[SLP] ✅ PRO %s claim=%s retailer=%s ref=%s 加 %s 天 -> 到期=%s",
+            "續約" if is_renewal else "已激活",
+            claim_id, claim.retailerId, reference_id, days, new_expire,
+        )
         return Response(content="OK", media_type="text/plain")
 
     # ---- 退款降級 ----
