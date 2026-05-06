@@ -201,41 +201,69 @@ export default function MerchantDashboard() {
                   </Box>
                 )
               })()}
-              {!storeIsPro && (
-                <Box sx={{ mt: 3, pt: 2, borderTop: '1px solid #eaeaea' }}>
-                  <Typography variant="subtitle2" mb={1}>💎 升級 PRO 專業版</Typography>
-                  <Typography variant="body2" color="text.secondary" mb={1}>享有專業商家頁面、中獎牆展示、數據分析、優先搜尋排名等進階功能。</Typography>
-                  <Box sx={{ display: 'flex', gap: 2, mt: 2 }}>
-                    <Chip
-                      label="立即升級 PRO — NT$1,680/年"
-                      sx={{
-                        background: 'linear-gradient(135deg, #d4af37, #a855f7)',
-                        color: '#fff', fontWeight: 600, fontSize: '0.9rem',
-                        px: 2, py: 2.5, cursor: 'pointer',
-                        '&:hover': { opacity: 0.9, transform: 'scale(1.02)' },
-                      }}
-                      onClick={async () => {
-                        if (!store?.claimId) {
-                          enqueueSnackbar('找不到認領資料，請聯繫管理員', { variant: 'error' })
-                          return
-                        }
-                        try {
-                          const { fetchCheckoutUrl } = await import('../api')
-                          const data = await fetchCheckoutUrl(store.claimId!)
-                          if (data.checkoutUrl) {
-                            window.open(data.checkoutUrl, '_blank')
-                          } else {
-                            enqueueSnackbar('無法取得付款連結', { variant: 'error' })
-                          }
-                        } catch {
-                          enqueueSnackbar('取得付款連結失敗', { variant: 'error' })
-                        }
-                      }}
-                      clickable
-                    />
+              {(() => {
+                // 永久 PRO 不顯示按鈕
+                const isPermanent = store.tierExpireAt && new Date(store.tierExpireAt).getFullYear() >= 9999
+                if (isPermanent) return null
+
+                const isRenewal = storeIsPro
+                const expireDate = store.tierExpireAt ? new Date(store.tierExpireAt) : null
+                // 預估續約後到期日 = MAX(現在到期日, now) + 365 天
+                const projectedExpire = (() => {
+                  const base = expireDate && expireDate > new Date() ? expireDate : new Date()
+                  const d = new Date(base)
+                  d.setDate(d.getDate() + 365)
+                  return d
+                })()
+                const onClick = async () => {
+                  if (!store?.claimId) {
+                    enqueueSnackbar('找不到認領資料，請聯繫管理員', { variant: 'error' })
+                    return
+                  }
+                  try {
+                    const { fetchCheckoutUrl } = await import('../api')
+                    const data = await fetchCheckoutUrl(store.claimId!)
+                    if (data.checkoutUrl) {
+                      window.open(data.checkoutUrl, '_blank')
+                    } else {
+                      enqueueSnackbar('無法取得付款連結', { variant: 'error' })
+                    }
+                  } catch {
+                    enqueueSnackbar('取得付款連結失敗', { variant: 'error' })
+                  }
+                }
+                return (
+                  <Box sx={{ mt: 3, pt: 2, borderTop: '1px solid #eaeaea' }}>
+                    <Typography variant="subtitle2" mb={1}>
+                      {isRenewal ? '💎 續約 PRO 專業版' : '💎 升級 PRO 專業版'}
+                    </Typography>
+                    {isRenewal ? (
+                      <Typography variant="body2" color="text.secondary" mb={1}>
+                        提前續約不浪費剩餘天數，付款後到期日延長至 <b>{projectedExpire.toLocaleDateString()}</b>。
+                      </Typography>
+                    ) : (
+                      <Typography variant="body2" color="text.secondary" mb={1}>
+                        享有專業商家頁面、中獎牆展示、數據分析、優先搜尋排名等進階功能。
+                      </Typography>
+                    )}
+                    <Box sx={{ display: 'flex', gap: 2, mt: 2 }}>
+                      <Chip
+                        label={isRenewal ? '續約 PRO — NT$1,680/再加 1 年' : '立即升級 PRO — NT$1,680/年'}
+                        sx={{
+                          background: isRenewal
+                            ? 'linear-gradient(135deg, #2e7d32, #43a047)'
+                            : 'linear-gradient(135deg, #d4af37, #a855f7)',
+                          color: '#fff', fontWeight: 600, fontSize: '0.9rem',
+                          px: 2, py: 2.5, cursor: 'pointer',
+                          '&:hover': { opacity: 0.9, transform: 'scale(1.02)' },
+                        }}
+                        onClick={onClick}
+                        clickable
+                      />
+                    </Box>
                   </Box>
-                </Box>
-              )}
+                )
+              })()}
             </CardContent>
           </Card>
         </Grid>
