@@ -143,8 +143,17 @@ function markerToRetailer(m: MapMarkerData): RetailerData {
         hasAccessibility: false, hasEPay: false, hasStrategy: false,
         hasNumberPick: false, hasScratchBoard: false, hasMagnifier: false,
         hasReadingGlasses: false, hasNewspaper: false, hasSportTV: false,
-        announcement: '',
+        announcement: m.announcement || '',
     }
+}
+
+/** 過期感知 PRO 判斷 (與 admin/utils/tier.ts 邏輯一致) */
+function isMarkerPro(m: { merchantTier?: string; tierExpireAt?: string | null }): boolean {
+    if (!m || m.merchantTier !== 'pro') return false
+    if (!m.tierExpireAt) return true
+    const t = new Date(m.tierExpireAt).getTime()
+    if (Number.isNaN(t)) return true
+    return t > Date.now()
 }
 
 /** 統一縣市字眼（將「臺」替換為「台」） */
@@ -207,7 +216,7 @@ function groupRetailersByAddress(retailers: RetailerData[]): GroupedRetailer[] {
             : group.lottery
                 ? 'lotteryOnly'
                 : 'sportOnly'
-        const isPro = (group.lottery?.merchantTier === 'pro') || (group.sport?.merchantTier === 'pro')
+        const isPro = isMarkerPro(group.lottery) || isMarkerPro(group.sport)
         const isJackpot = ((group.lottery?.jackpotCount || 0) > 0) || ((group.sport?.jackpotCount || 0) > 0)
         result.push({
             key: `${representative.id}-${address}`,
@@ -298,7 +307,7 @@ function RetailerPopupSection({
     setRatingRetailer: (r: RetailerData | null) => void
     officialInventory?: MerchantInventoryData[]
 }) {
-    const isPro = retailer.merchantTier === 'pro'
+    const isPro = isMarkerPro(retailer)
     const facilities = isPro ? getActiveFacilities(retailer) : []
 
     return (

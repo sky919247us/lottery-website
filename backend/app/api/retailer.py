@@ -31,7 +31,8 @@ def get_map_markers(
     query = db.query(
         Retailer.id, Retailer.name, Retailer.lat, Retailer.lng,
         Retailer.city, Retailer.district, Retailer.source,
-        Retailer.isClaimed, Retailer.merchantTier, Retailer.jackpotCount,
+        Retailer.isClaimed, Retailer.merchantTier, Retailer.tierExpireAt,
+        Retailer.announcement, Retailer.jackpotCount,
         Retailer.address,
     ).filter(
         Retailer.isActive == True,
@@ -58,6 +59,8 @@ def get_map_markers(
             id=r.id, name=r.name, lat=r.lat, lng=r.lng,
             city=r.city, district=r.district, source=r.source,
             isClaimed=r.isClaimed, merchantTier=r.merchantTier or "",
+            tierExpireAt=r.tierExpireAt.isoformat() if r.tierExpireAt else None,
+            announcement=r.announcement or "",
             jackpotCount=r.jackpotCount or 0, address=r.address,
         )
         for r in rows

@@ -166,6 +166,7 @@ export interface RetailerData {
     // Phase 3：認領
     isClaimed: boolean
     merchantTier: string
+    tierExpireAt?: string | null
     announcement: string
     // Phase 4
     jackpotCount: number
@@ -213,6 +214,8 @@ export interface MapMarkerData {
     address: string
     isClaimed: boolean
     merchantTier: string
+    tierExpireAt?: string | null
+    announcement?: string
     jackpotCount: number
 }
 

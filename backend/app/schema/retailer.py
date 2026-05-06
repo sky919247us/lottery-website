@@ -53,6 +53,8 @@ class RetailerMapMarker(BaseModel):
     address: str = ""
     isClaimed: bool = False
     merchantTier: str = ""
+    tierExpireAt: str | None = None  # ISO 字串
+    announcement: str = ""
     jackpotCount: int = 0
 
     model_config = {"from_attributes": True}
