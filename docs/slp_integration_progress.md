@@ -1,99 +1,127 @@
 # SHOPLINE Payments 串接進度紀錄
 
-> 最後更新：2026-05-05
+> 最後更新：2026-05-06
 
 ## 整體狀態
-**95% 完成** — Server API + Webhook 驗章皆已 end-to-end 跑通，剩 `trade.refund.succeeded` 退款 webhook 自動降級驗收。
+**98% 完成** — V1-V10 + V7 + 多店帳號管理全部驗收 OK。剩 V11 退款 webhook 自動降級（等 SLP 退款流程完成 1-3 工作日）+ V12-V18 待用戶有空時驗。
 
 ---
 
-## 已完成 ✅
+## 驗收進度（V1-V18）
+
+| Phase | # | 項目 | 狀態 |
+|---|---|---|---|
+| 1 | V1 | LINE 登入 | ✅ |
+| 1 | V2 | 認領店家 | ✅ |
+| 1 | V3 | 超管審核 | ✅ |
+| 1 | V4 | 商家後台首登 | ✅ |
+| 2 | V5 | 第 1 家升級 PRO（真刷 NT$1,680 + 3DS）| ✅ |
+| 2 | V6 | 公開店家頁可訪問 | ✅ |
+| 2 | V7 | 公告顯示在地圖 | ✅（修復：地圖 marker 端點原本沒回 announcement / tierExpireAt） |
+| 3 | V8 | 多店認領 | ✅ |
+| 3 | V9 | 多店切換器顯示 | ✅ |
+| 3 | V10 | 第 2 家獨立升級 | ✅ |
+| 4 | V11 | 退款 webhook 自動降級 | ⏳ 等 SLP 處理完退款 |
+| 4 | V12 | 超管手動升降級 | ⏸ 待驗 |
+| 4 | V13 | 過期自動降級排程（每小時 :15）| ⏸ 待驗 |
+| 4 | V14 | 續約累加到期日 | ⏸ 待驗 |
+| 5 | V15-V18 | 權限與安全（webhook 偽造、403、409、付款取消等）| ⏸ 待驗 |
+
+---
+
+## 已完成功能 ✅
 
 ### 1. 後端骨架
-- `backend/app/service/slp_client.py`
-  - SLP API client (POST 結帳 / 查詢 / 退款)
-  - Webhook 驗章（已確認演算法 — 見下節）
-- `backend/app/api/payment_slp.py`
-  - `GET  /api/payment/slp/claim/{id}/checkout-url` 取結帳連結
-  - `POST /api/payment/slp/create` 進階建單（備用）
-  - `POST /api/payment/slp/webhook` 接事件 + 升級/降級邏輯
-- `app/main.py` 已掛載 router
+- `backend/app/service/slp_client.py` — SLP API client + webhook 驗章
+- `backend/app/api/payment_slp.py` — checkout / webhook / refund 端點
+- `backend/app/service/tier_service.py` — `is_retailer_pro()` + `expire_overdue_pro()`
+- `app/main.py` 已掛載 router + 加每小時 :15 過期降級排程
 
 ### 2. 前端整合
-- `frontend/src/admin/api.ts` `fetchCheckoutUrl()` 改打 SLP endpoint
-  - 注意：因 SLP endpoint 在 `/api/payment/slp/...` 而非 `/api/admin/...` 下，
-    繞過 adminApi baseURL prefix，用絕對路徑呼叫
-- `frontend/src/components/PlanCard.tsx` 同步更新（雖然實際入口在 MerchantDashboard）
+- `frontend/src/admin/api.ts` `fetchCheckoutUrl()` 改打 SLP（用絕對路徑繞過 adminApi prefix）
+- `frontend/src/admin/utils/tier.ts` `isStorePro()` helper（過期感知）
+- `frontend/src/components/PlanCard.tsx` 同步更新
+- `frontend/src/admin/pages/MerchantDashboard.tsx` tier 徽章 + 升級按鈕都改用 `isStorePro()`
+- `frontend/src/pages/CommunityMap.tsx` 地圖 popup 顯示 PRO 公告（修復 V7）
 
 ### 3. 商家權限分級（PRO gate）
-- 側邊欄「專屬頁面」非 PRO 不顯示
-- 「店鋪公告」textarea 非 PRO 鎖定 + 顯示「PRO 限定」徽章
-- `/admin/merchant/store-page` 直接 URL 進入也會被 redirect
-- 後端 `update_my_store` 拒絕非 PRO 寫入 `announcement`
-- `store_page.py` 寫入端點原本就有 PRO check
+| 元件 | 行為 |
+|---|---|
+| 側邊欄「專屬頁面」 | 非 PRO 不顯示 |
+| 「店鋪公告」textarea | 非 PRO 鎖定 + 顯示「PRO 限定」徽章 |
+| `/admin/merchant/store-page` 直接 URL | 非 PRO `<Navigate>` 踢回 dashboard |
+| 後端 `update_my_store` | 非 PRO 寫入 `announcement` 自動忽略 |
+| 後端 `store_page.py` 寫入端點 | 既有 PRO check + 改用 `is_retailer_pro()` 含過期檢查 |
 
-### 4. SLP API 規格已校準
+### 4. 多店架構 ✅
+- 後端 `_admin_to_dict` 對 MERCHANT 角色多回傳 `stores: [{retailerId, retailerName, tier, proExpiresAt, tierExpireAt}, ...]`
+- `AdminUpdateRequest` 新增 `targetRetailerId` 欄位
+- `update_admin_user` 收到 targetRetailerId 後，PRO 升降級作用於指定店；做 ownership 檢查
+- 前端 AdminAccounts 多店帳號展開為 N 列（`rowId = adminId-retailerId`，DataGrid 用 `getRowId`）
+- 「關聯店家」欄顯示 #ID + 店名；「PRO 到期日」欄取該列店家的數值
+- 編輯多店行 → 對話框鎖定店家欄位 + 明示「僅作用於此店」+ 隱藏店家搜尋
+- payload 帶 `targetRetailerId`，後端僅更新該店
+
+### 5. 過期自動降級
+- `tier_service.expire_overdue_pro()` — 物理降級（tier→basic, paymentStatus→expired, expireAt→null）
+- 排程每小時 :15 跑一次
+- 前端 `isStorePro()` 即時反映過期狀態，不用等排程
+
+### 6. 續約累加（不覆蓋）
+- `payment_slp.py` upgrade 改為 `MAX(現有到期日, now) + 方案天數`
+- 冪等改為 `lemonsqueezyOrderId == reference_id` 對比（同一筆 webhook 重送會跳過，新訂單會接受）
+- 由 webhook amount 反查 `PLAN_TABLE`（未來加方案不用改 webhook）
+
+### 7. SLP API 規格已校準
 | 規則 | 確認結果 |
 |---|---|
-| Server API 認證 | 不需 HMAC，僅 `merchantId / apiKey / requestId` 三個 header |
-| `amount.value` | **以「分」為單位**（TWD 也要 ×100，如 1680 元 → 168000） |
+| Server API 認證 | 不需 HMAC，僅 `merchantId / apiKey / requestId` |
+| `amount.value` | 以「分」為單位（TWD 也要 ×100） |
 | `allowPaymentMethodList` | PascalCase: `CreditCard / ApplePay / ChaileaseBNPL / VirtualAccount / JKOPay` |
 | `mode` | `regular` |
 | 必填 | `referenceId / amount / returnUrl / mode / allowPaymentMethodList / order(含 products + shipping) / customer(含 type + personalInfo) / billing(含 address) / client.ip` |
 
-### 5. Webhook 驗章演算法已破解
-透過 `backend/scripts/slp_sign_solver.py` 暴力比對找到：
+### 8. Webhook 驗章演算法（已破解）
 ```
 message = f"{timestamp}.".encode() + raw_body_bytes
 sign    = HMAC-SHA256(SLP_SIGN_KEY 字串, message).hexdigest()
 ```
-- header 名稱：`sign / timestamp / requestid / merchantid / idempotentkey`
-- timestamp 為**毫秒**（13 位數字）
-- payload 內欄位用 `type` 而非 `eventType`
-- `data.referenceId` 在 `session.succeeded` 才有；其他事件用 `data.order.customer.referenceCustomerId`（= claim_id）做 fallback
+- header：`sign / timestamp / requestid / merchantid / idempotentkey`
+- timestamp 為**毫秒**（13 位）
+- payload 用 `type` 而非 `eventType`
+- `data.referenceId` 在 `session.succeeded` 才有；其他事件用 `data.order.customer.referenceCustomerId`（= claim_id）
 
-### 6. 真實付款測試已通
-| 項目 | 結果 |
-|---|---|
-| 建立 session | ✅ 200 OK 回 sessionUrl |
-| 跳轉 SLP 結帳頁 | ✅ 商品名 + NT$1,680 顯示正確 |
-| 真信用卡刷 NT$1,680 + 3DS | ✅ 付款成功 |
-| `session.succeeded` webhook | ✅ 進入後升級 claim_id=13 → PRO |
-| 前端顯示「專業版 · 到期 2027/5/5」 | ✅ |
-| 「店鋪公告」textarea 解鎖 + 側邊欄出現「專屬頁面」 | ✅ |
-
-### 7. 其他附帶處理
-- 主爬蟲 cron 由 `01:00 UTC` 改為 `01:10 UTC`（台灣 09:10），避開台彩 09:00 上架的競態
-- 麻將大賓果 (5146) / 金鑽999 (5147) 兩款新刮刮樂手動觸發爬蟲後成功入庫
+### 9. 其他附帶
+- 主爬蟲 cron 由 01:00 UTC 改為 01:10 UTC（台灣 09:10）
+- log 雜訊清掉（PostgreSQL camelCase 索引 / 啟動訊息字串對齊）
+- 麻將大賓果 (5146) / 金鑽999 (5147) 已入庫
 
 ---
 
 ## 待完成 ⏳
 
-### 1. ⏳ 退款 webhook 自動降級驗收（等 SLP 送）
-- 已申請退刷（NT$1,680，台灣時間 2026-05-05 13:56:59）
-- SLP 後台顯示「退款中」（13:56 至少 1 hr 後仍同狀態）
-- 卡別 Visa BUSINESS / 發卡行 CHINATRUST，預期數小時 ~ 1 工作日內完成
-- 等 `trade.refund.succeeded` 進來
-- 預期看到 log：
+### 1. ⏳ V11 退款 webhook 自動降級（等 SLP）
+- 已申請退刷（NT$1,680，2026-05-05 13:56:59）
+- SLP 退款流程：「退款中」 → 卡組織 → 發卡行 → 通知 SLP → 觸發 `trade.refund.succeeded` webhook
+- 預期 log（驗證點）：
   ```
+  ============================================================
+  REFUND BODY (xxx bytes): {...}  ← 預留 debug dump
+  ============================================================
   SLP webhook event=trade.refund.succeeded ...
   從 customer.referenceCustomerId 解析 claim_id=13
   [SLP] ⚠️ PRO 已退款降級 claim=13
   ```
-- DB 應自動變回 `tier=basic, paymentStatus=refunded`
+- 若 webhook body 解析不出 claim_id，會看到 `找不到 claim_id, 忽略` → 用 dump 出來的 body 補解析
 
-### 2. 待修小雜訊（不影響服務）
-- log 重複報 `column "isactive" does not exist`（索引建立 case 錯誤）
-- log 訊息「APScheduler 已啟動，每日 09:00 (台灣時間)」未跟著 cron 改成 09:10
+### 2. ⏸ V12-V18 待用戶有空時驗
+詳細步驟見對話歷史「完整驗證清單」段落。
 
-### 3. `.env` 設定 `FRONTEND_URL=https://i168.win`
-- 目前付完款導回 `localhost:5173`（VPS 的 .env 沒設或寫錯）
-- 不影響功能（升級依賴 webhook 不依賴 returnUrl），僅 UX
-
-### 4. 完成後保險措施（建議）
-- 把 `slp_sign_solver.py` 從 git 移除或加 `.gitignore`（含 prod sign_key）
-- 寫一份小 README 說明 webhook 簽章演算法（給未來的自己 / 同事）
+### 3. 待修小細節
+- VPS `.env` 設 `FRONTEND_URL=https://i168.win`（目前付完款導回 localhost:5173）
+- 把 `slp_sign_solver.py` 從 git 移除或加 `.gitignore`（含 prod sign_key 範例）
+- 寫一份小 README 說明 webhook 簽章演算法
+- 多店帳號的 reset password / delete 操作目前作用於 admin 整體（所有店共用一組密碼），UI 上沒顯式說明，未來可加 tooltip
 
 ---
 
@@ -103,13 +131,13 @@ SLP_MERCHANT_ID=7499895708842198260
 SLP_API_KEY=sk_product_cf4089c4d95b4280b091989c583ca17d
 SLP_SIGN_KEY=89e3c467a4cf40178a9743fe4f884b4d
 SLP_BASE_URL=https://api.shoplinepayments.com
-SLP_SIGN_ALGO=hmac_sha256_sorted_body  # 已棄用，可刪
 FRONTEND_URL=https://i168.win  # 待補
 ```
 
 ---
 
-## 重要 commit 記錄
+## 重要 commit 時間軸
+
 | commit | 內容 |
 |---|---|
 | `dfd420b` | 新增 SLP 串接骨架 |
@@ -119,14 +147,22 @@ FRONTEND_URL=https://i168.win  # 待補
 | `3999b18` | amount.value 改用 cents |
 | `e473d0a` | MerchantDashboard 升級按鈕改打 SLP |
 | `75997ab` | 商家專屬頁面 / 店鋪公告 PRO gate |
-| `e7f7b4c` | webhook debug dump（已還原） |
+| `e7f7b4c` | webhook debug dump（用以反推簽章） |
 | `4ece98d` | webhook 簽章演算法確定 + 還原強制驗章 |
+| `6a23b96` | 修正手動降級失效 + refund webhook 找不到 claim_id |
+| `5dbe6af` | PRO 過期自動視為 basic + 每小時排程物理降級 |
+| `f661953` | 索引欄名加引號 + 啟動訊息字串對齊 |
+| `c646136` | 續約累加到期日 (#17) |
+| `02aaf9d` | merchant-dashboard tier 徽章與升級按鈕加入過期檢查 |
+| `5b1548a` | 公開地圖顯示 PRO 商家公告 + 過期感知 |
+| `65271cc` | 後台帳號列表顯示所有關聯店家 (多店) |
+| `377ad9a` | 多店帳號改為一店一列, 支援逐店 PRO 升降級 |
 
 ---
 
 ## 已知 SLP webhook 事件結構
 
-### `session.succeeded` (含 referenceId 主索引)
+### `session.succeeded` (含 referenceId)
 ```json
 {
   "type": "session.succeeded",
@@ -156,7 +192,7 @@ FRONTEND_URL=https://i168.win  # 待補
     "referenceOrderId": "RL01...",
     "order": {
       "amount": {...},
-      "customer": {"referenceCustomerId": "13"},  // = claim_id
+      "customer": {"referenceCustomerId": "13"},
       "merchantId": "...",
       "referenceOrderId": "..."
     },
@@ -170,3 +206,5 @@ FRONTEND_URL=https://i168.win  # 待補
 ```
 
 ### `trade.refund.succeeded` (待收到第一筆驗證結構)
+- 預留 debug dump，收到時自動 log 完整 body
+- 解析策略：先試 `data.referenceId`，再試 `data.order.customer.referenceCustomerId`，再用 `referenceOrderId` 反查
