@@ -80,6 +80,7 @@ class MechanicParser:
 # ============================================================
 
 class GeminiParser(MechanicParser):
+    """新版使用 google-genai SDK (v1 endpoint), 替代已 deprecated 的 google-generativeai (v1beta)"""
     name = "gemini"
 
     def __init__(self) -> None:
@@ -89,22 +90,24 @@ class GeminiParser(MechanicParser):
             raise RuntimeError("GEMINI_API_KEY 未設定")
 
         try:
-            import google.generativeai as genai
+            from google import genai
+            from google.genai import types
         except ImportError as e:
-            raise RuntimeError("缺少套件 google-generativeai，請 pip install") from e
+            raise RuntimeError("缺少套件 google-genai，請 pip install google-genai") from e
 
-        genai.configure(api_key=self.api_key)
-        self._genai = genai
-        self._model = genai.GenerativeModel(
-            self.model,
-            generation_config={
-                "response_mime_type": "application/json",
-                "temperature": 0.2,
-            },
+        self._client = genai.Client(api_key=self.api_key)
+        self._types = types
+        self._gen_config = types.GenerateContentConfig(
+            response_mime_type="application/json",
+            temperature=0.2,
         )
 
-    def _call(self, parts: list) -> ParseResult:
-        resp = self._model.generate_content(parts)
+    def _call(self, contents) -> ParseResult:
+        resp = self._client.models.generate_content(
+            model=self.model,
+            contents=contents,
+            config=self._gen_config,
+        )
         text = (resp.text or "").strip()
         try:
             data = json.loads(text)
@@ -117,12 +120,12 @@ class GeminiParser(MechanicParser):
         return self._call([PROMPT, "玩法原文：\n" + text])
 
     def parse_image_url(self, url: str) -> ParseResult:
-        # 下載圖片，包成 bytes 給 Gemini
+        # 下載圖片，包成 Part 給 Gemini
         import requests
         r = requests.get(url, timeout=15)
         r.raise_for_status()
         mime = r.headers.get("content-type", "image/jpeg").split(";")[0]
-        image_part = {"mime_type": mime, "data": r.content}
+        image_part = self._types.Part.from_bytes(data=r.content, mime_type=mime)
         return self._call([PROMPT, image_part])
 
 
