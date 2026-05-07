@@ -99,13 +99,23 @@ scheduler = BackgroundScheduler()
 
 
 def _run_crawler_job():
-    """爬蟲排程任務：在背景執行緒中起動 asyncio 事件迴圈執行爬蟲"""
+    """爬蟲排程任務：在背景執行緒中起動 asyncio 事件迴圈執行爬蟲。
+    爬蟲跑完後立即觸發 AI 玩法解析 (只處理尚未解析的新款), 讓新遊戲當天就有玩法資料.
+    """
     logger.info("⏰ 排程觸發：開始執行每日爬蟲...")
     try:
         result = asyncio.run(run_crawler())
         logger.info(f"✅ 每日爬蟲完成，共寫入 {result} 筆資料")
     except Exception as e:
         logger.error(f"❌ 每日爬蟲失敗: {e}")
+        return
+
+    # 爬蟲完接著跑 AI 玩法解析 (跳過已解析的, 只處理新款)
+    try:
+        logger.info("⏰ 串接 AI 玩法解析 (新款)...")
+        _run_mechanic_parse_job()
+    except Exception as e:
+        logger.error(f"❌ 玩法解析失敗: {e}")
 
 def _run_pro_expire_downgrade():
     """每小時掃描 tier=pro 但已過期的店家，自動物理降級為 basic"""
