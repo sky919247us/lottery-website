@@ -18,6 +18,7 @@ import {
     Shield, Star, Megaphone, Package, PartyPopper, Map as MapIcon, List, Trophy
 } from 'lucide-react'
 import { Link } from 'react-router-dom'
+import { Autocomplete, TextField, CircularProgress } from '@mui/material'
 import {
     fetchRetailers, fetchNearbyRetailers, fetchCheckins, createCheckin,
     fetchInventory, reportInventory, fetchMerchantOfficialInventory,
@@ -552,6 +553,10 @@ export default function CommunityMap() {
     const [gameName, setGameName] = useState('')
     const [submitting, setSubmitting] = useState(false)
     const [showCheckin, setShowCheckin] = useState(false)
+    // 款式搜尋 (打卡用)
+    const [checkinGameInput, setCheckinGameInput] = useState('')
+    const [checkinGameOptions, setCheckinGameOptions] = useState<ScratchcardSearchItem[]>([])
+    const [checkinGameLoading, setCheckinGameLoading] = useState(false)
 
     // 庫存回報
     const [showInventoryReport, setShowInventoryReport] = useState(false)
@@ -819,6 +824,26 @@ export default function CommunityMap() {
         loadFullDataIfNeeded()
     }
 
+    // 打卡款式 debounce 搜尋
+    useEffect(() => {
+        if (!checkinGameInput) {
+            setCheckinGameOptions([])
+            return
+        }
+        const t = setTimeout(async () => {
+            setCheckinGameLoading(true)
+            try {
+                const res = await searchScratchcardsPublic(checkinGameInput)
+                setCheckinGameOptions(res)
+            } catch {
+                setCheckinGameOptions([])
+            } finally {
+                setCheckinGameLoading(false)
+            }
+        }, 300)
+        return () => clearTimeout(t)
+    }, [checkinGameInput])
+
     /** 打卡送出 */
     async function handleSubmit() {
         if (!isLoggedIn) { loginWithLine(); return }
@@ -834,6 +859,8 @@ export default function CommunityMap() {
             setCity('')
             setAmount('')
             setGameName('')
+            setCheckinGameInput('')
+            setCheckinGameOptions([])
         } catch {
             // 靜默處理
         } finally {
@@ -1162,10 +1189,44 @@ export default function CommunityMap() {
                                         value={amount}
                                         onChange={(e) => setAmount(e.target.value)}
                                     />
-                                    <input
-                                        placeholder="款式名稱（選填）"
-                                        value={gameName}
-                                        onChange={(e) => setGameName(e.target.value)}
+                                    <Autocomplete
+                                        freeSolo
+                                        size="small"
+                                        options={checkinGameOptions}
+                                        getOptionLabel={(opt) =>
+                                            typeof opt === 'string'
+                                                ? opt
+                                                : `${opt.gameId} ${opt.name}`
+                                        }
+                                        inputValue={checkinGameInput}
+                                        onInputChange={(_, val) => {
+                                            setCheckinGameInput(val)
+                                            // 自由輸入時也同步寫入 gameName 防使用者不選 option
+                                            setGameName(val)
+                                        }}
+                                        onChange={(_, val) => {
+                                            if (val && typeof val !== 'string') {
+                                                setGameName(val.name)
+                                                setCheckinGameInput(`${val.gameId} ${val.name}`)
+                                            }
+                                        }}
+                                        loading={checkinGameLoading}
+                                        sx={{ flex: 1, minWidth: 180 }}
+                                        renderInput={(params) => (
+                                            <TextField
+                                                {...params}
+                                                placeholder="款式名稱（選填，可搜尋期數/名稱）"
+                                                InputProps={{
+                                                    ...params.InputProps,
+                                                    endAdornment: (
+                                                        <>
+                                                            {checkinGameLoading ? <CircularProgress size={16} /> : null}
+                                                            {params.InputProps.endAdornment}
+                                                        </>
+                                                    ),
+                                                }}
+                                            />
+                                        )}
                                     />
                                     <button
                                         className="community-map__submit-btn"
