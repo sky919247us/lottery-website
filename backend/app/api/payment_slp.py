@@ -222,7 +222,9 @@ async def slp_webhook(request: Request, db: Session = Depends(get_db)):
         return Response(content="OK", media_type="text/plain")
 
     # ---- session.succeeded: 升級 / 續約 ----
-    if event_type == "session.succeeded" or status_field in ("SUCCEEDED", "SUCCESS", "PAID"):
+    # 注意: 嚴格只認 event_type, 不可用 status_field 判斷
+    # (trade.refund.succeeded 的 status 也是 SUCCEEDED, 會被誤歸類)
+    if event_type == "session.succeeded":
         claim_id = _parse_claim_id(reference_id)
         if not claim_id:
             logger.info("session.succeeded 非 PRO_CLAIM 格式 ref=%s, 忽略", reference_id)
