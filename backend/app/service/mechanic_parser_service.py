@@ -153,21 +153,70 @@ def get_parser() -> MechanicParser:
 ALLOWED_RESULT_SPEED = {"instant", "multi_zone", "sequence", "multi_step", "compare"}
 
 
-def normalize(result: dict) -> dict:
-    """把 AI 回傳結果整形為 DB 欄位 (camelCase) schema：
-    AI prompt 用 snake_case 輸出, 這裡轉為 DB 用 camelCase, 缺欄補預設、限制範圍.
+ALLOWED_MECHANIC_TYPES = {
+    "match3", "match_any", "bingo_line", "multiplier", "bonus_symbol", "wild",
+    "bonus_game", "lucky_number", "extra_chance", "beat_dealer", "higher_lower",
+    "sum_target", "word_game", "crossword", "bingo_card", "line_match",
+}
+ALLOWED_LAYOUT = {"single_zone", "multi_zone", "full_board"}
+# parsedTags 允許 mechanicTypes 全集 + 部分子標籤 (但不該含 layout / result_speed)
+ALLOWED_PARSED_TAGS = ALLOWED_MECHANIC_TYPES | {"lucky_number", "wild", "bonus_symbol", "multiplier"}
+
+# 同義詞合併 (AI 偶爾發散出非標準命名)
+TAG_ALIASES = {
+    "bingo_card": "bingo_line",  # 賓果卡 = 賓果連線, 同義合併
+}
+
+
+def _aslist(v) -> list:
+    """字串自動包成 [str], None 變 [], 已是 list 原樣回傳.
+    避免 list('multi_zone') 把字串拆成字元陣列.
     """
-    # 兼容: AI 可能用 snake_case (規範) 或 camelCase 回應, 兩者都接
+    if v is None:
+        return []
+    if isinstance(v, str):
+        return [v] if v.strip() else []
+    if isinstance(v, list):
+        return list(v)
+    return [str(v)]
+
+
+def _filter_tags(tags: list, allowed: set) -> list:
+    """過濾標籤: 應用同義詞 + 白名單 + 去重 + 保序"""
+    seen = set()
+    out = []
+    for t in tags:
+        if not isinstance(t, str):
+            continue
+        t = t.strip().lower()
+        t = TAG_ALIASES.get(t, t)  # 套用同義詞
+        if t and t in allowed and t not in seen:
+            seen.add(t)
+            out.append(t)
+    return out
+
+
+def normalize(result: dict) -> dict:
+    """把 AI 回傳結果整形為 DB 欄位 (camelCase) schema:
+    - 字串自動包 array (避免 list("multi_zone") 拆字元)
+    - 套用同義詞合併
+    - 用白名單過濾雜訊 / 串維度錯置
+    - 限制 complexityScore 範圍
+    """
     def _g(*keys, default=None):
         for k in keys:
             if k in result and result[k] is not None:
                 return result[k]
         return default
 
+    raw_mech = _aslist(_g("mechanic_types", "mechanicTypes"))
+    raw_parsed = _aslist(_g("parsed_tags", "parsedTags"))
+    raw_layout = _aslist(_g("layout_tags", "layoutTags"))
+
     out = {
-        "mechanicTypes": list(_g("mechanic_types", "mechanicTypes", default=[]) or []),
-        "parsedTags": list(_g("parsed_tags", "parsedTags", default=[]) or []),
-        "layoutTags": list(_g("layout_tags", "layoutTags", default=[]) or []),
+        "mechanicTypes": _filter_tags(raw_mech, ALLOWED_MECHANIC_TYPES),
+        "parsedTags": _filter_tags(raw_parsed, ALLOWED_PARSED_TAGS),
+        "layoutTags": _filter_tags(raw_layout, ALLOWED_LAYOUT),
         "complexityScore": int(_g("complexity_score", "complexityScore", default=0) or 0),
         "resultSpeed": str(_g("result_speed", "resultSpeed", default="") or "").lower(),
         "aiDescription": str(_g("ai_description", "aiDescription", default="") or "").strip(),
