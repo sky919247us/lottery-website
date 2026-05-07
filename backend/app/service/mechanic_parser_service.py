@@ -15,7 +15,7 @@
   "parsed_tags":    ["match3", "multiplier", "bonus_game", ...],
   "layout_tags":    ["multi_zone"],
   "complexity_score": 3,
-  "result_speed":  "instant" | "multi_zone" | "sequence",
+  "result_speed":  "instant" | "multi_step" | "compare" | "sequence",
   "ai_description": "50 字以內繁中玩法介紹"
 }
 """
@@ -33,23 +33,28 @@ logger = logging.getLogger(__name__)
 
 PROMPT = """你是台灣刮刮樂玩法分析師。請分析以下玩法說明，輸出嚴格 JSON。
 
-### 標籤詞彙表
-- 配對機制：match3 / match_any / bingo_line
+### 標籤詞彙表（請嚴格從以下選擇，不要自創）
+- 配對機制：match3 / match_any / bingo_line / line_match
 - 特殊符號：multiplier / bonus_symbol / wild
 - 附加遊戲：bonus_game / lucky_number / extra_chance
 - 比大小：beat_dealer / higher_lower
 - 數字加總：sum_target / word_game
-- 連線型：crossword / bingo_card / line_match
-- 佈局型態：single_zone / multi_zone / full_board
-- 結果速度：instant / multi_step / compare
+- 佈局型態（layout_tags 專用）：single_zone / multi_zone / full_board
+- 結果速度（result_speed 專用）：instant / multi_step / compare / sequence
+
+### 重要規則
+1. parsed_tags 只放「配對機制 / 特殊符號 / 附加遊戲 / 比大小 / 數字加總」標籤，
+   **不可**含佈局型態或結果速度標籤 (這些有專屬欄位)
+2. layout_tags 只放佈局型態標籤
+3. result_speed 只放結果速度的單一值 (字串, 非陣列)
 
 ### 輸出 schema（只輸出 JSON，無其他文字）
 {
-  "mechanic_types": ["..."],         // 主要玩法機制（從前 6 類選擇）
-  "parsed_tags":    ["..."],         // 所有適用標籤（含上面任意組合）
-  "layout_tags":    ["..."],         // 從佈局型態選 1
+  "mechanic_types": ["..."],         // 主要玩法機制
+  "parsed_tags":    ["..."],         // 所有適用標籤（不含 layout / result_speed）
+  "layout_tags":    ["multi_zone"],  // 從佈局型態選 1，務必為陣列
   "complexity_score": 1-5,           // 1=刮開即知 5=規則複雜
-  "result_speed":  "instant"|"multi_zone"|"sequence",
+  "result_speed":  "instant",        // 從結果速度四選一，字串
   "ai_description": "50 字以內繁中介紹"
 }
 """
@@ -150,7 +155,9 @@ def get_parser() -> MechanicParser:
 # 驗證解析結果
 # ============================================================
 
-ALLOWED_RESULT_SPEED = {"instant", "multi_zone", "sequence", "multi_step", "compare"}
+ALLOWED_RESULT_SPEED = {"instant", "multi_step", "compare", "sequence"}
+# 同義詞映射: 早期 multi_zone 誤填在 result_speed 欄位 (應該是 layout 維度)
+RESULT_SPEED_ALIASES = {"multi_zone": "multi_step"}
 
 
 ALLOWED_MECHANIC_TYPES = {
@@ -218,7 +225,10 @@ def normalize(result: dict) -> dict:
         "parsedTags": _filter_tags(raw_parsed, ALLOWED_PARSED_TAGS),
         "layoutTags": _filter_tags(raw_layout, ALLOWED_LAYOUT),
         "complexityScore": int(_g("complexity_score", "complexityScore", default=0) or 0),
-        "resultSpeed": str(_g("result_speed", "resultSpeed", default="") or "").lower(),
+        "resultSpeed": RESULT_SPEED_ALIASES.get(
+            str(_g("result_speed", "resultSpeed", default="") or "").lower(),
+            str(_g("result_speed", "resultSpeed", default="") or "").lower(),
+        ),
         "aiDescription": str(_g("ai_description", "aiDescription", default="") or "").strip(),
     }
     out["complexityScore"] = max(0, min(5, out["complexityScore"]))
