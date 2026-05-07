@@ -72,11 +72,18 @@ def _admin_to_dict(admin: AdminUser, db: Session = None) -> dict:
             for rid in retailer_ids:
                 r = r_by_id.get(rid)
                 c = c_by_rid.get(rid)
+                # 到期日來源優先順序: claim.proExpiresAt > retailer.tierExpireAt
+                # (有些商家直接建立 admin 沒走 claim 流程, 仍要顯示 retailer 上的到期日)
+                expire_iso = None
+                if c and c.proExpiresAt:
+                    expire_iso = c.proExpiresAt.isoformat()
+                elif r and r.tierExpireAt:
+                    expire_iso = r.tierExpireAt.isoformat()
                 stores.append({
                     "retailerId": rid,
                     "retailerName": r.name if r else f"#{rid}",
                     "tier": (c.tier if c else r.merchantTier) if (c or r) else "basic",
-                    "proExpiresAt": c.proExpiresAt.isoformat() if c and c.proExpiresAt else None,
+                    "proExpiresAt": expire_iso,
                     "tierExpireAt": r.tierExpireAt.isoformat() if r and r.tierExpireAt else None,
                 })
 
@@ -94,7 +101,7 @@ def _admin_to_dict(admin: AdminUser, db: Session = None) -> dict:
         "proExpiresAt": None,
         "stores": stores,
     }
-    # 商家角色：查詢 PRO 到期日
+    # 商家角色：查詢 PRO 到期日 (優先 claim.proExpiresAt, 退用 retailer.tierExpireAt)
     if db and admin.role == ROLE_MERCHANT and admin.retailerId:
         from app.model.merchant import MerchantClaim
         claim = db.query(MerchantClaim).filter(
@@ -103,6 +110,11 @@ def _admin_to_dict(admin: AdminUser, db: Session = None) -> dict:
         ).first()
         if claim and claim.proExpiresAt:
             result["proExpiresAt"] = claim.proExpiresAt.isoformat()
+        else:
+            # 沒有 claim 紀錄時 (例如直接建立的 admin), 退用 retailer.tierExpireAt
+            retailer = db.query(Retailer).filter(Retailer.id == admin.retailerId).first()
+            if retailer and retailer.tierExpireAt and (retailer.merchantTier or "").lower() == "pro":
+                result["proExpiresAt"] = retailer.tierExpireAt.isoformat()
     return result
 
 
