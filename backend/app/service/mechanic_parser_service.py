@@ -154,17 +154,25 @@ ALLOWED_RESULT_SPEED = {"instant", "multi_zone", "sequence", "multi_step", "comp
 
 
 def normalize(result: dict) -> dict:
-    """把 AI 回傳結果整形為 schema：缺欄補預設、去除多餘欄位、限制範圍"""
+    """把 AI 回傳結果整形為 DB 欄位 (camelCase) schema：
+    AI prompt 用 snake_case 輸出, 這裡轉為 DB 用 camelCase, 缺欄補預設、限制範圍.
+    """
+    # 兼容: AI 可能用 snake_case (規範) 或 camelCase 回應, 兩者都接
+    def _g(*keys, default=None):
+        for k in keys:
+            if k in result and result[k] is not None:
+                return result[k]
+        return default
+
     out = {
-        "mechanic_types": list(result.get("mechanic_types", []) or []),
-        "parsed_tags": list(result.get("parsed_tags", []) or []),
-        "layout_tags": list(result.get("layout_tags", []) or []),
-        "complexity_score": int(result.get("complexity_score", 0) or 0),
-        "result_speed": str(result.get("result_speed", "") or "").lower(),
-        "ai_description": str(result.get("ai_description", "") or "").strip(),
+        "mechanicTypes": list(_g("mechanic_types", "mechanicTypes", default=[]) or []),
+        "parsedTags": list(_g("parsed_tags", "parsedTags", default=[]) or []),
+        "layoutTags": list(_g("layout_tags", "layoutTags", default=[]) or []),
+        "complexityScore": int(_g("complexity_score", "complexityScore", default=0) or 0),
+        "resultSpeed": str(_g("result_speed", "resultSpeed", default="") or "").lower(),
+        "aiDescription": str(_g("ai_description", "aiDescription", default="") or "").strip(),
     }
-    # 限制範圍
-    out["complexity_score"] = max(0, min(5, out["complexity_score"]))
-    if out["result_speed"] not in ALLOWED_RESULT_SPEED:
-        out["result_speed"] = ""
+    out["complexityScore"] = max(0, min(5, out["complexityScore"]))
+    if out["resultSpeed"] not in ALLOWED_RESULT_SPEED:
+        out["resultSpeed"] = ""
     return out
