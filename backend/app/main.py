@@ -356,10 +356,10 @@ def on_startup():
         id="daily_db_backup",
         replace_existing=True,
     )
-    # 每天台灣凌晨 5:00 (UTC 21:00) 補抓玩法文字 + AI 解析（避開 Gemini 額度，遇 429 自動停）
+    # 每天台灣 09:15 (UTC 01:15) 補抓玩法文字 + AI 解析 (緊接主爬蟲 09:10 之後 5 分鐘)
     scheduler.add_job(
         _run_mechanic_parse_job,
-        trigger=CronTrigger(hour=21, minute=0),
+        trigger=CronTrigger(hour=1, minute=15),
         id="daily_mechanic_parse",
         replace_existing=True,
     )
