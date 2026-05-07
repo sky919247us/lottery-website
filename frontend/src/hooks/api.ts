@@ -41,6 +41,9 @@ export interface ScratchcardListItem {
     overallWinRate: string
     imageUrl: string
     redeemDeadline: string
+    /** AI 玩法資料 */
+    mechanicTypes?: string[]
+    complexityScore?: number
 }
 
 /** 詳情 */

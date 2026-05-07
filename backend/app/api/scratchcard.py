@@ -64,15 +64,31 @@ def get_scratchcard_list(
 
     items = query.all()
 
+    # 撈玩法資料 (一次查詢避免 N+1)
+    from app.model.game_mechanic import GameMechanic
+    item_ids = [it.id for it in items]
+    mech_map: dict[int, GameMechanic] = {}
+    if item_ids:
+        for m in db.query(GameMechanic).filter(GameMechanic.scratchcardId.in_(item_ids)).all():
+            mech_map[m.scratchcardId] = m
+
     # NOTE: 列表頁面直接回傳資料庫中的 overallWinRate，不再動態計算，若空白則顯示為 "—"
+    # 並把玩法資料附在每個 item 上
+    result = []
     for item in items:
         if not item.overallWinRate:
             item.overallWinRate = "—"
+        m = mech_map.get(item.id)
+        d = ScratchcardListItem.model_validate(item, from_attributes=True)
+        if m:
+            d.mechanicTypes = m.mechanicTypes or []
+            d.complexityScore = m.complexityScore or 0
+        result.append(d)
 
     # --- 存入快取 ---
-    set_cache(cache_key, items)
+    set_cache(cache_key, [r.model_dump() for r in result])
 
-    return items
+    return result
 
 
 @router.get("/{scratchcard_id}", response_model=ScratchcardDetail)

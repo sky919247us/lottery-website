@@ -8,6 +8,7 @@ import { motion } from 'framer-motion'
 import { Search, AlertTriangle, TrendingUp, Trophy, Flame, Sparkles, Percent, SlidersHorizontal, X, CalendarClock } from 'lucide-react'
 import { fetchScratchcards, fetchPreviewScratchcards, type ScratchcardListItem } from '../hooks/api'
 import SeoHead from '../components/SeoHead'
+import { MECHANIC_TYPES, COMPLEXITY_LEVELS } from '../constants/mechanicTags'
 import './Home.css'
 
 /** 排序選項 */
@@ -110,6 +111,8 @@ export default function Home() {
     const [priceFilter, setPriceFilter] = useState<number[]>([])
     const [maxPrizeMin, setMaxPrizeMin] = useState('')
     const [maxPrizeMax, setMaxPrizeMax] = useState('')
+    const [mechanicFilter, setMechanicFilter] = useState<string[]>([])
+    const [complexityFilter, setComplexityFilter] = useState<number[]>([])
 
     /** 可選面額 */
     const PRICE_OPTIONS = [100, 200, 300, 500, 1000, 2000]
@@ -185,6 +188,18 @@ export default function Home() {
             result = result.filter(c => c.maxPrizeAmount >= minPrize && c.maxPrizeAmount <= maxPrize)
         }
 
+        // 玩法機制篩選 (any-of: 卡片有任一勾選的機制即通過)
+        if (mechanicFilter.length > 0) {
+            result = result.filter(c =>
+                (c.mechanicTypes || []).some(t => mechanicFilter.includes(t))
+            )
+        }
+
+        // 複雜度篩選 (multi-select)
+        if (complexityFilter.length > 0) {
+            result = result.filter(c => complexityFilter.includes(c.complexityScore || 0))
+        }
+
         // 過期篩選
         if (!showExpired) {
             result = result.filter(c => !isExpired(c))
@@ -217,22 +232,35 @@ export default function Home() {
         }
 
         return result
-    }, [cards, search, sortMode, showExpired, priceFilter, maxPrizeMin, maxPrizeMax])
+    }, [cards, search, sortMode, showExpired, priceFilter, maxPrizeMin, maxPrizeMax, mechanicFilter, complexityFilter])
 
     /** 是否有任何篩選條件 */
-    const hasActiveFilters = priceFilter.length > 0 || maxPrizeMin !== '' || maxPrizeMax !== ''
+    const hasActiveFilters = priceFilter.length > 0 || maxPrizeMin !== '' || maxPrizeMax !== '' ||
+        mechanicFilter.length > 0 || complexityFilter.length > 0
 
     /** 清除全部篩選 */
     const clearFilters = () => {
         setPriceFilter([])
         setMaxPrizeMin('')
         setMaxPrizeMax('')
+        setMechanicFilter([])
+        setComplexityFilter([])
     }
 
     /** 切換面額篩選（多選） */
     const togglePrice = (price: number) => {
         setPriceFilter(prev =>
             prev.includes(price) ? prev.filter(p => p !== price) : [...prev, price]
+        )
+    }
+    const toggleMechanic = (code: string) => {
+        setMechanicFilter(prev =>
+            prev.includes(code) ? prev.filter(m => m !== code) : [...prev, code]
+        )
+    }
+    const toggleComplexity = (score: number) => {
+        setComplexityFilter(prev =>
+            prev.includes(score) ? prev.filter(s => s !== score) : [...prev, score]
         )
     }
 
@@ -426,6 +454,40 @@ export default function Home() {
                                     onChange={e => setMaxPrizeMax(e.target.value)}
                                     min="0"
                                 />
+                            </div>
+                        </div>
+
+                        {/* 玩法機制篩選 */}
+                        <div className="home__filter-group">
+                            <span className="home__filter-label">玩法機制（可複選）</span>
+                            <div className="home__filter-chips">
+                                {MECHANIC_TYPES.map(m => (
+                                    <button
+                                        key={m.code}
+                                        title={m.desc}
+                                        className={`filter-chip ${mechanicFilter.includes(m.code) ? 'filter-chip--active' : ''}`}
+                                        onClick={() => toggleMechanic(m.code)}
+                                    >
+                                        {m.emoji} {m.label}
+                                    </button>
+                                ))}
+                            </div>
+                        </div>
+
+                        {/* 複雜度篩選 */}
+                        <div className="home__filter-group">
+                            <span className="home__filter-label">複雜度（可複選）</span>
+                            <div className="home__filter-chips">
+                                {COMPLEXITY_LEVELS.map(c => (
+                                    <button
+                                        key={c.score}
+                                        title={c.desc}
+                                        className={`filter-chip ${complexityFilter.includes(c.score) ? 'filter-chip--active' : ''}`}
+                                        onClick={() => toggleComplexity(c.score)}
+                                    >
+                                        {c.label}
+                                    </button>
+                                ))}
                             </div>
                         </div>
 

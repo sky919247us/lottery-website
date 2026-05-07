@@ -36,6 +36,9 @@ class ScratchcardListItem(BaseModel):
     overallWinRate: str = ""
     imageUrl: str = ""
     redeemDeadline: str = ""
+    # AI 玩法資料（用於首頁進階篩選）
+    mechanicTypes: list[str] = []
+    complexityScore: int = 0
 
     model_config = {"from_attributes": True}
 
