@@ -293,6 +293,53 @@ export interface RatingSummaryData {
     facilityTagStats: Record<string, number>
 }
 
+/* === 我的錢包 API === */
+
+export interface PnLRecordRow {
+    id: number
+    gameName: string
+    scratchcardId: number | null
+    retailerId: number | null
+    spent: number
+    won: number
+    city: string | null
+    sharedToPublic: boolean
+    createdAt: string
+}
+
+export async function fetchWalletRecords(): Promise<PnLRecordRow[]> {
+    const { data } = await api.get('/api/wallet/records')
+    return data
+}
+
+export async function createWalletRecord(payload: {
+    gameName?: string
+    scratchcardId?: number | null
+    retailerId?: number | null
+    spent: number
+    won: number
+    city?: string | null
+    sharedToPublic?: boolean
+}): Promise<PnLRecordRow> {
+    const { data } = await api.post('/api/wallet/records', payload)
+    return data
+}
+
+export async function deleteWalletRecord(id: number): Promise<void> {
+    await api.delete(`/api/wallet/records/${id}`)
+}
+
+export async function fetchWalletPreferences(): Promise<{ lastCheckinCity: string | null }> {
+    const { data } = await api.get('/api/wallet/preferences')
+    return data
+}
+
+export async function updateWalletPreferences(p: { lastCheckinCity?: string | null }) {
+    const { data } = await api.put('/api/wallet/preferences', p)
+    return data
+}
+
+
 /* === 認證 API (LINE Login) === */
 
 /**

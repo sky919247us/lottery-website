@@ -16,7 +16,7 @@ from fastapi import FastAPI, Depends
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 
-from app.api import map, retailer, scratchcard, videos, user, inventory, merchant, festival, auth, rating, admin, upload, payment, payment_slp, store_page, webhooks, analytics, favorite
+from app.api import map, retailer, scratchcard, videos, user, inventory, merchant, festival, auth, rating, admin, upload, payment, payment_slp, store_page, webhooks, analytics, favorite, wallet
 from app.middleware.rate_limit import RateLimitMiddleware
 from app.model.database import init_db
 from app.service.crawler_service import run_crawler, run_preview_crawler
@@ -85,6 +85,7 @@ app.include_router(store_page.router)
 app.include_router(webhooks.router)
 app.include_router(analytics.router)
 app.include_router(favorite.router)
+app.include_router(wallet.router)
 
 # 掛載靜態檔案目錄供讀取圖片
 import os
@@ -116,6 +117,25 @@ def _run_crawler_job():
         _run_mechanic_parse_job()
     except Exception as e:
         logger.error(f"❌ 玩法解析失敗: {e}")
+
+def _run_checkin_ttl_cleanup():
+    """每日清理 90 天前的中獎打卡紀錄, 避免 checkins 表無限累加.
+    注意: PnL 錢包紀錄不受影響 (PnLRecord.userId 仍保留, 只是 checkinId 對應的 row 沒了)
+    """
+    from app.model.database import Checkin
+    from datetime import timedelta as _td
+    db = SessionLocal()
+    try:
+        cutoff = datetime.utcnow() - _td(days=90)
+        deleted = db.query(Checkin).filter(Checkin.createdAt < cutoff).delete()
+        if deleted:
+            db.commit()
+            logger.info("⏰ checkins TTL 清理: 刪除 %s 筆 (>90 天)", deleted)
+    except Exception as e:
+        logger.error("checkins TTL 清理失敗: %s", e)
+    finally:
+        db.close()
+
 
 def _run_pro_expire_downgrade():
     """每小時掃描 tier=pro 但已過期的店家，自動物理降級為 basic"""
@@ -347,6 +367,13 @@ def on_startup():
         _run_preview_crawler_job,
         trigger=CronTrigger(hour=2, minute=5),
         id="daily_preview_crawler",
+        replace_existing=True,
+    )
+    # 每天台灣 04:30 (UTC 20:30) 清理 90 天前的中獎打卡紀錄
+    scheduler.add_job(
+        _run_checkin_ttl_cleanup,
+        trigger=CronTrigger(hour=20, minute=30),
+        id="daily_checkin_ttl_cleanup",
         replace_existing=True,
     )
     # 每天台灣凌晨 4:00 (UTC 20:00) 自動執行資料庫備份

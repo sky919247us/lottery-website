@@ -58,6 +58,7 @@ class User(Base):
     karmaPoints = Column(Integer, default=0, comment="Karma 總積分")
     karmaLevel = Column(Integer, default=1, comment="目前等級 1~10")
     isBanned = Column(Integer, default=0, comment="是否封禁 (0=否, 1=是)")
+    lastCheckinCity = Column(String(20), nullable=True, comment="上次中獎打卡縣市 (錢包紀錄預設帶入)")
     createdAt = Column(DateTime, default=datetime.utcnow)
 
     # 關聯

@@ -1,20 +1,32 @@
 /**
  * 「我的錢包」個人損益儀表板
- * 使用 LocalStorage 儲存損益紀錄
- * 含累計損益折線圖（SVG）與投報率圓環指標
+ * 改為後端 API 持久化 (LINE 登入後跨裝置同步)
+ * 含累計損益折線圖、投報率圓環指標
+ * 支援:
+ * - 中獎紀錄選填縣市 + opt-in 同步到全台熱區 (匿名)
+ * - 縣市偏好寫入 user.lastCheckinCity (下次預設帶入)
  */
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { motion } from 'framer-motion'
 import { Plus, Trash2, Wallet, TrendingUp, TrendingDown, BarChart3 } from 'lucide-react'
-import { Autocomplete, TextField, CircularProgress } from '@mui/material'
+import { Autocomplete, TextField, CircularProgress, Checkbox, FormControlLabel, MenuItem } from '@mui/material'
 import {
     ResponsiveContainer, AreaChart, Area, XAxis, YAxis,
     CartesianGrid, Tooltip, PieChart, Pie, Cell
 } from 'recharts'
 import SeoHead from '../components/SeoHead'
-import { searchScratchcardsPublic, type ScratchcardSearchItem as ScratchcardOption } from '../hooks/api'
+import {
+    searchScratchcardsPublic,
+    fetchWalletRecords, createWalletRecord, deleteWalletRecord,
+    fetchWalletPreferences, updateWalletPreferences,
+    type ScratchcardSearchItem as ScratchcardOption,
+    type PnLRecordRow,
+} from '../hooks/api'
+import { TAIWAN_CITIES } from '../constants/cities'
+import { useUser } from '../hooks/useUser'
 import './PnLDashboard.css'
 
+/** 兼容 chart 元件用的精簡型 (id 為字串以符合既有 chart 邏輯) */
 interface PnLRecord {
     id: string
     date: string
@@ -23,20 +35,20 @@ interface PnLRecord {
     won: number
 }
 
-const STORAGE_KEY = 'scratchcard_pnl'
-
-function loadRecords(): PnLRecord[] {
-    try {
-        const raw = localStorage.getItem(STORAGE_KEY)
-        return raw ? JSON.parse(raw) : []
-    } catch {
-        return []
+/** 把後端 row 轉為 chart 用的 PnLRecord */
+function toChartRecord(r: PnLRecordRow): PnLRecord {
+    return {
+        id: String(r.id),
+        date: r.createdAt ? new Date(r.createdAt).toLocaleDateString('zh-TW') : '',
+        gameName: r.gameName || '未指定',
+        spent: r.spent,
+        won: r.won,
     }
 }
 
-function saveRecords(records: PnLRecord[]) {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(records))
-}
+/** 一次性遷移: 把舊 localStorage 紀錄上傳到後端後刪掉 */
+const LEGACY_STORAGE_KEY = 'scratchcard_pnl'
+const MIGRATED_FLAG = 'scratchcard_pnl_migrated'
 
 /**
  * 累計 PnL 折線圖 — 使用 Recharts
@@ -166,7 +178,9 @@ function ROIGauge({ spent, won }: { spent: number; won: number }) {
 }
 
 export default function PnLDashboard() {
-    const [records, setRecords] = useState<PnLRecord[]>(loadRecords)
+    const { user } = useUser()
+    const [rawRecords, setRawRecords] = useState<PnLRecordRow[]>([])
+    const records: PnLRecord[] = rawRecords.map(toChartRecord)
     const [selectedGame, setSelectedGame] = useState<ScratchcardOption | null>(null)
     const [inputValue, setInputValue] = useState('')
     const [options, setOptions] = useState<ScratchcardOption[]>([])
@@ -174,6 +188,47 @@ export default function PnLDashboard() {
 
     const [spent, setSpent] = useState('')
     const [won, setWon] = useState('')
+    const [city, setCity] = useState('')
+    const [shareToHeatmap, setShareToHeatmap] = useState(false)
+
+    /** 載入紀錄 + 偏好 + 一次性 localStorage 遷移 */
+    const reload = useCallback(async () => {
+        if (!user) return
+        try {
+            const [rows, prefs] = await Promise.all([
+                fetchWalletRecords(),
+                fetchWalletPreferences(),
+            ])
+            setRawRecords(rows)
+            if (prefs.lastCheckinCity) setCity(prefs.lastCheckinCity)
+            // 一次性遷移舊 localStorage
+            if (!localStorage.getItem(MIGRATED_FLAG)) {
+                try {
+                    const raw = localStorage.getItem(LEGACY_STORAGE_KEY)
+                    const legacy: any[] = raw ? JSON.parse(raw) : []
+                    if (Array.isArray(legacy) && legacy.length > 0 && rows.length === 0) {
+                        if (window.confirm(`發現 ${legacy.length} 筆本機舊紀錄，要上傳到雲端讓多裝置同步嗎？`)) {
+                            for (const r of legacy) {
+                                await createWalletRecord({
+                                    gameName: r.gameName || '',
+                                    spent: Number(r.spent) || 0,
+                                    won: Number(r.won) || 0,
+                                })
+                            }
+                            const fresh = await fetchWalletRecords()
+                            setRawRecords(fresh)
+                        }
+                    }
+                    localStorage.setItem(MIGRATED_FLAG, '1')
+                    localStorage.removeItem(LEGACY_STORAGE_KEY)
+                } catch { /* ignore */ }
+            }
+        } catch {
+            setRawRecords([])
+        }
+    }, [user])
+
+    useEffect(() => { reload() }, [reload])
 
     // Debounce search
     useEffect(() => {
@@ -195,33 +250,44 @@ export default function PnLDashboard() {
         return () => clearTimeout(timer)
     }, [inputValue])
 
-    useEffect(() => {
-        saveRecords(records)
-    }, [records])
-
     /** 統計數據 */
     const totalSpent = records.reduce((s: number, r: PnLRecord) => s + r.spent, 0)
     const totalWon = records.reduce((s: number, r: PnLRecord) => s + r.won, 0)
     const totalPnL = totalWon - totalSpent
 
-    function handleAdd() {
+    async function handleAdd() {
         if (!spent) return
-        const newRecord: PnLRecord = {
-            id: Date.now().toString(),
-            date: new Date().toLocaleDateString('zh-TW'),
-            gameName: selectedGame ? selectedGame.name : (inputValue || '未指定'),
-            spent: Number(spent),
-            won: Number(won) || 0,
+        try {
+            await createWalletRecord({
+                gameName: selectedGame ? selectedGame.name : (inputValue || '未指定'),
+                scratchcardId: selectedGame?.id ?? null,
+                spent: Number(spent),
+                won: Number(won) || 0,
+                city: city || null,
+                sharedToPublic: shareToHeatmap && !!city && Number(won) > 0,
+            })
+            // 同步用戶縣市偏好
+            if (city) {
+                try { await updateWalletPreferences({ lastCheckinCity: city }) } catch {/*ignore*/}
+            }
+            setSelectedGame(null)
+            setInputValue('')
+            setSpent('')
+            setWon('')
+            // 縣市保留作為下次預設, shareToHeatmap 不重置 (使用者偏好黏性)
+            await reload()
+        } catch (e) {
+            alert('新增失敗，請確認已登入。')
         }
-        setRecords([newRecord, ...records])
-        setSelectedGame(null)
-        setInputValue('')
-        setSpent('')
-        setWon('')
     }
 
-    function handleDelete(id: string) {
-        setRecords(records.filter((r) => r.id !== id))
+    async function handleDelete(id: string) {
+        try {
+            await deleteWalletRecord(Number(id))
+            await reload()
+        } catch {
+            alert('刪除失敗')
+        }
     }
 
     return (
@@ -327,6 +393,52 @@ export default function PnLDashboard() {
                         <Plus size={16} /> 新增
                     </button>
                 </div>
+
+                {/* 第二排: 縣市選擇 + 分享到熱區 (中獎才顯示) */}
+                {Number(won) > 0 && (
+                    <div className="pnl__form" style={{ marginTop: 12, alignItems: 'center', flexWrap: 'wrap' }}>
+                        <TextField
+                            select
+                            label="中獎縣市（選填）"
+                            value={city}
+                            onChange={(e) => setCity(e.target.value)}
+                            size="small"
+                            sx={{
+                                minWidth: 160,
+                                bgcolor: 'rgba(255,255,255,0.05)', borderRadius: '8px',
+                                '& .MuiInputLabel-root': { color: 'var(--color-text-secondary)' },
+                                '& .MuiSelect-select': { color: 'var(--color-text-primary)' },
+                                '& fieldset': { borderColor: 'var(--color-border)' },
+                            }}
+                        >
+                            <MenuItem value=""><em>不指定</em></MenuItem>
+                            {TAIWAN_CITIES.map(c => (
+                                <MenuItem key={c} value={c}>{c}</MenuItem>
+                            ))}
+                        </TextField>
+                        <FormControlLabel
+                            control={
+                                <Checkbox
+                                    checked={shareToHeatmap}
+                                    onChange={(e) => setShareToHeatmap(e.target.checked)}
+                                    disabled={!city}
+                                    sx={{ color: 'var(--color-text-secondary)' }}
+                                />
+                            }
+                            label={
+                                <span style={{ fontSize: 14, color: 'var(--color-text-primary)' }}>
+                                    📢 同步到全台熱區（匿名公開，不含個人資訊）
+                                </span>
+                            }
+                        />
+                    </div>
+                )}
+
+                {!user && (
+                    <p style={{ marginTop: 12, fontSize: 13, color: 'var(--color-text-secondary)' }}>
+                        ⚠️ 尚未登入，紀錄無法雲端同步。請先用右上角「LINE 登入」登入後再記帳。
+                    </p>
+                )}
             </div>
 
             {/* 紀錄列表 */}

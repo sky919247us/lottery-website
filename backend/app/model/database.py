@@ -131,6 +131,7 @@ from app.model.jackpot_store import JackpotStore  # noqa: F401
 from app.model.ticket_snapshot import TicketSnapshot  # noqa: F401
 from app.model.favorite import Favorite  # noqa: F401
 from app.model.game_mechanic import GameMechanic  # noqa: F401
+from app.model.pnl_record import PnLRecord  # noqa: F401
 
 
 def _create_composite_indexes():
@@ -234,6 +235,7 @@ def _run_migrations():
                 'ALTER TABLE prize_structures ADD COLUMN IF NOT EXISTS "prizeLevel" VARCHAR(30) DEFAULT \'\'',
                 'ALTER TABLE merchant_claims ADD COLUMN IF NOT EXISTS "slpTradeOrderId" VARCHAR(64)',
                 'CREATE INDEX IF NOT EXISTS idx_merchant_claims_slp_trade ON merchant_claims ("slpTradeOrderId")',
+                'ALTER TABLE users ADD COLUMN IF NOT EXISTS "lastCheckinCity" VARCHAR(20)',
             ]
             for sql in pg_migrations:
                 try:
