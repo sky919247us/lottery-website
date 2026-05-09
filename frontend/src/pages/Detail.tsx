@@ -4,6 +4,7 @@
 import { useEffect, useState, useMemo } from 'react'
 import { useParams, Link } from 'react-router-dom'
 import { motion } from 'framer-motion'
+import { useSnackbar } from 'notistack'
 import {
     ArrowLeft, Calculator, Trophy, Calendar, DollarSign,
     TrendingUp, Share2, Percent, Target, Sparkles, Play,
@@ -39,6 +40,7 @@ function getDefaultTicketsPerBook(price: number): number {
 
 export default function Detail() {
     const { id } = useParams<{ id: string }>()
+    const { enqueueSnackbar } = useSnackbar()
     const [detail, setDetail] = useState<DetailType | null>(null)
     const [loading, setLoading] = useState(true)
     /** 每本張數（依面額自動設定） */
@@ -255,7 +257,25 @@ export default function Detail() {
                 </Link>
                 <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
                     {detail && <FavoriteButton scratchcardId={detail.id} />}
-                    <button className="detail__share-btn" onClick={() => navigator.clipboard?.writeText(window.location.href)}>
+                    <button className="detail__share-btn" onClick={async () => {
+                        const url = window.location.href
+                        const title = detail ? `${detail.name} — 刮刮研究室` : '刮刮研究室'
+                        const text = detail ? `${detail.name}（中獎率 ${winRateStr}）` : ''
+                        try {
+                            if (navigator.share) {
+                                await navigator.share({ title, text, url })
+                                return
+                            }
+                        } catch {
+                            // 使用者取消分享或裝置不支援，退回複製連結
+                        }
+                        try {
+                            await navigator.clipboard.writeText(url)
+                            enqueueSnackbar('已複製連結至剪貼簿', { variant: 'success' })
+                        } catch {
+                            enqueueSnackbar('分享失敗，請手動複製網址列', { variant: 'error' })
+                        }
+                    }} title="分享此款式">
                         <Share2 size={16} />
                     </button>
                 </div>
