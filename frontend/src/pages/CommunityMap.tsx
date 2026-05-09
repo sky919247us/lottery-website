@@ -19,6 +19,7 @@ import {
 } from 'lucide-react'
 import { Link } from 'react-router-dom'
 import { Autocomplete, TextField, CircularProgress } from '@mui/material'
+import { useSnackbar } from 'notistack'
 import {
     fetchRetailers, fetchNearbyRetailers, fetchCheckins, createCheckin,
     fetchInventory, reportInventory, fetchMerchantOfficialInventory,
@@ -518,6 +519,7 @@ export default function CommunityMap() {
     // 使用者 Karma
     const { user } = useUser()
     const { isLoggedIn, loginWithLine } = useAuth()
+    const { enqueueSnackbar } = useSnackbar()
 
     // 經銷商
     const [retailers, setRetailers] = useState<RetailerData[]>([])
@@ -911,8 +913,10 @@ export default function CommunityMap() {
             // 更新庫存快取
             loadInventoryForRetailer(inventoryRetailer.id)
             setShowInventoryReport(false)
-        } catch {
-            // 靜默處理
+            enqueueSnackbar('庫存回報已送出，感謝您的貢獻！', { variant: 'success' })
+        } catch (err: any) {
+            const detail = err?.response?.data?.detail || err?.message || '請稍後再試'
+            enqueueSnackbar(`回報失敗：${detail}`, { variant: 'error' })
         } finally {
             setReportingInventory(false)
         }

@@ -1,9 +1,12 @@
 import { useState } from 'react'
-import { Box, Typography, Card, LinearProgress, Avatar, Tabs, Tab, List, ListItem, ListItemText, ListItemAvatar, CircularProgress } from '@mui/material'
+import { Link as RouterLink } from 'react-router-dom'
+import { Box, Typography, Card, LinearProgress, Avatar, Tabs, Tab, List, ListItem, ListItemText, ListItemAvatar, CircularProgress, Button, Stack } from '@mui/material'
 import CardGiftcard from '@mui/icons-material/CardGiftcard'
 import LocalMall from '@mui/icons-material/LocalMall'
 import Star from '@mui/icons-material/Star'
 import VerifiedUser from '@mui/icons-material/VerifiedUser'
+import Favorite from '@mui/icons-material/Favorite'
+import EmojiEvents from '@mui/icons-material/EmojiEvents'
 import { useQuery } from '@tanstack/react-query'
 import { fetchAuthMe, fetchKarmaLogs } from '../hooks/api'
 
@@ -80,6 +83,30 @@ export default function UserProfile() {
           />
         </Box>
       </Card>
+
+      {/* 快速捷徑 */}
+      <Stack direction="row" spacing={1} sx={{ mb: 2 }}>
+        <Button
+          component={RouterLink}
+          to="/favorites"
+          variant="outlined"
+          size="small"
+          startIcon={<Favorite sx={{ color: '#ef4444' }} />}
+          fullWidth
+        >
+          我的收藏
+        </Button>
+        <Button
+          component={RouterLink}
+          to="/levels"
+          variant="outlined"
+          size="small"
+          startIcon={<EmojiEvents sx={{ color: '#f59e0b' }} />}
+          fullWidth
+        >
+          等級與積分規則
+        </Button>
+      </Stack>
 
       <Tabs value={tabValue} onChange={(_, nv) => setTabValue(nv)} variant="fullWidth" sx={{ mb: 2 }}>
         <Tab label="獲取紀錄" />
