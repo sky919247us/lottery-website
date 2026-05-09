@@ -101,6 +101,29 @@ const INVENTORY_STATUS = [
     { value: '完售', label: '🔴 完售', color: '#ef4444' },
 ]
 
+/** 庫存狀態 → emoji 燈號 (供顯示用) */
+function statusEmoji(status: string): string {
+    if (status === '充足') return '🟢'
+    if (status === '少量') return '🟡'
+    if (status === '完售') return '🔴'
+    return '⚪'
+}
+
+/** 將 ISO 時間字串格式化為「N 分鐘 / 小時 / 天前」 */
+function timeAgo(iso?: string | null): string {
+    if (!iso) return ''
+    const t = new Date(iso).getTime()
+    if (isNaN(t)) return ''
+    const diffMs = Date.now() - t
+    const min = Math.floor(diffMs / 60000)
+    if (min < 1) return '剛剛'
+    if (min < 60) return `${min} 分鐘前`
+    const hr = Math.floor(min / 60)
+    if (hr < 24) return `${hr} 小時前`
+    const day = Math.floor(hr / 24)
+    return `${day} 天前`
+}
+
 /** Karma 等級色彩 */
 const LEVEL_COLORS = [
     '#94a3b8', '#6ee7b7', '#34d399', '#10b981',
@@ -870,15 +893,21 @@ export default function CommunityMap() {
         }
     }
 
-    /** 開啟庫存回報面板 */
+    /** 開啟庫存查看 + 回報面板 (查看不需登入, 回報才需登入) */
     function openInventoryReport(r: RetailerData) {
-        if (!isLoggedIn) { loginWithLine(); return }
         setInventoryRetailer(r)
         setInventoryItem('')
         setInventoryStatus('')
         setReportSearchInput('')
         setShowInventoryReport(true)
-        // 預載全部未過期款式
+        // 預載即時社群庫存 + 商家官方庫存 (查看用)
+        loadInventoryForRetailer(r.id)
+        if (r.isClaimed) {
+            fetchMerchantOfficialInventory(r.id)
+                .then(data => setOfficialInventoryCache(prev => ({ ...prev, [r.id]: data.items })))
+                .catch(() => { /* 靜默 */ })
+        }
+        // 預載全部未過期款式 (給回報表單用)
         setReportSearchLoading(true)
         searchScratchcardsPublic('').then(setReportSearchResults).finally(() => setReportSearchLoading(false))
     }
@@ -1427,7 +1456,7 @@ export default function CommunityMap() {
                                                     <button
                                                         className="community-map__report-btn"
                                                         onClick={() => openInventoryReport(r)}
-                                                        title="回報庫存"
+                                                        title="查看即時庫存與回報"
                                                     >
                                                         <Package size={13} /> 庫存
                                                     </button>
@@ -1547,12 +1576,77 @@ export default function CommunityMap() {
                             onClick={(e) => e.stopPropagation()}
                         >
                             <div className="community-map__modal-header">
-                                <h3><Package size={18} /> 回報庫存</h3>
+                                <h3><Package size={18} /> 即時庫存與回報</h3>
                                 <button onClick={() => setShowInventoryReport(false)}><X size={18} /></button>
                             </div>
                             <p className="community-map__modal-store">
                                 <Store size={14} /> {inventoryRetailer.name}
                             </p>
+
+                            {/* 即時庫存顯示區（不需登入即可查看） */}
+                            <div className="community-map__inv-view">
+                                {/* 商家官方庫存（已認領店家才有） */}
+                                {officialInventoryCache[inventoryRetailer.id]?.length > 0 && (
+                                    <div className="community-map__inv-view-block">
+                                        <div className="community-map__inv-view-title">
+                                            <Package size={14} /> 商家官方庫存
+                                            <span className="community-map__inv-view-tag community-map__inv-view-tag--official">官方</span>
+                                        </div>
+                                        <div className="community-map__inv-view-list">
+                                            {officialInventoryCache[inventoryRetailer.id].map(it => (
+                                                <div key={it.itemName} className="community-map__inv-view-row">
+                                                    <span className="community-map__inv-view-status">{statusEmoji(it.status)}</span>
+                                                    <span className="community-map__inv-view-name">{it.itemName}</span>
+                                                    <span className="community-map__inv-view-time">{timeAgo(it.updatedAt) || '—'}</span>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    </div>
+                                )}
+
+                                {/* 社群即時回報 */}
+                                <div className="community-map__inv-view-block">
+                                    <div className="community-map__inv-view-title">
+                                        <Package size={14} /> 社群即時回報
+                                        <span className="community-map__inv-view-tag">7 天內</span>
+                                    </div>
+                                    {inventoryCache[inventoryRetailer.id] === undefined ? (
+                                        <div className="community-map__inv-view-empty">載入中...</div>
+                                    ) : inventoryCache[inventoryRetailer.id].length === 0 ? (
+                                        <div className="community-map__inv-view-empty">
+                                            目前還沒有人回報，幫忙當第一位 👇
+                                        </div>
+                                    ) : (
+                                        <div className="community-map__inv-view-list">
+                                            {inventoryCache[inventoryRetailer.id].map(inv => (
+                                                <button
+                                                    key={inv.item}
+                                                    type="button"
+                                                    className="community-map__inv-view-row community-map__inv-view-row--clickable"
+                                                    onClick={() => setInventoryItem(inv.item)}
+                                                    title="點擊以更新此款式狀態"
+                                                >
+                                                    <span className="community-map__inv-view-status">{statusEmoji(inv.status)}</span>
+                                                    <span className="community-map__inv-view-name">{inv.item}</span>
+                                                    <span className="community-map__inv-view-time">{timeAgo(inv.updatedAt)}</span>
+                                                </button>
+                                            ))}
+                                        </div>
+                                    )}
+                                </div>
+                            </div>
+
+                            <div className="community-map__inv-divider">
+                                <span>我也要回報</span>
+                            </div>
+
+                            {/* 未登入提示 */}
+                            {!isLoggedIn && (
+                                <div className="community-map__inv-login-hint">
+                                    需 LINE 登入才能送出回報
+                                    <button type="button" onClick={loginWithLine}>立即登入</button>
+                                </div>
+                            )}
 
                             {/* 品項搜尋 */}
                             <div className="community-map__modal-section">
