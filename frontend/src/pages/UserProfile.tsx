@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { Link as RouterLink } from 'react-router-dom'
-import { Box, Typography, Card, LinearProgress, Avatar, Tabs, Tab, List, ListItem, ListItemText, ListItemAvatar, CircularProgress, Button, Stack } from '@mui/material'
+import { Box, Typography, Card, LinearProgress, Avatar, Tabs, Tab, List, ListItem, ListItemText, ListItemAvatar, CircularProgress, Button, Stack, Chip, Table, TableHead, TableBody, TableRow, TableCell } from '@mui/material'
 import CardGiftcard from '@mui/icons-material/CardGiftcard'
 import LocalMall from '@mui/icons-material/LocalMall'
 import Star from '@mui/icons-material/Star'
@@ -9,6 +9,28 @@ import Favorite from '@mui/icons-material/Favorite'
 import EmojiEvents from '@mui/icons-material/EmojiEvents'
 import { useQuery } from '@tanstack/react-query'
 import { fetchAuthMe, fetchKarmaLogs } from '../hooks/api'
+
+/** Karma 等級對照 (與後端 backend/app/model/user.py KARMA_LEVELS 同步) */
+const KARMA_LEVELS = [
+  { lv: 1, title: '刮刮新手', pts: 0 },
+  { lv: 2, title: '尋寶學徒', pts: 100 },
+  { lv: 3, title: '幸運路人', pts: 300 },
+  { lv: 4, title: '資深玩家', pts: 800 },
+  { lv: 5, title: '刮刮研究室研究員', pts: 1500, note: 'YT 初階會員' },
+  { lv: 6, title: '情報專家', pts: 3000 },
+  { lv: 7, title: '彩券達人', pts: 6000 },
+  { lv: 8, title: '刮刮研究室金主', pts: 12000, note: 'YT 高階會員' },
+  { lv: 9, title: '傳奇財神', pts: 25000 },
+  { lv: 10, title: '官方觀察員', pts: null as number | null, note: '手動授予' },
+]
+
+const EARN_METHODS = [
+  { title: '🛒 回報庫存（200m 內）', pts: '+10', hint: '在店家 200m 範圍內回報' },
+  { title: '📍 回報庫存（遠端）', pts: '+3', hint: '超出 200m 仍可回報但分數較低' },
+  { title: '⭐ 評分 / 評價店家', pts: '+20', hint: '對店家發布評分與設施標記' },
+  { title: '🎉 中獎打卡', pts: '+5', hint: '在地圖按「中獎打卡」上傳' },
+  { title: '🔧 管理員調整', pts: '不定', hint: '官方獎勵或會員身分核可' },
+]
 
 // 定義不同操作對應的 Icon
 const getActionIcon = (action: string) => {
@@ -110,6 +132,8 @@ export default function UserProfile() {
 
       <Tabs value={tabValue} onChange={(_, nv) => setTabValue(nv)} variant="fullWidth" sx={{ mb: 2 }}>
         <Tab label="獲取紀錄" />
+        <Tab label="如何賺積分" />
+        <Tab label="等級對照表" />
       </Tabs>
 
       {tabValue === 0 && (
@@ -129,7 +153,7 @@ export default function UserProfile() {
                       {getActionIcon(log.action)}
                     </Avatar>
                   </ListItemAvatar>
-                  <ListItemText 
+                  <ListItemText
                     primary={
                       <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
                         <Typography variant="body2" fontWeight={600}>{log.description}</Typography>
@@ -144,6 +168,67 @@ export default function UserProfile() {
               ))}
             </List>
           )}
+        </Card>
+      )}
+
+      {tabValue === 1 && (
+        <Card sx={{ borderRadius: 2, p: 2 }}>
+          <Typography variant="subtitle1" fontWeight={700} mb={1.5}>📈 如何賺積分</Typography>
+          <Stack spacing={1.2}>
+            {EARN_METHODS.map(m => (
+              <Box key={m.title} sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', p: 1.5, borderRadius: 1.5, bgcolor: 'grey.50' }}>
+                <Box>
+                  <Typography variant="body2" fontWeight={600}>{m.title}</Typography>
+                  <Typography variant="caption" color="text.secondary">{m.hint}</Typography>
+                </Box>
+                <Chip label={m.pts} color="success" size="small" sx={{ fontWeight: 700 }} />
+              </Box>
+            ))}
+          </Stack>
+          <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: 2 }}>
+            ⓘ 等級越高，回報權重越高，影響庫存狀態與店家排序的程度也越大。
+          </Typography>
+        </Card>
+      )}
+
+      {tabValue === 2 && (
+        <Card sx={{ borderRadius: 2 }}>
+          <Box sx={{ p: 2 }}>
+            <Typography variant="subtitle1" fontWeight={700}>🏆 等級對照表</Typography>
+            <Typography variant="caption" color="text.secondary">目前等級：Lv.{user.karmaLevel} {user.levelTitle}</Typography>
+          </Box>
+          <Table size="small">
+            <TableHead>
+              <TableRow>
+                <TableCell>等級</TableCell>
+                <TableCell>稱號</TableCell>
+                <TableCell align="right">所需積分</TableCell>
+              </TableRow>
+            </TableHead>
+            <TableBody>
+              {KARMA_LEVELS.map(lv => {
+                const isCurrent = lv.lv === user.karmaLevel
+                return (
+                  <TableRow key={lv.lv} sx={isCurrent ? { bgcolor: 'rgba(255, 215, 0, 0.15)' } : {}}>
+                    <TableCell>
+                      <Chip label={`Lv.${lv.lv}`} size="small" color={isCurrent ? 'warning' : 'default'} />
+                    </TableCell>
+                    <TableCell>
+                      <Box>
+                        <Typography variant="body2" fontWeight={isCurrent ? 700 : 500}>{lv.title}</Typography>
+                        {lv.note && (
+                          <Typography variant="caption" color="text.secondary">{lv.note}</Typography>
+                        )}
+                      </Box>
+                    </TableCell>
+                    <TableCell align="right">
+                      {lv.pts === null ? '—' : lv.pts.toLocaleString()}
+                    </TableCell>
+                  </TableRow>
+                )
+              })}
+            </TableBody>
+          </Table>
         </Card>
       )}
     </Box>

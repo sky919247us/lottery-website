@@ -7,7 +7,7 @@ import { motion } from 'framer-motion'
 import { useSnackbar } from 'notistack'
 import {
     ArrowLeft, Calculator, Trophy, Calendar, DollarSign,
-    TrendingUp, Share2, Percent, Target, Sparkles, Play,
+    TrendingUp, Share2, Check, Percent, Target, Sparkles, Play,
     MapPin, Store, Navigation, AlertTriangle
 } from 'lucide-react'
 import {
@@ -45,6 +45,7 @@ export default function Detail() {
     const [loading, setLoading] = useState(true)
     /** 每本張數（依面額自動設定） */
     const [ticketsPerBook, setTicketsPerBook] = useState(100)
+    const [shareJustCopied, setShareJustCopied] = useState(false)
     /** 各獎項已開出張數 */
     const [openedCounts, setOpenedCounts] = useState<Record<number, number>>({})
     /** 未中獎已開出張數 */
@@ -280,12 +281,16 @@ export default function Detail() {
                         }
                         try {
                             await navigator.clipboard.writeText(url)
-                            enqueueSnackbar('已複製連結至剪貼簿', { variant: 'success' })
+                            enqueueSnackbar('✅ 已複製連結至剪貼簿', { variant: 'success', autoHideDuration: 2500 })
+                            setShareJustCopied(true)
+                            setTimeout(() => setShareJustCopied(false), 2000)
                         } catch {
                             enqueueSnackbar('分享失敗，請手動複製網址列', { variant: 'error' })
                         }
                     }} title="分享此款式">
-                        <Share2 size={16} />
+                        {shareJustCopied
+                            ? <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: 12, color: '#22c55e' }}><Check size={14} /> 已複製</span>
+                            : <Share2 size={16} />}
                     </button>
                 </div>
             </div>

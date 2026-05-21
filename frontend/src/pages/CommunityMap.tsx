@@ -914,7 +914,16 @@ export default function CommunityMap() {
 
     /** 送出庫存回報 */
     async function handleInventoryReport() {
-        if (!inventoryRetailer || !inventoryItem || !inventoryStatus || !user) return
+        if (!user) { loginWithLine(); return }
+        if (!inventoryRetailer) return
+        if (!inventoryItem) {
+            enqueueSnackbar('請先選擇刮刮樂款式', { variant: 'warning' })
+            return
+        }
+        if (!inventoryStatus) {
+            enqueueSnackbar('請選擇庫存狀態 (充足 / 少量 / 完售)', { variant: 'warning' })
+            return
+        }
         setReportingInventory(true)
         try {
             // 嘗試取得 GPS 座標（用於距離驗證）
@@ -1708,7 +1717,7 @@ export default function CommunityMap() {
                             <button
                                 className="community-map__modal-submit"
                                 onClick={handleInventoryReport}
-                                disabled={reportingInventory || !inventoryItem || !inventoryStatus || !user}
+                                disabled={reportingInventory}
                             >
                                 <Send size={14} />
                                 {reportingInventory ? '送出中...' : '送出回報'}
