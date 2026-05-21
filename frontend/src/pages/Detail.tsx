@@ -136,10 +136,18 @@ export default function Detail() {
         const zeroTicketsPerBook = Math.max(0, ticketsPerBook - prizeTickets)
         const totalOpened = rows.reduce((s, r) => s + r.opened, 0) + openedZero
 
-        // 殘值計算
+        // 殘值計算（期望值法：剩餘 = max(0, 每本期望 − 已開)，按統計分佈計算）
         const remainingValue = rows.reduce((s, r) => s + r.remaining * r.prizeAmount, 0)
         const remainingTickets = ticketsPerBook - totalOpened
         const costRemaining = remainingTickets * detail.price
+
+        // 保守值計算（悲觀法：只承認 floor(每本期望) − 已開 的整數殘餘，未滿 1 張的高獎項視為 0）
+        // 範例：頭獎 perBook=0.0001 → floor=0，視為這本沒有頭獎；$200 perBook=16.0、已開 13 → 剩 3
+        // 這個算法假設「已開出哪些獎、就只剩理論張數的整數尾數，不再寄望高獎項」
+        const conservativeRemainingValue = rows.reduce((s, r) => {
+            const conservativeRemaining = Math.max(0, Math.floor(r.perBook) - r.opened)
+            return s + conservativeRemaining * r.prizeAmount
+        }, 0)
 
         // 返還率 = 總獎金 / 總成本（整本）
         const totalPrizePerBook = rows.reduce((s, r) => s + r.perBook * r.prizeAmount, 0)
@@ -154,6 +162,7 @@ export default function Detail() {
         return {
             totalBooks, rows, zeroTicketsPerBook,
             remainingValue: adjustedRemainingValue,
+            conservativeRemainingValue,
             remainingTickets, costRemaining, totalOpened,
             returnRate,
             adjustedTotalPrize,
@@ -671,9 +680,15 @@ export default function Detail() {
                                     <strong>{bookAnalysis.remainingTickets}</strong>
                                 </div>
                                 <div className="calculator__stat">
-                                    <span>剩餘預估獎金</span>
+                                    <span title="按統計期望值計算：剩餘張數仍依原機率分佈，含未開出的高獎項殘值">剩餘期望獎金</span>
                                     <strong className={bookAnalysis.remainingValue > 0 ? 'text-green' : 'text-red'}>
                                         ${Math.round(bookAnalysis.remainingValue).toLocaleString()}
+                                    </strong>
+                                </div>
+                                <div className="calculator__stat">
+                                    <span title="悲觀估計：未滿 1 張的高獎項視為已無，只計算已知獎項類型的整數殘餘">保守期望獎金</span>
+                                    <strong className={bookAnalysis.conservativeRemainingValue > 0 ? 'text-green' : 'text-red'}>
+                                        ${Math.round(bookAnalysis.conservativeRemainingValue).toLocaleString()}
                                     </strong>
                                 </div>
                                 <div className="calculator__stat">
@@ -683,10 +698,18 @@ export default function Detail() {
                                     </strong>
                                 </div>
                                 <div className="calculator__stat">
-                                    <span>殘值投報率</span>
+                                    <span title="剩餘期望獎金 ÷ 剩餘成本">剩餘期望投報率</span>
                                     <strong className={bookAnalysis.remainingValue >= bookAnalysis.costRemaining ? 'text-green' : 'text-red'}>
                                         {bookAnalysis.costRemaining > 0
                                             ? `${Math.round((bookAnalysis.remainingValue / bookAnalysis.costRemaining) * 100)}%`
+                                            : '-'}
+                                    </strong>
+                                </div>
+                                <div className="calculator__stat">
+                                    <span title="保守期望獎金 ÷ 剩餘成本（最低回收下限參考）">保守期望投報率</span>
+                                    <strong className={bookAnalysis.conservativeRemainingValue >= bookAnalysis.costRemaining ? 'text-green' : 'text-red'}>
+                                        {bookAnalysis.costRemaining > 0
+                                            ? `${Math.round((bookAnalysis.conservativeRemainingValue / bookAnalysis.costRemaining) * 100)}%`
                                             : '-'}
                                     </strong>
                                 </div>
