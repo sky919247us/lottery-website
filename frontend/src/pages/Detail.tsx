@@ -432,7 +432,6 @@ export default function Detail() {
                                 <thead>
                                     <tr>
                                         <th>獎項</th>
-                                        <th>金額</th>
                                         <th>總數</th>
                                         <th>剩餘</th>
                                     </tr>
@@ -444,9 +443,8 @@ export default function Detail() {
                                         const estimatedRemaining = Math.round(p.totalCount * (1 - salesRatio))
                                         return (
                                             <tr key={i}>
-                                                <td>{p.prizeName}</td>
                                                 <td className="detail__amount">
-                                                    {p.prizeAmount > 0 ? `$${p.prizeAmount.toLocaleString()}` : '-'}
+                                                    {p.prizeAmount > 0 ? `$${p.prizeAmount.toLocaleString()}` : p.prizeName}
                                                 </td>
                                                 <td>{p.totalCount.toLocaleString()}</td>
                                                 <td className="detail__remaining-count-cell">
@@ -616,7 +614,6 @@ export default function Detail() {
                                     <thead>
                                         <tr>
                                             <th>獎項</th>
-                                            <th>金額</th>
                                             <th>每本張數</th>
                                             <th>已開出</th>
                                             <th>剩餘</th>
@@ -625,9 +622,8 @@ export default function Detail() {
                                     <tbody>
                                         {bookAnalysis.rows.map((row, idx) => (
                                             <tr key={idx}>
-                                                <td>{row.prizeName}</td>
                                                 <td className="detail__amount">
-                                                    {row.prizeAmount > 0 ? `$${row.prizeAmount.toLocaleString()}` : '-'}
+                                                    {row.prizeAmount > 0 ? `$${row.prizeAmount.toLocaleString()}` : row.prizeName}
                                                 </td>
                                                 <td className="calculator__per-book">
                                                     {row.perBook < 1
@@ -653,7 +649,6 @@ export default function Detail() {
                                         {/* 未中獎（0元） */}
                                         <tr className="calculator__zero-row">
                                             <td>未中獎</td>
-                                            <td>$0</td>
                                             <td>{bookAnalysis.zeroTicketsPerBook.toFixed(1)}</td>
                                             <td>
                                                 <input
