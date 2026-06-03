@@ -118,6 +118,49 @@ def _run_crawler_job():
     except Exception as e:
         logger.error(f"❌ 玩法解析失敗: {e}")
 
+    # 爬蟲完接著跑「新款自動鋪貨」(上市當天的新款 → 全台台彩店標為充足, 30 天效期)
+    try:
+        logger.info("⏰ 串接新款自動鋪貨...")
+        _run_inventory_seed_job()
+    except Exception as e:
+        logger.error(f"❌ 新款自動鋪貨失敗: {e}")
+
+
+def _run_inventory_seed_job():
+    """新款上市自動鋪貨：上市當天的新款，為全台台彩店家 (排除運彩) 各建立一筆庫存 (充足)，
+    統一 30 天效期 (以 updatedAt 倒數)。已存在同款庫存的店家略過。"""
+    from app.service.inventory_seed_service import seed_new_release_inventory
+    db = SessionLocal()
+    try:
+        result = seed_new_release_inventory(db)
+        if result["seeded"]:
+            logger.info(
+                "⏰ 新款自動鋪貨完成: %s 款 %s, 鋪 %s 筆 (略過 %s 筆已存在)",
+                result["newCards"], result.get("cardNames"), result["seeded"], result["skipped"],
+            )
+        else:
+            logger.info("⏰ 新款自動鋪貨: 今日 (%s) 無新款上市", result["date"])
+    except Exception as e:
+        logger.error("新款自動鋪貨任務失敗: %s", e)
+        db.rollback()
+    finally:
+        db.close()
+
+
+def _run_inventory_cleanup_job():
+    """每日清理超過 30 天未更新的庫存記錄 (含店家手動設定者, 無永久記錄), 維持全表滾動不堆積。"""
+    from app.service.inventory_seed_service import cleanup_expired_inventory
+    db = SessionLocal()
+    try:
+        n = cleanup_expired_inventory(db)
+        if n:
+            logger.info("⏰ 庫存效期清理: 刪除 %s 筆 (>30 天未更新)", n)
+    except Exception as e:
+        logger.error("庫存效期清理失敗: %s", e)
+        db.rollback()
+    finally:
+        db.close()
+
 def _run_checkin_ttl_cleanup():
     """每日清理 90 天前的中獎打卡紀錄, 避免 checkins 表無限累加.
     注意: PnL 錢包紀錄不受影響 (PnLRecord.userId 仍保留, 只是 checkinId 對應的 row 沒了)
@@ -390,6 +433,13 @@ def on_startup():
         id="daily_mechanic_parse",
         replace_existing=True,
     )
+    # 每天台灣 05:00 (UTC 21:00) 清理超過 30 天未更新的庫存記錄 (滾動瘦身)
+    scheduler.add_job(
+        _run_inventory_cleanup_job,
+        trigger=CronTrigger(hour=21, minute=0),
+        id="daily_inventory_cleanup",
+        replace_existing=True,
+    )
 
     scheduler.start()
     logger.info("⏰ APScheduler 已啟動，每日 09:10 (台灣時間) 自動爬取")
@@ -453,6 +503,41 @@ async def trigger_preview_crawl():
     except Exception as e:
         logger.error(f"❌ 預告爬蟲失敗: {e}")
         return {"status": "error", "message": str(e)}
+
+
+@app.post("/api/admin/seed-inventory", tags=["管理"])
+async def trigger_seed_inventory(date: str | None = None, admin=Depends(_require_super_admin())):
+    """手動觸發新款自動鋪貨（僅超級管理員）。
+
+    :param date: 指定民國日期 (例 '115/05/19') 補鋪該日上市款；省略則用今日。
+    """
+    from app.service.inventory_seed_service import seed_new_release_inventory
+    logger.info("🔧 手動觸發新款自動鋪貨 (date=%s)...", date or "今日")
+    db = SessionLocal()
+    try:
+        result = seed_new_release_inventory(db, target_roc_date=date)
+        return {"status": "ok", **result}
+    except Exception as e:
+        db.rollback()
+        logger.error(f"❌ 手動鋪貨失敗: {e}")
+        return {"status": "error", "message": str(e)}
+    finally:
+        db.close()
+
+
+@app.post("/api/admin/cleanup-inventory", tags=["管理"])
+async def trigger_cleanup_inventory(admin=Depends(_require_super_admin())):
+    """手動觸發庫存效期清理（刪除 >30 天未更新者，僅超級管理員）。"""
+    from app.service.inventory_seed_service import cleanup_expired_inventory
+    db = SessionLocal()
+    try:
+        n = cleanup_expired_inventory(db)
+        return {"status": "ok", "deleted": n}
+    except Exception as e:
+        db.rollback()
+        return {"status": "error", "message": str(e)}
+    finally:
+        db.close()
 
 
 @app.get("/sitemap.xml", tags=["SEO"])

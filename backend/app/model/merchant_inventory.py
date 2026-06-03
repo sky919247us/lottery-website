@@ -32,26 +32,32 @@ class MerchantInventory(Base):
     # 關聯（方便查詢刮刮樂詳情）
     scratchcard = relationship("Scratchcard", foreign_keys=[scratchcardId])
 
+    # 統一效期天數：任何庫存記錄自最後更新起算，超過即視為過期
+    EXPIRE_DAYS = 30
+
+    @property
+    def is_expired(self) -> bool:
+        """是否已過 30 天效期（以最後更新時間 updatedAt 倒數）。
+        店家每次手動更新會刷新 updatedAt，等同重新續命 30 天。
+        """
+        if not self.updatedAt:
+            return False
+        updated = self.updatedAt
+        # 容錯：updatedAt 可能為 aware (店家編輯端用 timezone.utc)，統一轉 naive UTC 比較
+        if getattr(updated, "tzinfo", None) is not None:
+            updated = updated.replace(tzinfo=None)
+        return (datetime.utcnow() - updated).days >= self.EXPIRE_DAYS
+
     @property
     def effective_status(self) -> str:
         """
-        動態計算有效狀態：
-        - 充足：60 天後自動轉為售完
-        - 少量：30 天後自動轉為售完
+        動態計算有效狀態（統一 30 天制）：
+        - 充足 / 少量 / 售完 皆依店家最後更新時間倒數 30 天
+        - 超過 30 天未更新 → 視為過期（售完），不再對外顯示為有貨
+        - 自動鋪貨的新款預設「充足」，亦適用同一規則
         """
         if self.status not in ("充足", "少量"):
             return self.status
-
-        # 若系統尚未有 updatedAt，則直接回傳原狀態
-        if not self.updatedAt:
-            return self.status
-
-        now = datetime.utcnow()
-        days_diff = (now - self.updatedAt).days
-
-        if self.status == "充足" and days_diff >= 60:
+        if self.is_expired:
             return "售完"
-        if self.status == "少量" and days_diff >= 30:
-            return "售完"
-
         return self.status
