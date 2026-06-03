@@ -213,6 +213,25 @@ export async function triggerJackpotSync(): Promise<{message: string}> {
   return res.data
 }
 
+/** 手動觸發新款自動鋪貨（可指定民國日期，例 '115/05/19'；省略則用今日） */
+export async function triggerSeedInventory(date?: string): Promise<{
+  status: string; date?: string; newCards?: number; cardNames?: string[]
+  retailers?: number; seeded?: number; skipped?: number; message?: string
+}> {
+  const res = await adminApi.post('/seed-inventory', null, {
+    params: date ? { date } : undefined,
+  })
+  return res.data
+}
+
+/** 手動觸發庫存效期清理（刪除 >30 天未更新者） */
+export async function triggerCleanupInventory(): Promise<{
+  status: string; deleted?: number; message?: string
+}> {
+  const res = await adminApi.post('/cleanup-inventory')
+  return res.data
+}
+
 // ─── 彩券行管理 API ─────────────────────────────────
 
 /** 列出彩券行 */

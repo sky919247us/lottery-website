@@ -49,7 +49,7 @@ import RefreshIcon from '@mui/icons-material/Refresh'
 import AssignmentTurnedInIcon from '@mui/icons-material/AssignmentTurnedIn'
 import { useAdminAuth } from './AdminAuthContext'
 import { isStorePro } from './utils/tier'
-import { changeAdminPassword, triggerJackpotSync } from './api'
+import { changeAdminPassword, triggerJackpotSync, triggerSeedInventory, triggerCleanupInventory } from './api'
 
 const DRAWER_WIDTH = 260
 
@@ -176,6 +176,44 @@ export default function AdminLayout() {
     } catch (err: any) {
       setSyncSeverity('error')
       setSyncMessage(err.response?.data?.detail || '觸發同步失敗')
+      setSyncToastOpen(true)
+    }
+  }
+
+  const handleSeedInventory = async () => {
+    setAnchorEl(null)
+    const date = window.prompt(
+      '補鋪新款庫存：輸入上市民國日期 (例 115/05/19)，留空則用今日。\n會為全台台彩店補上該日上市新款 (充足，30 天效期)。',
+      ''
+    )
+    if (date === null) return // 取消
+    try {
+      const res = await triggerSeedInventory(date.trim() || undefined)
+      setSyncSeverity(res.status === 'ok' ? 'success' : 'error')
+      setSyncMessage(
+        res.status === 'ok'
+          ? `鋪貨完成：${res.newCards || 0} 款${res.cardNames?.length ? `(${res.cardNames.join('、')})` : ''}，新增 ${res.seeded || 0} 筆，略過 ${res.skipped || 0} 筆`
+          : (res.message || '鋪貨失敗')
+      )
+      setSyncToastOpen(true)
+    } catch (err: any) {
+      setSyncSeverity('error')
+      setSyncMessage(err.response?.data?.detail || '鋪貨失敗')
+      setSyncToastOpen(true)
+    }
+  }
+
+  const handleCleanupInventory = async () => {
+    setAnchorEl(null)
+    if (!window.confirm('清理過期庫存：將刪除所有超過 30 天未更新的庫存記錄，確定執行？')) return
+    try {
+      const res = await triggerCleanupInventory()
+      setSyncSeverity(res.status === 'ok' ? 'success' : 'error')
+      setSyncMessage(res.status === 'ok' ? `清理完成：刪除 ${res.deleted || 0} 筆` : (res.message || '清理失敗'))
+      setSyncToastOpen(true)
+    } catch (err: any) {
+      setSyncSeverity('error')
+      setSyncMessage(err.response?.data?.detail || '清理失敗')
       setSyncToastOpen(true)
     }
   }
@@ -376,6 +414,16 @@ export default function AdminLayout() {
             {isSuperAdmin && (
               <MenuItem onClick={handleTriggerSync}>
                 <RefreshIcon sx={{ mr: 1, fontSize: 18 }} /> 強制同步頭獎資料
+              </MenuItem>
+            )}
+            {isSuperAdmin && (
+              <MenuItem onClick={handleSeedInventory}>
+                <InventoryIcon sx={{ mr: 1, fontSize: 18 }} /> 補鋪新款庫存
+              </MenuItem>
+            )}
+            {isSuperAdmin && (
+              <MenuItem onClick={handleCleanupInventory}>
+                <AssignmentTurnedInIcon sx={{ mr: 1, fontSize: 18 }} /> 清理過期庫存
               </MenuItem>
             )}
             <Divider />
