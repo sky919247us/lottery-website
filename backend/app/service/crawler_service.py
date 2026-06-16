@@ -7,6 +7,7 @@
 import asyncio
 import logging
 import re
+from datetime import datetime, timedelta, timezone
 from typing import Any
 
 import aiohttp
@@ -481,6 +482,12 @@ async def run_crawler():
             write_daily_snapshots()
         except Exception as e:
             logger.warning(f"⚠️ 每日快照寫入失敗（不影響爬蟲結果）: {e}")
+        # 清除刮刮樂列表快取, 讓新款/異動立即反映 (否則 24h 快取會延遲顯示)
+        try:
+            from app.api.cache import clear_cache
+            clear_cache("scratchcards:list")
+        except Exception as e:
+            logger.warning(f"⚠️ 清除列表快取失敗: {e}")
     return len(data)
 
 
@@ -669,6 +676,25 @@ async def fetch_preview_scratchcards() -> list[dict[str, Any]]:
     return results
 
 
+def _roc_to_tuple(roc: str) -> tuple[int, int, int] | None:
+    """將民國日期字串 '115/06/15' 轉成 (115, 6, 15) 以供比較；格式不符回傳 None。"""
+    if not roc:
+        return None
+    try:
+        parts = roc.strip().split("/")
+        if len(parts) != 3:
+            return None
+        return (int(parts[0]), int(parts[1]), int(parts[2]))
+    except (ValueError, IndexError):
+        return None
+
+
+def _today_roc_tuple() -> tuple[int, int, int]:
+    """今日 (台灣時間) 的民國日期 tuple。"""
+    tw_now = datetime.now(timezone(timedelta(hours=8)))
+    return (tw_now.year - 1911, tw_now.month, tw_now.day)
+
+
 async def run_preview_crawler() -> int:
     """
     預告爬蟲流程：抓取 + 存入 DB
@@ -684,18 +710,31 @@ async def run_preview_crawler() -> int:
     try:
         preview_cards = db.query(Scratchcard).filter(Scratchcard.isPreview == True).all()
         current_preview_ids = {d["gameId"] for d in data}
+        today = _today_roc_tuple()
 
         removed = 0
         for card in preview_cards:
-            if card.gameId not in current_preview_ids:
+            issue = _roc_to_tuple(card.issueDate)
+            # 移除條件 (任一成立):
+            #   1. 已不在台彩當前預告列表
+            #   2. 預計上市日已到/已過 (代表已正式上市, 正式款此時已由主爬蟲建立)
+            already_launched = issue is not None and issue <= today
+            if card.gameId not in current_preview_ids or already_launched:
                 db.query(PrizeStructure).filter(PrizeStructure.scratchcardId == card.id).delete()
                 db.delete(card)
                 removed += 1
-                logger.info(f"🗑️ 清除舊預告款: {card.name} (gameId={card.gameId})")
+                reason = "已上市" if already_launched else "不在預告列表"
+                logger.info(f"🗑️ 清除舊預告款: {card.name} (gameId={card.gameId}, {reason})")
 
         if removed:
             db.commit()
             logger.info(f"🧹 共清除 {removed} 筆過時的預告記錄")
+        # 清除列表快取, 讓預告區異動立即反映
+        try:
+            from app.api.cache import clear_cache
+            clear_cache("scratchcards:list")
+        except Exception as e:
+            logger.warning(f"⚠️ 清除列表快取失敗: {e}")
     except Exception as e:
         db.rollback()
         logger.error(f"❌ 清理預告記錄失敗: {e}")

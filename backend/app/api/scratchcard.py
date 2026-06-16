@@ -3,6 +3,8 @@
 提供列表查詢與單筆詳情端點
 """
 
+from datetime import datetime, timedelta, timezone
+
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session, joinedload
 
@@ -63,6 +65,20 @@ def get_scratchcard_list(
         query = query.order_by(Scratchcard.issueDate.desc())
 
     items = query.all()
+
+    # 顯示層防線：預告款若「預計上市日」已到/已過，代表已正式上市，不應再出現在即將發售區
+    if is_preview is True:
+        def _passed(roc: str | None) -> bool:
+            if not roc:
+                return False
+            try:
+                y, m, d = (int(x) for x in roc.strip().split("/"))
+            except (ValueError, AttributeError):
+                return False
+            tw_now = datetime.now(timezone(timedelta(hours=8)))
+            return (y, m, d) <= (tw_now.year - 1911, tw_now.month, tw_now.day)
+        items = [it for it in items if not _passed(it.issueDate)]
+
     item_ids = [it.id for it in items]
 
     # 撈玩法資料 (一次查詢避免 N+1)
