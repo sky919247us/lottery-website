@@ -33,11 +33,21 @@ def get_scratchcard_list(
     price: int | None = Query(None, description="依售價篩選"),
     high_win_only: bool = Query(False, description="僅顯示紅色警戒款式"),
     is_preview: bool | None = Query(None, description="篩選預告款 (True) 或在售款 (False)"),
+    include_history: bool = Query(False, description="是否納入歷史款（上一屆，2024/1/1 前發行）"),
+    history_only: bool = Query(False, description="只回傳歷史款（優先於 include_history）"),
     db: Session = Depends(get_db),
 ):
-    """取得刮刮樂列表（輕量版，不含獎金結構詳情）"""
+    """
+    取得刮刮樂列表（輕量版，不含獎金結構詳情）
+
+    歷史款（isHistory=True，上一屆 2024/1/1 前發行的 954 款）預設**不會**出現在結果中，
+    以免首頁列表暴增到千筆。需要時用 include_history=true 納入，或 history_only=true 單獨查。
+    """
     # --- 快取檢查 (TTL 86400 秒 = 24 小時，台彩每天 09:00 更新一次) ---
-    cache_key = f"scratchcards:list:{sort_by}:{order}:{price}:{high_win_only}:{is_preview}"
+    cache_key = (
+        f"scratchcards:list:{sort_by}:{order}:{price}:{high_win_only}:{is_preview}"
+        f":{include_history}:{history_only}"
+    )
     cached = get_cache(cache_key, ttl=86400)
     if cached is not None:
         return cached
@@ -52,6 +62,12 @@ def get_scratchcard_list(
         query = query.filter(Scratchcard.isHighWinRate == True)
     if is_preview is not None:
         query = query.filter(Scratchcard.isPreview == is_preview)
+
+    # 歷史款預設排除（isHistory 可能為 NULL，用 isnot(True) 才涵蓋得到）
+    if history_only:
+        query = query.filter(Scratchcard.isHistory.is_(True))
+    elif not include_history:
+        query = query.filter(Scratchcard.isHistory.isnot(True))
 
     # 主要排序
     sort_column = getattr(Scratchcard, sort_by, Scratchcard.issueDate)

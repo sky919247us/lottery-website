@@ -21,3 +21,6 @@ build/
 *.swp
 *.swo
 .claude/worktrees/
+
+# 歷史刮刮樂收集流程的公告 HTML 快取（可重抓，不需入庫）
+backend/data/history/_news_cache/

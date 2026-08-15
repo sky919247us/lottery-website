@@ -256,7 +256,8 @@ def search_scratchcards_public(
     from app.model.database import Scratchcard
 
     today = datetime.now()
-    all_cards = db.query(Scratchcard).all()
+    # 歷史款（上一屆，2024/1/1 前）早就下市，不會出現在店家庫存裡
+    all_cards = db.query(Scratchcard).filter(Scratchcard.isHistory.isnot(True)).all()
     results = []
 
     for card in all_cards:

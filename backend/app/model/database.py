@@ -72,6 +72,7 @@ class Scratchcard(Base):
     overallWinRate = Column(String(20), default="", comment="總中獎率")
     isHighWinRate = Column(Boolean, default=False, comment="「紅色警戒」高勝率預警")
     isPreview = Column(Boolean, default=False, comment="即將發售（預告款）")
+    isHistory = Column(Boolean, default=False, index=True, comment="歷史款（上一屆，2024/1/1 前發行）")
     prizeInfoUrl = Column(Text, default="", comment="獎金結構連結")
     imageUrl = Column(Text, default="", comment="刮刮樂圖片 URL")
     updatedAt = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
@@ -171,8 +172,13 @@ def _run_migrations():
             if "isPreview" not in existing_cols:
                 conn.execute(text("ALTER TABLE scratchcards ADD COLUMN isPreview BOOLEAN DEFAULT 0"))
                 conn.commit()
-            # 確保既有資料的 isPreview 不為 NULL（SQLite ALTER TABLE 不會回填既有資料）
+            if "isHistory" not in existing_cols:
+                conn.execute(text("ALTER TABLE scratchcards ADD COLUMN isHistory BOOLEAN DEFAULT 0"))
+                conn.execute(text("CREATE INDEX IF NOT EXISTS ix_scratchcards_isHistory ON scratchcards (isHistory)"))
+                conn.commit()
+            # 確保既有資料的 isPreview / isHistory 不為 NULL（SQLite ALTER TABLE 不會回填既有資料）
             conn.execute(text("UPDATE scratchcards SET isPreview = 0 WHERE isPreview IS NULL"))
+            conn.execute(text("UPDATE scratchcards SET isHistory = 0 WHERE isHistory IS NULL"))
             conn.commit()
 
             # --- 升級規格：prize_structures 補欄位 ---
@@ -229,6 +235,8 @@ def _run_migrations():
             # PostgreSQL：用 ALTER TABLE ... ADD COLUMN IF NOT EXISTS 新增欄位
             pg_migrations = [
                 'ALTER TABLE scratchcards ADD COLUMN IF NOT EXISTS "isPreview" BOOLEAN DEFAULT false',
+                'ALTER TABLE scratchcards ADD COLUMN IF NOT EXISTS "isHistory" BOOLEAN DEFAULT false',
+                'CREATE INDEX IF NOT EXISTS ix_scratchcards_isHistory ON scratchcards ("isHistory")',
                 'ALTER TABLE scratchcards ALTER COLUMN "gameId" TYPE VARCHAR(64)',
                 'ALTER TABLE prize_structures ADD COLUMN IF NOT EXISTS "oddsDenominator" BIGINT DEFAULT 0',
                 'ALTER TABLE prize_structures ADD COLUMN IF NOT EXISTS "isJackpot" BOOLEAN DEFAULT false',
@@ -244,6 +252,7 @@ def _run_migrations():
                 except Exception:
                     pass
             conn.execute(text('UPDATE scratchcards SET "isPreview" = false WHERE "isPreview" IS NULL'))
+            conn.execute(text('UPDATE scratchcards SET "isHistory" = false WHERE "isHistory" IS NULL'))
             conn.commit()
 
             # 建立 admin_retailer_mapping 表

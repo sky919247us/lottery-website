@@ -1251,7 +1251,8 @@ async def search_scratchcards_for_merchant(
     """搜尋可用的刮刮樂款式（排除已過兌獎期限）"""
     import re
 
-    all_cards = db.query(Scratchcard).all()
+    # 歷史款（上一屆，2024/1/1 前）早就下市，不會出現在店家庫存裡
+    all_cards = db.query(Scratchcard).filter(Scratchcard.isHistory.isnot(True)).all()
     now = datetime.now()
     results = []
 

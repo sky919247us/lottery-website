@@ -215,6 +215,7 @@ def get_leaderboard(
     price: int = Query(..., description="售價帶（50/100/200/500/1000）"),
     metric: str = Query("full_return_rate", description="排序指標"),
     include_ended: bool = Query(True, description="是否含已停售款"),
+    include_history: bool = Query(False, description="是否含歷史款（上一屆，2024/1/1 前發行）"),
     threshold: int = Query(100000, description="排除大獎閾值（幾張中一張）"),
     limit: int = Query(50, ge=1, le=200),
     db: Session = Depends(get_db),
@@ -226,6 +227,9 @@ def get_leaderboard(
     q = db.query(Scratchcard).options(joinedload(Scratchcard.prizes)).filter(
         Scratchcard.price == price
     )
+    # 歷史款預設不進排行榜（include_ended 預設為 True，不擋的話十幾年前的款會混進來）
+    if not include_history:
+        q = q.filter(Scratchcard.isHistory.isnot(True))
     if not include_ended:
         # 沒有 status 欄位前，以 isPreview=False 且 endDate 為空當作在售款的近似
         q = q.filter(Scratchcard.isPreview == False)
@@ -397,6 +401,7 @@ def get_similar_scratchcards(
     scratchcard_id: int,
     limit: int = Query(5, ge=1, le=20),
     include_preview: bool = Query(False, description="是否納入預告款"),
+    include_history: bool = Query(False, description="是否納入歷史款（上一屆，2024/1/1 前發行）"),
     same_price_only: bool = Query(True, description="只比較同價位"),
     db: Session = Depends(get_db),
 ):
@@ -422,6 +427,9 @@ def get_similar_scratchcards(
         q = q.filter(Scratchcard.price == target.price)
     if not include_preview:
         q = q.filter(Scratchcard.isPreview == False)
+    # 歷史款預設不進候選池；查的若本身就是歷史款，則放行同屆比對
+    if not include_history and not target.isHistory:
+        q = q.filter(Scratchcard.isHistory.isnot(True))
 
     candidates = q.all()
 
