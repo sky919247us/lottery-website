@@ -40,7 +40,7 @@ export default function SeoHead({ title, description, path, jsonLd }: SeoHeadPro
     setMetaTag('og:title', fullTitle, true)
     setMetaTag('og:description', description, true)
     if (path) {
-      setMetaTag('og:url', `https://scratch.tw${path}`, true)
+      setMetaTag('og:url', `https://i168.win${path}`, true)
     }
 
     // Twitter Card
@@ -55,7 +55,7 @@ export default function SeoHead({ title, description, path, jsonLd }: SeoHeadPro
         link.setAttribute('rel', 'canonical')
         document.head.appendChild(link)
       }
-      link.setAttribute('href', `https://scratch.tw${path}`)
+      link.setAttribute('href', `https://i168.win${path}`)
     }
 
     // JSON-LD 結構化資料
