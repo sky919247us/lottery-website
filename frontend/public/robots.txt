@@ -1,0 +1,16 @@
+# 刮刮研究室 i168.win
+User-agent: *
+Allow: /
+
+# 使用者私人頁面與後台：無公開價值，且會產生索引膨脹
+Disallow: /admin/
+Disallow: /merchant/
+Disallow: /auth/
+Disallow: /profile
+Disallow: /favorites
+Disallow: /wallet
+
+# API 子網域不需被當成網頁內容索引
+Disallow: /api/
+
+Sitemap: https://i168.win/sitemap.xml
