@@ -133,6 +133,7 @@ from app.model.ticket_snapshot import TicketSnapshot  # noqa: F401
 from app.model.favorite import Favorite  # noqa: F401
 from app.model.game_mechanic import GameMechanic  # noqa: F401
 from app.model.pnl_record import PnLRecord  # noqa: F401
+from app.model.unboxing import UnboxingSession, UnboxingBook  # noqa: F401
 
 
 def _create_composite_indexes():
@@ -231,6 +232,17 @@ def _run_migrations():
                 """))
                 conn.commit()
 
+            # 整本開箱：加速去重與查詢用的複合索引（表本身由 create_all 建立）
+            conn.execute(text(
+                "CREATE INDEX IF NOT EXISTS ix_unboxing_books_game_serial "
+                "ON unboxing_books(gameId, serialNo)"
+            ))
+            conn.execute(text(
+                "CREATE INDEX IF NOT EXISTS ix_unboxing_sessions_game_pub "
+                "ON unboxing_sessions(gameId, isPublished)"
+            ))
+            conn.commit()
+
         else:
             # PostgreSQL：用 ALTER TABLE ... ADD COLUMN IF NOT EXISTS 新增欄位
             pg_migrations = [
@@ -244,6 +256,9 @@ def _run_migrations():
                 'ALTER TABLE merchant_claims ADD COLUMN IF NOT EXISTS "slpTradeOrderId" VARCHAR(64)',
                 'CREATE INDEX IF NOT EXISTS idx_merchant_claims_slp_trade ON merchant_claims ("slpTradeOrderId")',
                 'ALTER TABLE users ADD COLUMN IF NOT EXISTS "lastCheckinCity" VARCHAR(20)',
+                # 整本開箱：加速去重與查詢用的複合索引（表本身由 create_all 建立）
+                'CREATE INDEX IF NOT EXISTS ix_unboxing_books_game_serial ON unboxing_books ("gameId", "serialNo")',
+                'CREATE INDEX IF NOT EXISTS ix_unboxing_sessions_game_pub ON unboxing_sessions ("gameId", "isPublished")',
             ]
             for sql in pg_migrations:
                 try:

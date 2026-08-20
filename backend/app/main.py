@@ -16,7 +16,7 @@ from fastapi import FastAPI, Depends
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 
-from app.api import map, retailer, scratchcard, videos, user, inventory, merchant, festival, auth, rating, admin, upload, payment, payment_slp, store_page, webhooks, analytics, favorite, wallet
+from app.api import map, retailer, scratchcard, videos, user, inventory, merchant, festival, auth, rating, admin, upload, payment, payment_slp, store_page, webhooks, analytics, favorite, wallet, unboxing
 from app.middleware.rate_limit import RateLimitMiddleware
 from app.model.database import init_db
 from app.service.crawler_service import run_crawler, run_preview_crawler
@@ -86,6 +86,7 @@ app.include_router(webhooks.router)
 app.include_router(analytics.router)
 app.include_router(favorite.router)
 app.include_router(wallet.router)
+app.include_router(unboxing.router)
 
 # 掛載靜態檔案目錄供讀取圖片
 import os

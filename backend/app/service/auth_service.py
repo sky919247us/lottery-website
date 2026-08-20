@@ -187,6 +187,43 @@ async def get_optional_user(
         return None
     try:
         user_id = verify_jwt(credentials.credentials)
-        return db.query(User).filter(User.id == user_id).first()
     except HTTPException:
         return None
+    user = db.query(User).filter(User.id == user_id).first()
+    if user and user.isBanned:
+        # 與 get_current_user 一致：被封禁的帳號一律視為未登入
+        return None
+    return user
+
+
+def effective_karma_level(user: User | None) -> int:
+    """取得可信的等級
+
+    User.karmaLevel 是「加減積分時才重算」的快取欄位，可能與 karmaPoints 不同步
+    （例如門檻表調整過、或資料被手動修改），因此取兩者的較大值。
+    未登入回 0。
+    """
+    if user is None:
+        return 0
+    from app.model.user import calc_karma_level
+
+    return max(int(user.karmaLevel or 1), calc_karma_level(int(user.karmaPoints or 0)))
+
+
+def require_level(min_level: int):
+    """依前台使用者等級守門的依賴工廠
+
+    用法：``Depends(require_level(5))``
+    形狀比照 app/service/admin_auth_service.py 的 require_role，
+    但走的是前台 LINE JWT 而非 admin JWT。
+    """
+
+    async def level_checker(user: User = Depends(get_current_user)) -> User:
+        if effective_karma_level(user) < min_level:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail=f"權限不足：需要 Lv.{min_level} 以上",
+            )
+        return user
+
+    return level_checker

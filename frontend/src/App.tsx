@@ -26,6 +26,8 @@ const queryClient = new QueryClient({
 // 懶載入：非首頁的大型頁面元件
 const Detail = lazy(() => import('./pages/Detail'))
 const Videos = lazy(() => import('./pages/Videos'))
+const Unboxing = lazy(() => import('./pages/Unboxing'))
+const UnboxingDetail = lazy(() => import('./pages/UnboxingDetail'))
 const Calculator = lazy(() => import('./pages/Calculator'))
 const PnLDashboard = lazy(() => import('./pages/PnLDashboard'))
 const CommunityMap = lazy(() => import('./pages/CommunityMap'))
@@ -85,6 +87,8 @@ export default function App() {
                     <Route path="/" element={<Home />} />
                     <Route path="/detail/:id" element={<Detail />} />
                     <Route path="/videos" element={<Videos />} />
+            <Route path="/unboxing" element={<Unboxing />} />
+            <Route path="/unboxing/:gameId" element={<UnboxingDetail />} />
                     <Route path="/calculator" element={<Calculator />} />
                     <Route path="/wallet" element={<PnLDashboard />} />
                     <Route path="/map" element={<CommunityMap />} />
