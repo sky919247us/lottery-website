@@ -1,0 +1,464 @@
+/* 大樣本統計：列表頁與詳情頁共用樣式 */
+
+.ub {
+    padding: 1.5rem 1rem 3rem;
+}
+
+.ub__head h1 {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-size: 1.6rem;
+    color: #0b192c;
+    margin: 0 0 0.4rem;
+}
+
+.ub__head p {
+    color: #475569;
+    font-size: 0.9rem;
+    max-width: 62ch;
+    margin: 0 0 1.2rem;
+    line-height: 1.7;
+}
+
+/* --- 核心數字列 --- */
+.ub__kpi {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(110px, 1fr));
+    gap: 1px;
+    background: #e2e8f0;
+    border: 1px solid #e2e8f0;
+    border-radius: 12px;
+    overflow: hidden;
+    margin-bottom: 1.2rem;
+}
+
+.ub__kpi-cell {
+    background: #fff;
+    padding: 0.6rem 0.75rem;
+}
+
+.ub__kpi-cell span {
+    display: block;
+    font-size: 0.72rem;
+    color: #64748b;
+}
+
+.ub__kpi-cell strong {
+    font-size: 1.15rem;
+    font-variant-numeric: tabular-nums;
+    color: #0b192c;
+}
+
+.ub-accent {
+    color: #1e8449 !important;
+}
+
+/* --- 表格 --- */
+.ub__table-wrap {
+    overflow-x: auto;
+    border: 1px solid #e2e8f0;
+    border-radius: 12px;
+    background: #fff;
+}
+
+.ub__table {
+    border-collapse: collapse;
+    width: 100%;
+    font-size: 0.82rem;
+    font-variant-numeric: tabular-nums;
+}
+
+.ub__table th {
+    background: #f1f5f9;
+    padding: 0.5rem 0.6rem;
+    text-align: right;
+    font-weight: 600;
+    white-space: nowrap;
+    border-bottom: 1px solid #e2e8f0;
+    color: #334155;
+}
+
+.ub__table th:first-child,
+.ub__table td:first-child {
+    text-align: left;
+}
+
+.ub__table td {
+    padding: 0.45rem 0.6rem;
+    text-align: right;
+    border-bottom: 1px solid #eef2f6;
+    white-space: nowrap;
+}
+
+.ub__table tbody tr:last-child td {
+    border-bottom: 0;
+}
+
+.ub__table tbody tr:hover td {
+    background: #f8fafc;
+}
+
+/* 橫捲時第一欄固定，才不會不知道在看哪一款 */
+.ub-sticky {
+    position: sticky;
+    left: 0;
+    background: #fff;
+    z-index: 1;
+    box-shadow: 1px 0 0 #e2e8f0;
+}
+
+.ub__table th.ub-sticky {
+    background: #f1f5f9;
+}
+
+.ub__table tbody tr:hover .ub-sticky {
+    background: #f8fafc;
+}
+
+.ub-th-sort {
+    cursor: pointer;
+    user-select: none;
+}
+
+.ub-th-sort svg {
+    margin-left: 3px;
+    vertical-align: -1px;
+}
+
+.ub-sort-on {
+    color: #0b192c;
+}
+
+.ub-sort-off {
+    color: #cbd5e1;
+}
+
+.ub__name-link {
+    text-decoration: none;
+    color: inherit;
+    display: block;
+}
+
+.ub__name {
+    display: block;
+    font-weight: 600;
+    color: #0b192c;
+}
+
+.ub__no {
+    display: flex;
+    align-items: center;
+    gap: 3px;
+    font-family: ui-monospace, monospace;
+    font-size: 0.68rem;
+    color: #64748b;
+    letter-spacing: 0.06em;
+}
+
+.ub__weak {
+    font-style: normal;
+    font-size: 0.65rem;
+    color: #94a3b8;
+    margin-left: 4px;
+}
+
+.ub__empty {
+    padding: 2rem;
+    text-align: center;
+    color: #64748b;
+}
+
+.ub__disclaimer {
+    margin-top: 1.2rem;
+    padding: 0.9rem 1rem;
+    background: #f8fafc;
+    border: 1px solid #e2e8f0;
+    border-radius: 10px;
+    font-size: 0.78rem;
+    color: #475569;
+    line-height: 1.8;
+}
+
+/* --- 詳情頁 --- */
+.ub__detail-head {
+    display: flex;
+    gap: 1rem;
+    flex-wrap: wrap;
+    align-items: flex-start;
+    border-bottom: 1px solid #e2e8f0;
+    padding-bottom: 0.9rem;
+    margin-bottom: 0.9rem;
+}
+
+.ub__detail-title {
+    flex: 1;
+    min-width: 240px;
+}
+
+.ub__detail-title h1 {
+    font-size: 1.5rem;
+    margin: 0.15rem 0 0.2rem;
+    color: #0b192c;
+}
+
+.ub__meta {
+    color: #64748b;
+    font-size: 0.8rem;
+}
+
+.ub__video {
+    width: 210px;
+    flex: none;
+    text-decoration: none;
+    color: inherit;
+}
+
+.ub__video-thumb {
+    aspect-ratio: 16 / 9;
+    border-radius: 10px;
+    overflow: hidden;
+    background: #121a2f;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #94a3b8;
+    transition: transform 0.15s ease;
+}
+
+.ub__video:hover .ub__video-thumb {
+    transform: translateY(-2px);
+}
+
+.ub__video-thumb img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.ub__video-cap {
+    font-size: 0.7rem;
+    color: #64748b;
+    margin-top: 0.3rem;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+}
+
+/* --- 分頁籤 --- */
+.ub__tabs {
+    display: flex;
+    gap: 2px;
+    border-bottom: 1px solid #e2e8f0;
+    margin: 1rem 0 0.9rem;
+    overflow-x: auto;
+}
+
+.ub__tabs button {
+    border: 0;
+    background: none;
+    border-bottom: 2px solid transparent;
+    padding: 0.5rem 0.85rem;
+    font-size: 0.85rem;
+    color: #64748b;
+    cursor: pointer;
+    white-space: nowrap;
+    font-family: inherit;
+}
+
+.ub__tabs button.is-active {
+    color: #0b192c;
+    font-weight: 600;
+    border-bottom-color: #0b192c;
+}
+
+/* --- 熱力圖 --- */
+.ub__heat-box {
+    max-height: 320px;
+    overflow-y: auto;
+    overflow-x: auto;
+    border: 1px solid #e2e8f0;
+    border-radius: 10px;
+    padding: 0.6rem;
+    background: #fff;
+}
+
+.ub__heat-row {
+    display: flex;
+    gap: 6px;
+    align-items: flex-start;
+    padding: 3px 0;
+}
+
+.ub__heat-label {
+    width: 62px;
+    flex: none;
+    font-family: ui-monospace, monospace;
+    font-size: 0.68rem;
+    color: #64748b;
+    padding-top: 2px;
+}
+
+/* 統一 25 欄、格子固定尺寸：不同券種的格子一樣大才能互相比對 */
+.ub__heat-grid {
+    display: grid;
+    gap: 1.5px;
+}
+
+.ub__heat-cell {
+    width: 13px;
+    height: 13px;
+    border-radius: 2px;
+    background: #eef2f6;
+}
+
+.ub__heat-legend {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.65rem;
+    align-items: center;
+    font-size: 0.72rem;
+    color: #64748b;
+    margin-top: 0.5rem;
+}
+
+.ub__swatch {
+    display: inline-block;
+    width: 10px;
+    height: 10px;
+    border-radius: 2px;
+    margin-right: 3px;
+    vertical-align: -1px;
+}
+
+/* --- 鎖定區塊 --- */
+.ub__lock {
+    border: 1px dashed #cbd5e1;
+    border-radius: 12px;
+    padding: 1.6rem 1rem;
+    text-align: center;
+    background: #f8fafc;
+    color: #64748b;
+    font-size: 0.85rem;
+}
+
+.ub__lock strong {
+    display: block;
+    color: #0b192c;
+    font-size: 0.95rem;
+    margin-bottom: 0.3rem;
+}
+
+.ub__lock-btn {
+    margin-top: 0.75rem;
+    border: 0;
+    border-radius: 999px;
+    padding: 0.45rem 1.1rem;
+    font-size: 0.82rem;
+    cursor: pointer;
+    background: #06c755;
+    color: #fff;
+    font-family: inherit;
+}
+
+.ub__lock-btn--level {
+    background: #0b192c;
+    text-decoration: none;
+    display: inline-block;
+}
+
+/* --- 結論卡片 --- */
+.ub__cards {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(230px, 1fr));
+    gap: 0.7rem;
+}
+
+.ub__card {
+    border: 1px solid #e2e8f0;
+    border-radius: 10px;
+    padding: 0.7rem 0.85rem;
+    background: #fff;
+}
+
+.ub__card b {
+    display: block;
+    font-size: 0.82rem;
+    color: #0b192c;
+    margin-bottom: 0.25rem;
+}
+
+.ub__card p {
+    margin: 0;
+    font-size: 0.78rem;
+    color: #475569;
+    line-height: 1.65;
+}
+
+.ub__section-title {
+    font-size: 0.95rem;
+    font-weight: 650;
+    color: #0b192c;
+    margin: 1.2rem 0 0.5rem;
+}
+
+.ub__note {
+    font-size: 0.72rem;
+    color: #64748b;
+    margin-top: 0.45rem;
+    line-height: 1.7;
+}
+
+.ub__sim {
+    display: flex;
+    gap: 0.6rem;
+    align-items: center;
+    flex-wrap: wrap;
+    margin-bottom: 0.6rem;
+}
+
+.ub__sim input {
+    width: 90px;
+    padding: 0.3rem 0.5rem;
+    border: 1px solid #cbd5e1;
+    border-radius: 6px;
+    font-family: inherit;
+    font-size: 0.82rem;
+}
+
+.ub__sim button {
+    border: 1px solid #0b192c;
+    background: #0b192c;
+    color: #fff;
+    border-radius: 6px;
+    padding: 0.32rem 0.8rem;
+    font-size: 0.8rem;
+    cursor: pointer;
+    font-family: inherit;
+}
+
+@media (max-width: 768px) {
+    .ub {
+        padding: 1rem 0.6rem 2.5rem;
+    }
+
+    .ub__video {
+        width: 100%;
+    }
+
+    .ub__heat-label {
+        width: 52px;
+        font-size: 0.62rem;
+    }
+
+    /* 25 欄 x 13px + 標籤 62px = 423px，窄螢幕放不下，縮到 11px 讓一整列仍能完整顯示 */
+    .ub__heat-cell {
+        width: 11px;
+        height: 11px;
+    }
+
+    .ub__heat-grid {
+        grid-template-columns: repeat(var(--ub-cols, 25), 11px) !important;
+    }
+}

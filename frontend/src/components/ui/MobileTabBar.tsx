@@ -3,13 +3,14 @@
  * 僅在手機寬度（≤768px）時顯示，提供快速頁面切換
  */
 import { Link, useLocation } from 'react-router-dom'
-import { Home, Film, Calculator, User, Map, Link as LinkIcon } from 'lucide-react'
+import { Home, Film, Calculator, User, Map, BarChart3, Link as LinkIcon } from 'lucide-react'
 import './MobileTabBar.css'
 
 /** 底部導覽項目定義 */
 const TAB_ITEMS = [
     { to: '/', label: '首頁', icon: Home },
     { to: '/videos', label: '影片', icon: Film },
+    { to: '/unboxing', label: '數據', icon: BarChart3 },
     { to: '/calculator', label: '計算機', icon: Calculator },
     { to: '/map', label: '地圖', icon: Map },
     { to: 'https://bingo.i168.win/', label: '賓果', icon: LinkIcon, external: true },

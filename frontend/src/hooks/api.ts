@@ -788,3 +788,128 @@ export async function parseMechanic(
     )
     return data
 }
+
+/* === 大樣本統計（整本開箱）API === */
+
+/** 全站累計 */
+export interface UnboxingSummary {
+    gameCount: number
+    sessionCount: number
+    bookCount: number
+    ticketCount: number
+    totalCost: number
+    totalPrize: number
+    returnRate: number
+    winRate: number
+}
+
+/** 列表頁一列一款 */
+export interface UnboxingGameItem {
+    gameId: string
+    name: string
+    price: number
+    ticketsPerBook: number
+    imageUrl: string
+    issueDate: string
+    endDate: string
+    scratchcardId: number | null
+    bookCount: number
+    ticketCount: number
+    batchCount: number
+    cost: number
+    totalPrize: number
+    returnRate: number
+    winRate: number
+    officialReturnRate: number | null
+    officialWinRate: number | null
+    returnRateDelta: number | null
+    maxPrizeHit: number
+    videoCount: number
+}
+
+/** 單本明細；prizes 與 serialNo 僅 Lv.5 以上才會出現 */
+export interface UnboxingBookRow {
+    id: number
+    label: string
+    batchKey: string
+    sessionId: number
+    ticketCount: number
+    totalPrize: number
+    winCount: number
+    missCount: number
+    maxDryRun: number
+    returnRate: number
+    prizeCounts: Record<string, number>
+    serialNo?: string
+    prizes?: number[]
+}
+
+export interface UnboxingSessionRow {
+    id: number
+    title: string
+    videoUrl: string
+    videoId: string
+    videoTitle: string
+    bookCount: number
+    recordedDate: string
+}
+
+export interface UnboxingDetailData {
+    gameId: string
+    name: string
+    price: number
+    ticketsPerBook: number
+    imageUrl: string
+    issueDate: string
+    endDate: string
+    totalIssued: number
+    scratchcardId: number | null
+    /** 0 未登入 / 1 已登入 / 2 Lv.5 以上 */
+    accessLevel: number
+    requiredLevelForFull: number
+    official: {
+        returnRate: number | null
+        winRate: number | null
+        prizes: {
+            prizeName: string
+            prizeAmount: number
+            totalCount: number
+            perBookDesc: string
+            expectedPerBook: number | null
+            measuredPerBook: number
+        }[]
+    }
+    measured: {
+        bookCount: number
+        batchCount: number
+        ticketCount: number
+        cost: number
+        totalPrize: number
+        returnRate: number
+        winRate: number
+        prizeCounts: Record<string, number>
+        bookTotals: number[]
+        positionWins: number[]
+        positionPrize: number[]
+    }
+    sessions: UnboxingSessionRow[]
+    books: UnboxingBookRow[]
+}
+
+/** 取得大樣本統計全站累計 */
+export async function fetchUnboxingSummary(): Promise<UnboxingSummary> {
+    const { data } = await api.get('/api/unboxing/summary')
+    return data
+}
+
+/** 取得款式列表（預設依期數由新到舊） */
+export async function fetchUnboxingGames(order: 'desc' | 'asc' = 'desc'): Promise<UnboxingGameItem[]> {
+    const { data } = await api.get('/api/unboxing/games', { params: { order } })
+    return data
+}
+
+/** 取得單款詳情；回傳內容依登入狀態與等級而不同 */
+export async function fetchUnboxingDetail(gameId: string): Promise<UnboxingDetailData> {
+    const { data } = await api.get(`/api/unboxing/games/${gameId}`)
+    return data
+}

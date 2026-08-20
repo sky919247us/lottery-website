@@ -13,6 +13,7 @@ type NavLink = { to: string; label: string; icon: React.ReactNode | null; extern
 const NAV_LINKS: NavLink[] = [
   { to: '/', label: '首頁', icon: null },
   { to: '/videos', label: '影片列表', icon: null },
+  { to: '/unboxing', label: '大樣本統計', icon: null },
   { to: '/calculator', label: '計算機', icon: null },
   { to: '/wallet', label: '我的錢包', icon: null },
   { to: '/favorites', label: '我的收藏', icon: null },

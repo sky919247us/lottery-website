@@ -19,24 +19,11 @@ import FavoriteButton from '../components/FavoriteButton'
 import SimilarScratchcards from '../components/SimilarScratchcards'
 import MechanicPanel from '../components/MechanicPanel'
 import './Detail.css'
+import PrizeStructureTable from '../components/PrizeStructureTable'
+import { getDefaultTicketsPerBook } from '../utils/scratchcard'
 
 /** YouTube 新品實測播放清單 ID */
 const REVIEW_PLAYLIST_ID = 'PLBdL0u1z-6I5Psfqk72nmPKhZ_UESHDK-'
-
-/** 面額 → 每本張數對照表 */
-const PRICE_TO_TICKETS_PER_BOOK: Record<number, number> = {
-    100: 100,
-    200: 100,
-    300: 100,
-    500: 50,
-    1000: 25,
-    2000: 19,
-}
-
-/** 根據面額取得預設每本張數 */
-function getDefaultTicketsPerBook(price: number): number {
-    return PRICE_TO_TICKETS_PER_BOOK[price] || 100
-}
 
 export default function Detail() {
     const { id } = useParams<{ id: string }>()
@@ -426,46 +413,11 @@ export default function Detail() {
                         <Trophy size={20} />
                         獎金結構
                     </h2>
-                    {detail.prizes.length > 0 ? (
-                        <div className="detail__table-wrap">
-                            <table className="detail__table">
-                                <thead>
-                                    <tr>
-                                        <th>獎項</th>
-                                        <th>總數</th>
-                                        <th>剩餘</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    {detail.prizes.map((p, i) => {
-                                        // 估算剩餘：依銷售率估算已開出比例
-                                        const salesRatio = detail.salesRateValue / 100
-                                        const estimatedRemaining = Math.round(p.totalCount * (1 - salesRatio))
-                                        return (
-                                            <tr key={i}>
-                                                <td className="detail__amount">
-                                                    {p.prizeAmount > 0 ? `$${p.prizeAmount.toLocaleString()}` : p.prizeName}
-                                                </td>
-                                                <td>{p.totalCount.toLocaleString()}</td>
-                                                <td className="detail__remaining-count-cell">
-                                                    {estimatedRemaining.toLocaleString()}
-                                                </td>
-                                            </tr>
-                                        )
-                                    })}
-                                </tbody>
-                            </table>
-                            <p className="detail__table-note">
-                                * 剩餘數量為依銷售率估算，僅供參考
-                            </p>
-                        </div>
-                    ) : (
-                        <p className="detail__empty">
-                            {detail.isPreview
-                                ? '預告款尚未公佈完整獎金結構，正式發售後將自動更新'
-                                : '暫無獎金結構資料'}
-                        </p>
-                    )}
+                    <PrizeStructureTable
+                        prizes={detail.prizes}
+                        salesRateValue={detail.salesRateValue}
+                        isPreview={detail.isPreview}
+                    />
                 </section>
 
                 {/* 附近有貨店家 */}
