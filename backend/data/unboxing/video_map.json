@@ -1,0 +1,5 @@
+{
+  "_comment": "手動指定的期數 → 影片網址。用於 RSS 只回最近 15 部而抓不到的舊片，或尚未加進「包本解密」播放清單的影片。sync_unboxing_videos.py 預設會讀這份，正式站重建資料時才不會遺失對應。",
+  "5137": "https://youtu.be/E07FQy7WCxg",
+  "5121": "https://youtu.be/o44hPLvilWo"
+}

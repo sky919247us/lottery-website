@@ -72,6 +72,21 @@ def video_id_from_url(url: str) -> str:
     return m.group(1) if m else ""
 
 
+def fetch_title(video_id: str) -> str:
+    """用 oEmbed 取影片標題（免金鑰），供 --map 手動指定的影片顯示正確標題"""
+    url = (
+        "https://www.youtube.com/oembed?url=https://www.youtube.com/watch?v=%s&format=json"
+        % video_id
+    )
+    try:
+        import json
+
+        raw = urllib.request.urlopen(url, timeout=15).read().decode("utf-8")
+        return json.loads(raw).get("title", "")
+    except Exception:  # noqa: BLE001
+        return ""
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--playlist", default=DEFAULT_PLAYLIST)
@@ -82,6 +97,11 @@ def main():
         help="手動指定 期數=影片網址，可重複（供 RSS 15 部以外的舊片）",
     )
     ap.add_argument("--commit", action="store_true")
+    ap.add_argument(
+        "--map-file",
+        default="data/unboxing/video_map.json",
+        help="期數 → 影片網址的對應檔（RSS 抓不到的舊片放這裡，會進版控）",
+    )
     ap.add_argument("--report", default="data/unboxing/_video_sync_report.txt")
     args = ap.parse_args()
 
@@ -103,14 +123,27 @@ def main():
     except Exception as e:  # noqa: BLE001
         lines.append("!! RSS 取得失敗：%r" % e)
 
-    for pair in args.map:
+    # 對應檔優先載入，再讓命令列的 --map 覆蓋
+    pairs = []
+    mf = Path(args.map_file)
+    if mf.exists():
+        import json as _json
+
+        for gid, url in _json.loads(mf.read_text(encoding="utf-8")).items():
+            if not gid.startswith("_"):
+                pairs.append("%s=%s" % (gid, url))
+        lines.append("對應檔 %s 載入 %d 筆" % (mf.as_posix(), len(pairs)))
+    pairs.extend(args.map)
+
+    for pair in pairs:
         if "=" not in pair:
             continue
         gid, url = pair.split("=", 1)
         vid = video_id_from_url(url)
         if vid:
-            mapping[gid.strip()] = (vid, "（手動指定）")
-            lines.append("  手動指定 %s -> %s" % (gid.strip(), vid))
+            title = fetch_title(vid) or "（手動指定）"
+            mapping[gid.strip()] = (vid, title)
+            lines.append("  手動指定 %s -> %s %s" % (gid.strip(), vid, title[:40]))
 
     init_db()
     db = SessionLocal()
