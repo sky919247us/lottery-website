@@ -1,5 +1,6 @@
 {
-  "_comment": "手動指定的期數 → 影片網址。用於 RSS 只回最近 15 部而抓不到的舊片，或尚未加進「包本解密」播放清單的影片。sync_unboxing_videos.py 預設會讀這份，正式站重建資料時才不會遺失對應。",
+  "_comment": "手動指定的期數 → 影片網址。用於 RSS 只回最近 15 部而抓不到的舊片、或確定不會再上新片的款式。sync_unboxing_videos.py 預設讀這份，正式站重建資料時才不會遺失對應。未列在這裡的期數走「包本解密」播放清單 RSS 自動比對（靠標題結尾的 #期數）。",
+  "5126": "https://youtu.be/Yu08yaLQk-Y",
   "5137": "https://youtu.be/E07FQy7WCxg",
   "5121": "https://youtu.be/o44hPLvilWo"
 }
