@@ -108,28 +108,45 @@ export function simulateDraws(
     }
 }
 
+/** 標準常態累積分布（Abramowitz & Stegun 7.1.26 的 erf 近似） */
+function normalCdf(z: number): number {
+    const sign = z < 0 ? -1 : 1
+    const x = Math.abs(z) / Math.SQRT2
+    const t = 1 / (1 + 0.3275911 * x)
+    const y =
+        1 -
+        ((((1.061405429 * t - 1.453152027) * t + 1.421413741) * t - 0.284496736) * t +
+            0.254829592) *
+            t *
+            Math.exp(-x * x)
+    return 0.5 * (1 + sign * y)
+}
+
 /**
- * 各張號中獎次數是否偏離隨機
+ * 張號位置的卡方適合度檢定
  *
- * 以整體中獎率 p 與本數 n 算二項分布的 95% 區間，回報有幾個張號落在區間外。
- * 期望值本來就會有約 5% 的張號落在區間外，這點要在畫面上講清楚，
- * 否則反而會製造「有規律」的錯覺。
+ * 檢定「各張號的中獎次數是否符合均勻分布」。這比「數有幾個張號落在 95% 區間外」
+ * 正確：後者在本數不多時常態近似很粗糙，又沒處理多重比較，100 個張號本來就會有
+ * 約 5 個純屬巧合地落在區間外，很容易被誤讀成有規律。
+ *
+ * p 值用 Wilson–Hilferty 轉換近似，df 大時足夠準確。
  */
-export function positionOutliers(
-    positionWins: number[],
-    bookCount: number,
-    overallWinRate: number,
-): { low: number; high: number; outliers: number; expectedOutliers: number } {
-    if (!bookCount || !positionWins.length) {
-        return { low: 0, high: 0, outliers: 0, expectedOutliers: 0 }
-    }
-    const p = overallWinRate
-    const sd = Math.sqrt(bookCount * p * (1 - p))
-    const centre = bookCount * p
-    const low = Math.max(0, centre - 1.96 * sd)
-    const high = centre + 1.96 * sd
-    const outliers = positionWins.filter((w) => w < low || w > high).length
-    return { low, high, outliers, expectedOutliers: positionWins.length * 0.05 }
+export function chiSquareUniform(counts: number[]): {
+    chi2: number
+    df: number
+    p: number
+    significant: boolean
+} {
+    const n = counts.length
+    const total = counts.reduce((a, b) => a + b, 0)
+    const expected = n ? total / n : 0
+    if (!expected || n < 2) return { chi2: 0, df: 0, p: 1, significant: false }
+    const chi2 = counts.reduce((a, c) => a + ((c - expected) * (c - expected)) / expected, 0)
+    const df = n - 1
+    const z =
+        (Math.cbrt(chi2 / df) - (1 - 2 / (9 * df))) / Math.sqrt(2 / (9 * df))
+    const p = 1 - normalCdf(z)
+    return { chi2, df, p, significant: p < 0.05 }
 }
 
 /** 前 / 中 / 後三段的回收金額 */

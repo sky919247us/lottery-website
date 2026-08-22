@@ -19,10 +19,10 @@ import { fetchUnboxingDetail } from '../hooks/api'
 import type { UnboxingBookRow } from '../hooks/api'
 import { heatmapColumns } from '../utils/scratchcard'
 import {
+    chiSquareUniform,
     cumulativeNet,
     median,
     percentileOf,
-    positionOutliers,
     simulateDraws,
     stdDev,
     thirds,
@@ -142,7 +142,7 @@ export default function UnboxingDetail() {
         const withoutBig = m.cost ? (m.totalPrize - rareAmount) / m.cost : 0
         const over100 = totals.filter((t) => t >= data.ticketsPerBook * data.price).length
         const seg = thirds([m.positionPrize])
-        const out = positionOutliers(m.positionWins, m.bookCount, m.winRate)
+        const chi = chiSquareUniform(m.positionWins)
 
         // 官方派彩率含了頭獎那種「這個樣本規模幾乎不可能中到」的獎項，
         // 直接拿實測去比會系統性偏低。算出扣掉那些獎之後的「可及派彩率」才是公平的比較基準。
@@ -194,7 +194,12 @@ export default function UnboxingDetail() {
             ],
             [
                 '張號位置檢定',
-                `各張號中獎次數的 95% 區間為 ${m.positionWins.length ? `${out.low.toFixed(1)}～${out.high.toFixed(1)}` : '—'}，實際落在區間外的有 ${out.outliers} 個張號，隨機情況下本來就約有 ${out.expectedOutliers.toFixed(1)} 個。沒有「哪一張比較會中」這回事。`,
+                chi.df
+                    ? `對 ${m.positionWins.length} 個張號的中獎次數做卡方適合度檢定：χ² = ${chi.chi2.toFixed(1)}（自由度 ${chi.df}），p ${chi.p < 0.001 ? '< 0.001' : `= ${chi.p.toFixed(3)}`}。` +
+                      (chi.significant
+                          ? `以 ${m.bookCount} 本的樣本量，這個偏離已達統計顯著，但刮刮樂每張獨立、位置由印製時隨機配置，最可能的解釋仍是巧合。樣本再累積才看得出是不是真的。`
+                          : `與均勻分布沒有顯著差異 —— 沒有「哪一張比較會中」這回事。`)
+                    : '樣本不足以檢定。',
             ],
         ]
         return (
