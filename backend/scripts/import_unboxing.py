@@ -60,7 +60,7 @@ def load_records(src: Path):
     return out
 
 
-def process(rec, db, existing_serials, commit, lines):
+def process(rec, db, existing_serials, commit, lines, carried_video):
     gid = str(rec["gameId"])
     card = db.query(Scratchcard).filter(Scratchcard.gameId == gid).first()
     lines.append("=== %s（%s）" % (gid, rec.get("sourceFile") or "-"))
@@ -124,6 +124,11 @@ def process(rec, db, existing_serials, commit, lines):
     session.isPublished = True
     session.gameName = name
     session.price = price
+    # --replace 砍掉舊場次時暫存的影片對應，回填到新場次
+    carried = carried_video.get(gid)
+    if carried and not session.videoId:
+        session.videoId, session.videoUrl, session.videoTitle, session.recordedDate = carried
+        lines.append("  ~ 保留原有影片對應：%s" % session.videoId)
 
     added, skipped = 0, []
     for b in rec["books"]:
@@ -190,6 +195,7 @@ def main():
 
     init_db()
     db = SessionLocal()
+    carried_video: dict = {}
     lines = ["模式：%s" % ("COMMIT（會寫入）" if args.commit else "DRY-RUN（不寫入）"), ""]
     try:
         existing = {
@@ -210,15 +216,20 @@ def main():
             )
             for o in olds:
                 n = db.query(UnboxingBook).filter(UnboxingBook.sessionId == o.id).count()
+                # 影片對應是另一支腳本寫的，砍掉重建會一起洗掉，先留下來稍後回填
+                if o.videoId and o.gameId not in carried_video:
+                    carried_video[o.gameId] = (o.videoId, o.videoUrl, o.videoTitle, o.recordedDate)
                 lines.append("  - 刪除既有場次 %s（%s，%d 本）" % (o.gameId, o.sourceFile, n))
                 db.query(UnboxingBook).filter(UnboxingBook.sessionId == o.id).delete()
                 db.delete(o)
             db.flush()
             existing = set()
+            if carried_video:
+                lines.append("  ~ 將保留 %d 款的影片對應：%s" % (len(carried_video), ", ".join(sorted(carried_video))))
             lines.append("")
         tot_add = tot_skip = 0
         for rec in recs:
-            a, s = process(rec, db, existing, args.commit, lines)
+            a, s = process(rec, db, existing, args.commit, lines, carried_video)
             tot_add += a
             tot_skip += s
         if args.commit:
