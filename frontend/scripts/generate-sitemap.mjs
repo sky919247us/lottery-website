@@ -48,6 +48,18 @@ function urlEntry({ path, changefreq, priority, lastmod }) {
   ].filter(Boolean).join('\n')
 }
 
+/** 取回大樣本統計的款式清單，供 /unboxing/:gameId 詳情頁進 sitemap */
+async function fetchUnboxingGames() {
+  try {
+    const res = await fetch(`${API}/api/unboxing/games`, { signal: AbortSignal.timeout(20000) })
+    if (!res.ok) throw new Error(`HTTP ${res.status}`)
+    return await res.json()
+  } catch (err) {
+    console.warn(`[sitemap] 取得大樣本統計清單失敗（${err.message}），略過該區塊。`)
+    return []
+  }
+}
+
 async function main() {
   let cards = []
   try {
@@ -70,6 +82,12 @@ async function main() {
     entries.push(urlEntry({ path: `/detail/${c.id}`, changefreq: 'weekly', priority: '0.7' }))
   }
 
+  // 大樣本統計的單款詳情頁：每頁都是獨一無二的實測數據，值得單獨收錄
+  const unboxing = await fetchUnboxingGames()
+  for (const g of unboxing) {
+    entries.push(urlEntry({ path: `/unboxing/${g.gameId}`, changefreq: 'weekly', priority: '0.8' }))
+  }
+
   const xml = [
     '<?xml version="1.0" encoding="UTF-8"?>',
     '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">',
@@ -79,7 +97,11 @@ async function main() {
   ].join('\n')
 
   writeFileSync(OUT, xml, 'utf8')
-  console.log(`[sitemap] 已寫入 ${OUT}：${entries.length} 個網址（靜態 ${STATIC_ROUTES.length} + 款式 ${entries.length - STATIC_ROUTES.length}）`)
+  const cardCount = entries.length - STATIC_ROUTES.length - unboxing.length
+  console.log(
+    `[sitemap] 已寫入 ${OUT}：${entries.length} 個網址（靜態 ${STATIC_ROUTES.length}` +
+      ` + 款式 ${cardCount} + 大樣本統計 ${unboxing.length}）`,
+  )
 }
 
 main()

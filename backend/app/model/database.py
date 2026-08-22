@@ -232,6 +232,13 @@ def _run_migrations():
                 """))
                 conn.commit()
 
+            # users 補欄位（原本只寫了 PostgreSQL 分支，SQLite 開發環境會缺欄位）
+            result = conn.execute(text("PRAGMA table_info(users)"))
+            user_cols = {row[1] for row in result.fetchall()}
+            if "lastCheckinCity" not in user_cols:
+                conn.execute(text("ALTER TABLE users ADD COLUMN lastCheckinCity VARCHAR(20)"))
+            conn.commit()
+
             # 整本開箱：加速去重與查詢用的複合索引（表本身由 create_all 建立）
             conn.execute(text(
                 "CREATE INDEX IF NOT EXISTS ix_unboxing_books_game_serial "
