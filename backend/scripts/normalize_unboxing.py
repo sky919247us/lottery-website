@@ -38,6 +38,17 @@ from app.model.ticket_layout import (  # noqa: E402
 # 同一批（同箱）判定：流水序號差距在此範圍內視為連號
 BATCH_GAP = 10
 
+# 流水序號一律 6 位數。試算表若把該欄設成「數字」而非「文字」，前導零會被 Excel 吃掉
+# （例如 010672 變成 10672、000392 變成 00392），這裡統一補回，讓站上的序號與實體一致。
+SERIAL_WIDTH = 6
+
+
+def pad_serial(serial):
+    """把被 Excel 吃掉前導零的序號補回 6 位數；已滿 6 位或更長者原樣保留"""
+    if not serial:
+        return serial
+    return serial.zfill(SERIAL_WIDTH) if len(serial) < SERIAL_WIDTH else serial
+
 SERIAL_RE = re.compile(r"^\d{4,6}$")
 
 
@@ -115,7 +126,7 @@ def parse_pairs(grid):
         serial = find_serial(grid, min(cs), max(cs) + 2, frow)
         if serial is None and not any(prizes):
             continue  # 空模板欄組
-        books.append({"serialNo": serial, "prizes": prizes})
+        books.append({"serialNo": pad_serial(serial), "prizes": prizes})
     return books
 
 
@@ -152,7 +163,7 @@ def parse_serial_matrix(grid):
             t += 1
         last_row = max(last_row, run[0][1] + len(prizes))
         if prizes:
-            books.append({"serialNo": serial, "prizes": prizes})
+            books.append({"serialNo": pad_serial(serial), "prizes": prizes})
 
     # 資料列下方常有一列「每本合計」（col 0 為空），拿來當 checksum
     for r in range(last_row, min(last_row + 3, len(grid))):
@@ -234,7 +245,7 @@ def normalize_json(path, game_id=None, price_hint=None):
     """人工轉錄來源（例如只有截圖的款式）：直接吃 JSON，並用 checksum 反驗"""
     raw = json.loads(path.read_text(encoding="utf-8"))
     books = [
-        {"serialNo": b.get("serialNo"), "prizes": [int(x) for x in b["prizes"]]}
+        {"serialNo": pad_serial(b.get("serialNo")), "prizes": [int(x) for x in b["prizes"]]}
         for b in raw["books"]
     ]
     price = price_hint or raw.get("price")

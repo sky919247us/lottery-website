@@ -8,7 +8,7 @@
  "warnings": [],
  "books": [
   {
-   "serialNo": "50993",
+   "serialNo": "050993",
    "prizes": [
     0,
     0,
@@ -112,14 +112,14 @@
     0
    ],
    "seq": 1,
-   "label": "50993",
+   "label": "050993",
    "ticketCount": 100,
    "totalPrize": 18600,
    "winCount": 31,
    "batchKey": "批次A"
   },
   {
-   "serialNo": "51403",
+   "serialNo": "051403",
    "prizes": [
     0,
     0,
@@ -223,14 +223,14 @@
     500
    ],
    "seq": 2,
-   "label": "51403",
+   "label": "051403",
    "ticketCount": 100,
    "totalPrize": 18500,
    "winCount": 31,
    "batchKey": "批次B"
   },
   {
-   "serialNo": "51404",
+   "serialNo": "051404",
    "prizes": [
     0,
     0,
@@ -334,14 +334,14 @@
     300
    ],
    "seq": 3,
-   "label": "51404",
+   "label": "051404",
    "ticketCount": 100,
    "totalPrize": 18400,
    "winCount": 30,
    "batchKey": "批次B"
   },
   {
-   "serialNo": "52243",
+   "serialNo": "052243",
    "prizes": [
     0,
     0,
@@ -445,14 +445,14 @@
     300
    ],
    "seq": 4,
-   "label": "52243",
+   "label": "052243",
    "ticketCount": 100,
    "totalPrize": 18500,
    "winCount": 31,
    "batchKey": "批次C"
   },
   {
-   "serialNo": "66770",
+   "serialNo": "066770",
    "prizes": [
     300,
     0,
@@ -556,14 +556,14 @@
     0
    ],
    "seq": 5,
-   "label": "66770",
+   "label": "066770",
    "ticketCount": 100,
    "totalPrize": 18300,
    "winCount": 31,
    "batchKey": "批次E"
   },
   {
-   "serialNo": "65529",
+   "serialNo": "065529",
    "prizes": [
     0,
     500,
@@ -667,14 +667,14 @@
     0
    ],
    "seq": 6,
-   "label": "65529",
+   "label": "065529",
    "ticketCount": 100,
    "totalPrize": 23300,
    "winCount": 32,
    "batchKey": "批次D"
   },
   {
-   "serialNo": "65530",
+   "serialNo": "065530",
    "prizes": [
     300,
     0,
@@ -778,14 +778,14 @@
     0
    ],
    "seq": 7,
-   "label": "65530",
+   "label": "065530",
    "ticketCount": 100,
    "totalPrize": 18500,
    "winCount": 31,
    "batchKey": "批次D"
   },
   {
-   "serialNo": "65533",
+   "serialNo": "065533",
    "prizes": [
     0,
     0,
@@ -889,14 +889,14 @@
     0
    ],
    "seq": 8,
-   "label": "65533",
+   "label": "065533",
    "ticketCount": 100,
    "totalPrize": 18600,
    "winCount": 31,
    "batchKey": "批次D"
   },
   {
-   "serialNo": "66767",
+   "serialNo": "066767",
    "prizes": [
     300,
     0,
@@ -1000,7 +1000,7 @@
     0
    ],
    "seq": 9,
-   "label": "66767",
+   "label": "066767",
    "ticketCount": 100,
    "totalPrize": 18300,
    "winCount": 31,

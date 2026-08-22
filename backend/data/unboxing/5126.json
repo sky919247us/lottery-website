@@ -698,7 +698,7 @@
    "batchKey": "批次I"
   },
   {
-   "serialNo": "00392",
+   "serialNo": "000392",
    "prizes": [
     1000,
     1000,
@@ -721,7 +721,7 @@
     2000
    ],
    "seq": 24,
-   "label": "00392",
+   "label": "000392",
    "ticketCount": 19,
    "totalPrize": 24000,
    "winCount": 12,

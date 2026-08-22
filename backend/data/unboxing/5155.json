@@ -10,7 +10,7 @@
  ],
  "books": [
   {
-   "serialNo": "17347",
+   "serialNo": "017347",
    "prizes": [
     0,
     1000,
@@ -114,14 +114,14 @@
     0
    ],
    "seq": 1,
-   "label": "17347",
+   "label": "017347",
    "ticketCount": 100,
    "totalPrize": 19500,
    "winCount": 36,
    "batchKey": "批次A"
   },
   {
-   "serialNo": "17520",
+   "serialNo": "017520",
    "prizes": [
     300,
     0,
@@ -225,14 +225,14 @@
     0
    ],
    "seq": 2,
-   "label": "17520",
+   "label": "017520",
    "ticketCount": 100,
    "totalPrize": 19500,
    "winCount": 36,
    "batchKey": "批次B"
   },
   {
-   "serialNo": "17521",
+   "serialNo": "017521",
    "prizes": [
     0,
     1000,
@@ -336,14 +336,14 @@
     0
    ],
    "seq": 3,
-   "label": "17521",
+   "label": "017521",
    "ticketCount": 100,
    "totalPrize": 19900,
    "winCount": 36,
    "batchKey": "批次B"
   },
   {
-   "serialNo": "19325",
+   "serialNo": "019325",
    "prizes": [
     1400,
     0,
@@ -447,14 +447,14 @@
     0
    ],
    "seq": 4,
-   "label": "19325",
+   "label": "019325",
    "ticketCount": 100,
    "totalPrize": 19500,
    "winCount": 36,
    "batchKey": "批次D"
   },
   {
-   "serialNo": "19326",
+   "serialNo": "019326",
    "prizes": [
     0,
     0,
@@ -558,14 +558,14 @@
     2100
    ],
    "seq": 5,
-   "label": "19326",
+   "label": "019326",
    "ticketCount": 100,
    "totalPrize": 19000,
    "winCount": 35,
    "batchKey": "批次D"
   },
   {
-   "serialNo": "19327",
+   "serialNo": "019327",
    "prizes": [
     0,
     0,
@@ -669,14 +669,14 @@
     300
    ],
    "seq": 6,
-   "label": "19327",
+   "label": "019327",
    "ticketCount": 100,
    "totalPrize": 19900,
    "winCount": 36,
    "batchKey": "批次D"
   },
   {
-   "serialNo": "17341",
+   "serialNo": "017341",
    "prizes": [
     0,
     0,
@@ -780,14 +780,14 @@
     0
    ],
    "seq": 7,
-   "label": "17341",
+   "label": "017341",
    "ticketCount": 100,
    "totalPrize": 19700,
    "winCount": 37,
    "batchKey": "批次A"
   },
   {
-   "serialNo": "17342",
+   "serialNo": "017342",
    "prizes": [
     0,
     300,
@@ -891,14 +891,14 @@
     2100
    ],
    "seq": 8,
-   "label": "17342",
+   "label": "017342",
    "ticketCount": 100,
    "totalPrize": 19700,
    "winCount": 37,
    "batchKey": "批次A"
   },
   {
-   "serialNo": "17519",
+   "serialNo": "017519",
    "prizes": [
     0,
     0,
@@ -1002,14 +1002,14 @@
     0
    ],
    "seq": 9,
-   "label": "17519",
+   "label": "017519",
    "ticketCount": 100,
    "totalPrize": 23600,
    "winCount": 37,
    "batchKey": "批次B"
   },
   {
-   "serialNo": "19278",
+   "serialNo": "019278",
    "prizes": [
     0,
     300,
@@ -1113,14 +1113,14 @@
     500
    ],
    "seq": 10,
-   "label": "19278",
+   "label": "019278",
    "ticketCount": 100,
    "totalPrize": 20900,
    "winCount": 36,
    "batchKey": "批次C"
   },
   {
-   "serialNo": "19281",
+   "serialNo": "019281",
    "prizes": [
     0,
     0,
@@ -1224,7 +1224,7 @@
     0
    ],
    "seq": 11,
-   "label": "19281",
+   "label": "019281",
    "ticketCount": 100,
    "totalPrize": 19500,
    "winCount": 36,
