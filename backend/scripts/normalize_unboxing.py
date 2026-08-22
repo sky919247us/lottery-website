@@ -300,16 +300,31 @@ def normalize_file(path, game_id=None, price_hint=None):
         raise ValueError(path.name + ": 解析不到任何整本資料")
 
     # 檔內去重（同一份檔案可能重複收錄同一本）
-    seen, uniq, dropped = set(), [], []
+    # 去重鍵去掉前導零：試算表裡 10672 與 010672 是同一本的兩種寫法
+    seen, uniq, dropped = {}, [], []
     for b in books:
-        key = b["serialNo"]
+        key = (b["serialNo"] or "").lstrip("0")
         if key and key in seen:
-            dropped.append(key)
+            dropped.append("%s（與 %s 同號）" % (b["serialNo"], seen[key]))
             continue
         if key:
-            seen.add(key)
+            seen[key] = b["serialNo"]
         uniq.append(b)
     books = uniq
+
+    # 近似重複偵測：兩本若只差極少數位置，幾乎不可能是不同的本，多半是重複輸入或打錯
+    near = []
+    for i in range(len(books)):
+        for j in range(i + 1, len(books)):
+            a, b2 = books[i]["prizes"], books[j]["prizes"]
+            if len(a) != len(b2):
+                continue
+            diff = sum(1 for x, y in zip(a, b2) if x != y)
+            if diff <= 2:
+                near.append(
+                    "%s 與 %s 只差 %d 個位置（合計 %d / %d），請確認是否重複輸入"
+                    % (books[i]["serialNo"], books[j]["serialNo"], diff, sum(a), sum(b2))
+                )
 
     price = price_hint or meta["price"]
     counts = {len(b["prizes"]) for b in books}
@@ -334,6 +349,8 @@ def normalize_file(path, game_id=None, price_hint=None):
         warnings.append("各本張數不一致：%s" % sorted(counts))
     if dropped:
         warnings.append("檔內重複序號已略過：%s" % dropped)
+    for n in near:
+        warnings.append("⚠ %s" % n)
 
     for i, b in enumerate(books):
         b["seq"] = i + 1

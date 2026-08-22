@@ -24,3 +24,6 @@ build/
 
 # 歷史刮刮樂收集流程的公告 HTML 快取（可重抓，不需入庫）
 backend/data/history/_news_cache/
+
+# 整本開箱管線的報告與中間產物（每次跑腳本都會重生，不需入庫）
+backend/data/unboxing/_*.txt

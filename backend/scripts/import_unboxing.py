@@ -128,7 +128,8 @@ def process(rec, db, existing_serials, commit, lines):
     added, skipped = 0, []
     for b in rec["books"]:
         serial = b.get("serialNo") or ""
-        key = (gid, serial)
+        # 去重鍵去掉前導零，避免 10672 / 010672 被當成兩本
+        key = (gid, serial.lstrip("0"))
         if serial and key in existing_serials:
             skipped.append(serial)
             continue
@@ -192,7 +193,7 @@ def main():
     lines = ["模式：%s" % ("COMMIT（會寫入）" if args.commit else "DRY-RUN（不寫入）"), ""]
     try:
         existing = {
-            (b.gameId, b.serialNo)
+            (b.gameId, b.serialNo.lstrip("0"))
             for b in db.query(UnboxingBook.gameId, UnboxingBook.serialNo).all()
             if b.serialNo
         }
