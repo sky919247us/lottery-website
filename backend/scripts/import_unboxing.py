@@ -179,6 +179,11 @@ def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--src", default="data/unboxing", help="正規化 JSON 檔或資料夾")
     ap.add_argument("--commit", action="store_true", help="真的寫入資料庫")
+    ap.add_argument(
+        "--replace",
+        action="store_true",
+        help="先刪掉這批期數既有的場次再匯入（收到同款更完整的來源檔時用）",
+    )
     ap.add_argument("--report", default="data/unboxing/_import_report.txt")
     args = ap.parse_args()
 
@@ -194,6 +199,22 @@ def main():
         recs = load_records(Path(args.src))
         # 按期數排序匯入，報告好讀
         recs.sort(key=lambda r: str(r["gameId"]))
+
+        if args.replace:
+            gids = {str(r["gameId"]) for r in recs}
+            olds = (
+                db.query(UnboxingSession)
+                .filter(UnboxingSession.gameId.in_(gids))
+                .all()
+            )
+            for o in olds:
+                n = db.query(UnboxingBook).filter(UnboxingBook.sessionId == o.id).count()
+                lines.append("  - 刪除既有場次 %s（%s，%d 本）" % (o.gameId, o.sourceFile, n))
+                db.query(UnboxingBook).filter(UnboxingBook.sessionId == o.id).delete()
+                db.delete(o)
+            db.flush()
+            existing = set()
+            lines.append("")
         tot_add = tot_skip = 0
         for rec in recs:
             a, s = process(rec, db, existing, args.commit, lines)

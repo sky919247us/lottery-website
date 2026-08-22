@@ -142,15 +142,34 @@ def parse_serial_matrix(grid):
     if any(c in run_cols for c, _ in serial_cols):
         return []
     books = []
+    last_row = run[0][1]
     for c, serial in serial_cols:
-        prizes, t = [], 1
+        prizes, t, r = [], 1, run[0][1]
         for r in range(run[0][1], len(grid)):
             if c >= len(grid[r]) or clean_num(grid[r][col]) != t:
                 break
             prizes.append(clean_num(grid[r][c]) or 0)
             t += 1
+        last_row = max(last_row, run[0][1] + len(prizes))
         if prizes:
             books.append({"serialNo": serial, "prizes": prizes})
+
+    # 資料列下方常有一列「每本合計」（col 0 為空），拿來當 checksum
+    for r in range(last_row, min(last_row + 3, len(grid))):
+        row = grid[r]
+        if clean_num(row[0]) is not None:
+            continue
+        vals = {c: clean_num(row[c]) for c, _ in serial_cols if c < len(row)}
+        if sum(1 for v in vals.values() if v) < 3:
+            continue
+        for b, (c, _) in zip(books, serial_cols):
+            expected = vals.get(c)
+            if expected is not None and expected != sum(b["prizes"]):
+                raise ValueError(
+                    "序號 %s 解析出的合計 %d 與檔內合計列 %d 不符"
+                    % (b["serialNo"], sum(b["prizes"]), expected)
+                )
+        break
     return books
 
 

@@ -143,12 +143,36 @@ export default function UnboxingDetail() {
         const over100 = totals.filter((t) => t >= data.ticketsPerBook * data.price).length
         const seg = thirds([m.positionPrize])
         const out = positionOutliers(m.positionWins, m.bookCount, m.winRate)
+
+        // 官方派彩率含了頭獎那種「這個樣本規模幾乎不可能中到」的獎項，
+        // 直接拿實測去比會系統性偏低。算出扣掉那些獎之後的「可及派彩率」才是公平的比較基準。
+        const op = data.official.prizes
+        const totalPayout = op.reduce((a, p) => a + p.prizeAmount * p.totalCount, 0)
+        const unreachable = op.filter(
+            (p) =>
+                data.totalIssued > 0 &&
+                (p.totalCount / data.totalIssued) * m.ticketCount < 1,
+        )
+        const unreachableShare = totalPayout
+            ? unreachable.reduce((a, p) => a + p.prizeAmount * p.totalCount, 0) / totalPayout
+            : 0
+        const reachable = data.official.returnRate
+            ? data.official.returnRate * (1 - unreachableShare)
+            : null
         const cards: [string, string][] = [
             [
                 '實測 vs 官方',
                 data.official.returnRate
                     ? `${m.bookCount} 本實測回本率 ${pc(m.returnRate)}，官方派彩率 ${pc(data.official.returnRate)}，差 ${((m.returnRate - data.official.returnRate) * 100).toFixed(1)}pp。樣本越大越會貼上官方數字。`
                     : `實測回本率 ${pc(m.returnRate)}。官方派彩率待獎金結構補齊後自動比對。`,
+            ],
+            [
+                '公平比較基準',
+                reachable && unreachableShare > 0.01
+                    ? `官方派彩率有 ${pc(unreachableShare)} 來自這 ${nf(m.ticketCount)} 張規模幾乎碰不到的大獎（期望不足 1 張），扣掉後的「可及派彩率」是 ${pc(reachable)}。實測 ${pc(m.returnRate)} 與它相差 ${((m.returnRate - reachable) * 100).toFixed(1)}pp —— 這才是公平的比較。`
+                    : reachable
+                      ? `這款的派彩幾乎都集中在小獎，${nf(m.ticketCount)} 張的樣本已能涵蓋絕大多數獎項級距，可以直接跟官方派彩率比。`
+                      : '待官方獎金結構補齊後計算。',
             ],
             [
                 '本間變異',
