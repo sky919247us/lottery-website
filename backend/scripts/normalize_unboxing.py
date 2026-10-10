@@ -31,12 +31,11 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
 from app.model.ticket_layout import (  # noqa: E402
+    BATCH_GAP,
     PRICE_TO_TICKETS_PER_BOOK,
+    batch_label,
     default_tickets_per_book,
 )
-
-# 同一批（同箱）判定：流水序號差距在此範圍內視為連號
-BATCH_GAP = 10
 
 # 流水序號一律 6 位數。試算表若把該欄設成「數字」而非「文字」，前導零會被 Excel 吃掉
 # （例如 010672 變成 10672、000392 變成 00392），這裡統一補回，讓站上的序號與實體一致。
@@ -228,17 +227,17 @@ def assign_batches(books):
     numbered = [b for b in books if b.get("serialNo")]
     if not numbered:
         for b in books:
-            b["batchKey"] = "批次A"
+            b["batchKey"] = batch_label(1)
         return
     label, prev = 0, None
     for b in sorted(numbered, key=lambda x: int(x["serialNo"])):
         v = int(b["serialNo"])
         if prev is None or v - prev > BATCH_GAP:
             label += 1
-        b["batchKey"] = "批次" + chr(ord("A") + label - 1)
+        b["batchKey"] = batch_label(label)
         prev = v
     for b in books:
-        b.setdefault("batchKey", "批次A")
+        b.setdefault("batchKey", batch_label(1))
 
 
 def normalize_json(path, game_id=None, price_hint=None):

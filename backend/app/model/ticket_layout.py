@@ -22,3 +22,17 @@ def default_tickets_per_book(price):
         return PRICE_TO_TICKETS_PER_BOOK.get(int(price or 0), 100)
     except (TypeError, ValueError):
         return 100
+
+
+# 同一批（同箱）判定：流水序號差距在此範圍內視為連號。
+# 銀行整箱進貨，連號多半是同一批，但不見得同一家店。
+BATCH_GAP = 10
+
+
+def batch_label(index):
+    """批次代號：1->批次A、26->批次Z、27->批次AA"""
+    n, out = index, ""
+    while n > 0:
+        n, r = divmod(n - 1, 26)
+        out = chr(ord("A") + r) + out
+    return "批次" + out

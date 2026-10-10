@@ -23,7 +23,11 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
 from app.model.database import Scratchcard, SessionLocal, init_db  # noqa: E402
-from app.model.ticket_layout import default_tickets_per_book  # noqa: E402
+from app.model.ticket_layout import (  # noqa: E402
+    BATCH_GAP,
+    batch_label,
+    default_tickets_per_book,
+)
 from app.model.unboxing import UnboxingBook, UnboxingSession  # noqa: E402
 
 
@@ -181,6 +185,32 @@ def process(rec, db, existing_serials, commit, lines, carried_video):
     return added, len(skipped)
 
 
+def rebatch(db, game_ids, lines):
+    """匯入完成後，依整個期數的序號集合重算批次
+
+    批次代表「同一箱進貨」，是序號本身的性質，不該因為資料分散在不同來源檔
+    就各算各的。normalize 在單檔內算的只供 dry-run 報告參考，真正寫進資料庫的
+    以這裡為準，否則同一箱的本會因為來自不同檔案而被標成不同批次。
+    """
+    for gid in sorted(game_ids):
+        books = (
+            db.query(UnboxingBook)
+            .filter(UnboxingBook.gameId == gid)
+            .all()
+        )
+        numbered = [b for b in books if (b.serialNo or "").isdigit()]
+        if not numbered:
+            continue
+        label, prev = 0, None
+        for b in sorted(numbered, key=lambda x: int(x.serialNo)):
+            v = int(b.serialNo)
+            if prev is None or v - prev > BATCH_GAP:
+                label += 1
+            b.batchKey = batch_label(label)
+            prev = v
+        lines.append("  ~ %s：%d 本重算為 %d 批" % (gid, len(numbered), label))
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--src", default="data/unboxing", help="正規化 JSON 檔或資料夾")
@@ -232,6 +262,11 @@ def main():
             a, s = process(rec, db, existing, args.commit, lines, carried_video)
             tot_add += a
             tot_skip += s
+        db.flush()
+        lines.append("")
+        lines.append("重算批次（跨來源檔，以整個期數的序號集合為準）：")
+        rebatch(db, {str(r["gameId"]) for r in recs}, lines)
+
         if args.commit:
             db.commit()
             lines.append("")

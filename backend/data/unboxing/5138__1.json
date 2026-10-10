@@ -10,7 +10,7 @@
  ],
  "books": [
   {
-   "serialNo": "655532",
+   "serialNo": "065532",
    "prizes": [
     500,
     0,
@@ -114,7 +114,7 @@
     300
    ],
    "seq": 1,
-   "label": "655532",
+   "label": "065532",
    "ticketCount": 100,
    "totalPrize": 18500,
    "winCount": 31,
