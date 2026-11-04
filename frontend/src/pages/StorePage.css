@@ -390,3 +390,99 @@
         display: none;
     }
 }
+
+/* === 通用店家頁（所有店家）=== */
+.sp-hero__badges {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    margin-top: 0.75rem;
+}
+.sp-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.3rem;
+    padding: 0.25rem 0.7rem;
+    border-radius: 20px;
+    background: rgba(255, 255, 255, 0.18);
+    color: #fff;
+    font-size: 0.85rem;
+    font-weight: 600;
+}
+.sp-badge--jackpot { background: rgba(212, 175, 55, 0.9); }
+.sp-badge--pro { background: linear-gradient(135deg, #d4af37, #b8962e); }
+
+.sp-claim-cta {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.75rem;
+    padding: 1rem 1.25rem;
+    margin-bottom: 1rem;
+    color: var(--sp-text);
+}
+.sp-claim-cta__btn {
+    padding: 0.45rem 1rem;
+    border-radius: 8px;
+    background: #0369a1;
+    color: #fff;
+    font-weight: 600;
+    text-decoration: none;
+    white-space: nowrap;
+}
+
+.sp-list {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+}
+.sp-list__row {
+    display: flex;
+    align-items: baseline;
+    gap: 0.75rem;
+    padding: 0.55rem 0;
+    border-bottom: 1px solid var(--sp-border);
+    flex-wrap: wrap;
+}
+.sp-list__row:last-child { border-bottom: none; }
+.sp-list__main { font-weight: 700; color: var(--sp-text); }
+.sp-list__sub { color: var(--sp-text-secondary); font-size: 0.88rem; }
+.sp-list__date { margin-left: auto; color: var(--sp-muted); font-size: 0.82rem; }
+
+.sp-empty { color: var(--sp-text-secondary); margin: 0 0 0.5rem; }
+.sp-stat-line { color: var(--sp-text); margin: 0 0 0.5rem; }
+.sp-inline-link {
+    display: inline-block;
+    margin-top: 0.75rem;
+    color: var(--color-info, #2980B9);
+    font-size: 0.88rem;
+    text-decoration: none;
+}
+.sp-subtitle {
+    font-size: 0.95rem;
+    font-weight: 600;
+    color: var(--sp-text-secondary);
+    margin: 0.75rem 0 0.5rem;
+}
+
+.sp-stars { display: inline-flex; color: #F5B301; }
+.sp-rating-summary {
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+    margin-bottom: 0.75rem;
+}
+.sp-rating-summary__score { font-size: 2rem; font-weight: 800; color: var(--sp-text); }
+
+.sp-reviews { list-style: none; margin: 1rem 0 0; padding: 0; }
+.sp-review { padding: 0.75rem 0; border-bottom: 1px solid var(--sp-border); }
+.sp-review:last-child { border-bottom: none; }
+.sp-review__head {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.5rem;
+    color: var(--sp-text);
+}
+.sp-review__comment { margin: 0.4rem 0 0; color: var(--sp-text); line-height: 1.6; white-space: pre-line; }

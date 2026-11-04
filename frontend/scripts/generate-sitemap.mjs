@@ -6,7 +6,8 @@
  * 設計取捨：
  * - 只收「非歷史款」。歷史款（isHistory=true，上一屆 954 款）目前沒有任何 UI 入口，
  *   放進 sitemap 等於製造 954 個孤兒頁 → 索引膨脹 + 稀薄內容風險。等做出歷史款瀏覽頁再納入。
- * - 店家頁（/store/:id，8000+ 筆）同理暫不納入，需先確認每頁有足夠獨立內容。
+ * - 店家頁（/store/:id，8000+ 筆）只收 /api/stores/indexable 列出、有足夠內容的店
+ *   （頭獎、評分、近期玩家中獎回報或 PRO），其餘店家頁標 noindex 不進 sitemap。
  * - API 連不上時「保留既有 sitemap.xml 不覆寫」，避免建置失敗或產出空檔。
  *
  * 用法：node scripts/generate-sitemap.mjs   （已掛在 npm run build 之前）
@@ -60,6 +61,18 @@ async function fetchUnboxingGames() {
   }
 }
 
+/** 取回可收錄的店家清單（有內容的店），供 /store/:id 進 sitemap */
+async function fetchIndexableStores() {
+  try {
+    const res = await fetch(`${API}/api/stores/indexable`, { signal: AbortSignal.timeout(20000) })
+    if (!res.ok) throw new Error(`HTTP ${res.status}`)
+    return await res.json()
+  } catch (err) {
+    console.warn(`[sitemap] 取得可收錄店家清單失敗（${err.message}），略過該區塊。`)
+    return []
+  }
+}
+
 async function main() {
   let cards = []
   try {
@@ -88,6 +101,17 @@ async function main() {
     entries.push(urlEntry({ path: `/unboxing/${g.gameId}`, changefreq: 'weekly', priority: '0.8' }))
   }
 
+  // 店家公開頁：只收有內容的店，lastmod 用該店最近一筆內容的日期
+  const stores = await fetchIndexableStores()
+  for (const st of stores) {
+    entries.push(urlEntry({
+      path: `/store/${st.id}`,
+      changefreq: 'weekly',
+      priority: '0.6',
+      lastmod: st.lastmod ? String(st.lastmod).slice(0, 10) : undefined,
+    }))
+  }
+
   const xml = [
     '<?xml version="1.0" encoding="UTF-8"?>',
     '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">',
@@ -97,10 +121,10 @@ async function main() {
   ].join('\n')
 
   writeFileSync(OUT, xml, 'utf8')
-  const cardCount = entries.length - STATIC_ROUTES.length - unboxing.length
+  const cardCount = entries.length - STATIC_ROUTES.length - unboxing.length - stores.length
   console.log(
     `[sitemap] 已寫入 ${OUT}：${entries.length} 個網址（靜態 ${STATIC_ROUTES.length}` +
-      ` + 款式 ${cardCount} + 大樣本統計 ${unboxing.length}）`,
+      ` + 款式 ${cardCount} + 大樣本統計 ${unboxing.length} + 店家 ${stores.length}）`,
   )
 }
 

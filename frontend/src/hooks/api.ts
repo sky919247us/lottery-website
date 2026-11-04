@@ -60,6 +60,7 @@ export interface CheckinData {
     city: string
     amount: number
     gameName: string
+    retailerId?: number | null
     createdAt: string
 }
 
@@ -134,6 +135,7 @@ export async function createCheckin(payload: {
     city: string
     amount: number
     gameName?: string
+    retailerId?: number | null
 }): Promise<CheckinData> {
     const { data } = await api.post('/api/map/checkin', payload)
     return data
@@ -185,6 +187,7 @@ export async function fetchRetailers(params?: {
     search?: string
     has_coords?: boolean
     exclude_ids?: string
+    limit?: number
 }): Promise<RetailerData[]> {
     const { data } = await api.get('/api/retailers', { params })
     return data
@@ -412,10 +415,9 @@ export async function fetchRatingSummary(retailerId: number): Promise<RatingSumm
     return data
 }
 
-/** 回報庫存 */
+/** 回報庫存（需登入，回報者由 Token 決定） */
 export async function reportInventory(payload: {
     retailerId: number
-    userId: number
     item: string
     status: string
     lat?: number
@@ -595,6 +597,56 @@ export async function recordRetailerExposure(retailerId: number): Promise<void> 
 export async function fetchStorePage(retailerId: number) {
     const res = await api.get(`/api/store/${retailerId}`)
     return res.data
+}
+
+/** 店家公開頁資料（每間店都有） */
+export interface StorePublicData {
+    id: number
+    name: string
+    address: string
+    city: string
+    district: string
+    source: string
+    lat: number | null
+    lng: number | null
+    isActive: boolean
+    isClaimed: boolean
+    isPro: boolean
+    facilities: string[]
+    jackpots: {
+        count: number
+        items: { gameType: string; period: string; drawDate: string }[]
+    }
+    ratings: {
+        avgRating: number
+        totalCount: number
+        distribution: Record<string, number>
+        serviceTagStats: Record<string, number>
+        recent: {
+            rating: number
+            serviceTags: string[]
+            comment: string
+            userName: string
+            userLevel: number
+            isGpsVerified: boolean
+            createdAt: string | null
+        }[]
+    }
+    winReports: {
+        windowDays: number
+        count: number
+        totalAmount: number
+        recent: { amount: number; gameName: string; createdAt: string | null }[]
+    }
+    inventory: {
+        official: { itemName: string; itemPrice: number; status: string; scratchcardId: number | null; updatedAt: string | null }[]
+        community: { item: string; status: string; confidence: number; updatedAt: string | null }[]
+    }
+}
+
+export async function fetchStorePublic(retailerId: number): Promise<StorePublicData> {
+    const { data } = await api.get(`/api/stores/${retailerId}/public`)
+    return data
 }
 
 /* === 分析 API（公開）=== */

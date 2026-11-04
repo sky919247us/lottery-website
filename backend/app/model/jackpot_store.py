@@ -6,7 +6,7 @@
 
 from datetime import datetime
 
-from sqlalchemy import Column, DateTime, Integer, String, Text, UniqueConstraint
+from sqlalchemy import Column, DateTime, ForeignKey, Integer, String, Text, UniqueConstraint
 
 from app.model.database import Base
 
@@ -26,6 +26,8 @@ class JackpotStore(Base):
     storeName = Column(String(200), nullable=False, comment="頭獎店家名稱")
     # 售出頭獎商店地址
     storeAddress = Column(Text, default="", comment="頭獎店家地址")
+    # 比對到的經銷商（由 scraper_service 聚合時回寫；比對不到為 NULL）
+    retailerId = Column(Integer, ForeignKey("retailers.id"), nullable=True, index=True, comment="對應經銷商")
     # 時間戳記
     createdAt = Column(DateTime, default=datetime.utcnow, comment="建立時間")
     updatedAt = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, comment="更新時間")

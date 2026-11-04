@@ -15,12 +15,14 @@ import {
     CartesianGrid, Tooltip, PieChart, Pie, Cell
 } from 'recharts'
 import SeoHead from '../components/SeoHead'
+import RetailerPicker from '../components/RetailerPicker'
 import {
     searchScratchcardsPublic,
     fetchWalletRecords, createWalletRecord, deleteWalletRecord,
     fetchWalletPreferences, updateWalletPreferences,
     type ScratchcardSearchItem as ScratchcardOption,
     type PnLRecordRow,
+    type RetailerData,
 } from '../hooks/api'
 import { TAIWAN_CITIES } from '../constants/cities'
 import { useUser } from '../hooks/useUser'
@@ -189,6 +191,7 @@ export default function PnLDashboard() {
     const [spent, setSpent] = useState('')
     const [won, setWon] = useState('')
     const [city, setCity] = useState('')
+    const [retailer, setRetailer] = useState<RetailerData | null>(null)
     const [shareToHeatmap, setShareToHeatmap] = useState(false)
 
     /** 載入紀錄 + 偏好 + 一次性 localStorage 遷移 */
@@ -261,6 +264,7 @@ export default function PnLDashboard() {
             await createWalletRecord({
                 gameName: selectedGame ? selectedGame.name : (inputValue || '未指定'),
                 scratchcardId: selectedGame?.id ?? null,
+                retailerId: Number(won) > 0 ? retailer?.id ?? null : null,
                 spent: Number(spent),
                 won: Number(won) || 0,
                 city: city || null,
@@ -274,6 +278,7 @@ export default function PnLDashboard() {
             setInputValue('')
             setSpent('')
             setWon('')
+            setRetailer(null)
             // 縣市保留作為下次預設, shareToHeatmap 不重置 (使用者偏好黏性)
             await reload()
         } catch (e) {
@@ -394,9 +399,18 @@ export default function PnLDashboard() {
                     </button>
                 </div>
 
-                {/* 第二排: 縣市選擇 + 分享到熱區 (中獎才顯示) */}
+                {/* 第二排: 店家 + 縣市選擇 + 分享到熱區 (中獎才顯示) */}
                 {Number(won) > 0 && (
                     <div className="pnl__form" style={{ marginTop: 12, alignItems: 'center', flexWrap: 'wrap' }}>
+                        <RetailerPicker
+                            value={retailer}
+                            onChange={(r) => {
+                                setRetailer(r)
+                                // 選了店家就自動帶入縣市
+                                if (r && (TAIWAN_CITIES as readonly string[]).includes(r.city)) setCity(r.city)
+                            }}
+                            sx={{ bgcolor: 'rgba(255,255,255,0.05)', borderRadius: '8px' }}
+                        />
                         <TextField
                             select
                             label="中獎縣市（選填）"

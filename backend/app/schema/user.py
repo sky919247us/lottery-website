@@ -37,9 +37,8 @@ class KarmaLogResponse(BaseModel):
 
 
 class InventoryReportCreate(BaseModel):
-    """庫存回報請求"""
+    """庫存回報請求（回報者由登入 Token 決定，不從 body 取）"""
     retailerId: int
-    userId: int
     item: str  # 2000元 / 1000元 / 500元
     status: str  # 充足 / 少量 / 完售
     lat: float | None = None

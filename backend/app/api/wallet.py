@@ -12,6 +12,7 @@ from sqlalchemy.orm import Session
 
 from app.model.database import get_db, Checkin
 from app.model.pnl_record import PnLRecord
+from app.model.retailer import Retailer
 from app.model.user import User
 from app.service.auth_service import get_current_user
 
@@ -86,6 +87,10 @@ def create_record(
     db: Session = Depends(get_db),
 ):
     """新增一筆錢包紀錄. 若 sharedToPublic=True 且 won>0 同時寫入 checkins (匿名)"""
+    if data.retailerId is not None:
+        if not db.query(Retailer.id).filter(Retailer.id == data.retailerId).first():
+            raise HTTPException(status_code=404, detail="店家不存在")
+
     record = PnLRecord(
         userId=user.id,
         gameName=data.gameName or "",
@@ -103,6 +108,7 @@ def create_record(
             city=record.city,
             amount=record.won,
             gameName=record.gameName or "",
+            retailerId=record.retailerId,
         )
         db.add(checkin)
         db.flush()

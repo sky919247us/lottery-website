@@ -14,6 +14,8 @@ interface SeoHeadProps {
   path?: string
   /** JSON-LD 結構化資料 */
   jsonLd?: Record<string, unknown>
+  /** 不希望被搜尋引擎收錄（內容太少的頁面） */
+  noindex?: boolean
 }
 
 /** 更新或建立 meta 標籤 */
@@ -28,13 +30,14 @@ function setMetaTag(property: string, content: string, isOg = false) {
   el.setAttribute('content', content)
 }
 
-export default function SeoHead({ title, description, path, jsonLd }: SeoHeadProps) {
+export default function SeoHead({ title, description, path, jsonLd, noindex }: SeoHeadProps) {
   useEffect(() => {
     const fullTitle = `${title} | 刮刮研究室`
     document.title = fullTitle
 
     // 基礎 Meta Tags
     setMetaTag('description', description)
+    setMetaTag('robots', noindex ? 'noindex, follow' : 'index, follow')
 
     // Open Graph
     setMetaTag('og:title', fullTitle, true)
@@ -63,6 +66,8 @@ export default function SeoHead({ title, description, path, jsonLd }: SeoHeadPro
       // 清除之前的動態 JSON-LD
       const existingScript = document.getElementById('dynamic-jsonld')
       if (existingScript) existingScript.remove()
+      // 預先產生的靜態頁（scripts/generate-store-pages.mjs）已帶一份，React 接手後改用動態的
+      document.getElementById('prerender-jsonld')?.remove()
 
       const script = document.createElement('script')
       script.id = 'dynamic-jsonld'
@@ -75,8 +80,10 @@ export default function SeoHead({ title, description, path, jsonLd }: SeoHeadPro
       // 清除動態 JSON-LD
       const script = document.getElementById('dynamic-jsonld')
       if (script) script.remove()
+      // 還原預設 robots，避免 noindex 殘留到下一頁
+      if (noindex) setMetaTag('robots', 'index, follow')
     }
-  }, [title, description, path, jsonLd])
+  }, [title, description, path, jsonLd, noindex])
 
   return null
 }

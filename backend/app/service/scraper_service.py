@@ -234,11 +234,13 @@ def _update_retailer_jackpot_counts():
 
         # 統計每個 (標準化店名, 核心地址) 的頭獎次數
         jackpot_counts: dict[tuple[str, str], int] = {}
+        jackpot_ids: dict[tuple[str, str], list[int]] = {}
         for jp in all_jackpots:
             norm_name = normalize_string(jp.storeName)
             core_addr = extract_core_address(jp.storeAddress)
             key = (norm_name, core_addr)
             jackpot_counts[key] = jackpot_counts.get(key, 0) + 1
+            jackpot_ids.setdefault(key, []).append(jp.id)
 
         logger.info(f"頭獎統計：{sum(jackpot_counts.values())} 筆紀錄，分布於 {len(jackpot_counts)} 家商店。")
 
@@ -253,19 +255,30 @@ def _update_retailer_jackpot_counts():
 
         # 比對並收集需要更新的經銷商
         updates: dict[int, int] = {}
+        # 頭獎紀錄 → 經銷商（給店家公開頁的頭獎列表用）；比對不到或只靠地址對到的清成 NULL
+        jackpot_links: dict[int, list[int]] = {}
+        unmatched_ids: list[int] = []
         match_count = 0
         for (norm_name, core_addr), count in jackpot_counts.items():
             if not core_addr:
+                unmatched_ids.extend(jackpot_ids[(norm_name, core_addr)])
                 continue
 
             retailer = exact_map.get((norm_name, core_addr))
+            is_exact = retailer is not None
             if not retailer:
                 retailer = addr_map.get(core_addr)
 
             if retailer:
                 updates[retailer.id] = count
+                # 公開頁的頭獎列表只採用「店名＋地址」都對上的紀錄；只靠地址對到的可能是別家店，不綁
+                if is_exact:
+                    jackpot_links.setdefault(retailer.id, []).extend(jackpot_ids[(norm_name, core_addr)])
+                else:
+                    unmatched_ids.extend(jackpot_ids[(norm_name, core_addr)])
                 match_count += 1
             else:
+                unmatched_ids.extend(jackpot_ids[(norm_name, core_addr)])
                 logger.debug(f"找不到對應店家: {norm_name} - {core_addr}")
 
         logger.info(f"成功配對 {match_count}/{len(jackpot_counts)} 家頭獎商店。")
@@ -296,6 +309,38 @@ def _update_retailer_jackpot_counts():
             db.close()
 
     logger.info(f"Retailer.jackpotCount 更新完成，共更新 {len(updates)} 筆。")
+
+    _link_jackpots_to_retailers(jackpot_links, unmatched_ids)
+
+
+def _link_jackpots_to_retailers(jackpot_links: dict[int, list[int]], unmatched_ids: list[int]):
+    """把每筆頭獎紀錄的 retailerId 回寫成比對結果（比對不到的清成 NULL）"""
+    batch_size = 500
+    jobs: list[tuple[int | None, list[int]]] = [(r_id, ids) for r_id, ids in jackpot_links.items()]
+    jobs.append((None, unmatched_ids))
+
+    linked = 0
+    for r_id, ids in jobs:
+        for i in range(0, len(ids), batch_size):
+            chunk = ids[i:i + batch_size]
+            db = SessionLocal()
+            try:
+                def do_update():
+                    db.query(JackpotStore).filter(JackpotStore.id.in_(chunk)).update(
+                        {"retailerId": r_id}, synchronize_session=False
+                    )
+                    db.commit()
+
+                _db_retry(do_update)
+                if r_id is not None:
+                    linked += len(chunk)
+            except Exception as e:
+                db.rollback()
+                logger.error(f"回寫 JackpotStore.retailerId 失敗 (retailer={r_id}): {e}", exc_info=True)
+            finally:
+                db.close()
+
+    logger.info(f"JackpotStore.retailerId 回寫完成：{linked} 筆綁定店家、{len(unmatched_ids)} 筆比對不到。")
 
 
 if __name__ == "__main__":

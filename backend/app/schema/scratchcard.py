@@ -76,6 +76,7 @@ class CheckinCreate(BaseModel):
     city: str
     amount: int
     gameName: str = ""
+    retailerId: int | None = None
 
 
 class CheckinResponse(BaseModel):
@@ -84,6 +85,7 @@ class CheckinResponse(BaseModel):
     city: str
     amount: int
     gameName: str = ""
+    retailerId: int | None = None
     createdAt: datetime
 
     model_config = {"from_attributes": True}

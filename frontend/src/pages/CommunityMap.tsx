@@ -37,6 +37,7 @@ import 'leaflet.markercluster/dist/MarkerCluster.Default.css'
 import HeatmapLayer from '../components/HeatmapLayer'
 import RatingDisplay from '../components/RatingDisplay'
 import RatingPanel from '../components/RatingPanel'
+import RetailerPicker from '../components/RetailerPicker'
 import SeoHead from '../components/SeoHead'
 
 // 修正 Leaflet 預設 Icon 路徑問題
@@ -415,13 +416,21 @@ function RetailerPopupSection({
                 >
                     🧭 導航
                 </a>
-                {isPro && (
+                {isPro ? (
                   <Link
                       to={`/store/${retailer.id}`}
                       className="compound-popup__btn"
                       style={{ textDecoration: 'none', background: 'linear-gradient(135deg, #d4af37, #b8962e)', color: '#fff' }}
                   >
                       👑 專屬頁面
+                  </Link>
+                ) : (
+                  <Link
+                      to={`/store/${retailer.id}`}
+                      className="compound-popup__btn"
+                      style={{ textDecoration: 'none' }}
+                  >
+                      🏪 店家頁
                   </Link>
                 )}
                 {!retailer.isClaimed && (
@@ -576,6 +585,7 @@ export default function CommunityMap() {
     const [city, setCity] = useState('')
     const [amount, setAmount] = useState('')
     const [gameName, setGameName] = useState('')
+    const [checkinRetailer, setCheckinRetailer] = useState<RetailerData | null>(null)
     const [submitting, setSubmitting] = useState(false)
     const [showCheckin, setShowCheckin] = useState(false)
     // 款式搜尋 (打卡用)
@@ -879,11 +889,13 @@ export default function CommunityMap() {
                 city,
                 amount: Number(amount),
                 gameName,
+                retailerId: checkinRetailer?.id ?? null,
             })
             setCheckins([newCheckin, ...checkins])
             setCity('')
             setAmount('')
             setGameName('')
+            setCheckinRetailer(null)
             setCheckinGameInput('')
             setCheckinGameOptions([])
         } catch {
@@ -942,7 +954,6 @@ export default function CommunityMap() {
             }
             await reportInventory({
                 retailerId: inventoryRetailer.id,
-                userId: user.id,
                 item: inventoryItem,
                 status: inventoryStatus,
                 lat,
@@ -1270,6 +1281,14 @@ export default function CommunityMap() {
                                             />
                                         )}
                                     />
+                                    <RetailerPicker
+                                        value={checkinRetailer}
+                                        onChange={(r) => {
+                                            setCheckinRetailer(r)
+                                            // 選了店家就自動帶入縣市
+                                            if (r && CITIES.includes(r.city)) setCity(r.city)
+                                        }}
+                                    />
                                     <button
                                         className="community-map__submit-btn"
                                         onClick={handleSubmit}
@@ -1485,13 +1504,21 @@ export default function CommunityMap() {
                                                         <ExternalLink size={14} />
                                                         導航
                                                     </a>
-                                                    {r.merchantTier === 'pro' && (
+                                                    {r.merchantTier === 'pro' ? (
                                                         <Link
                                                             to={`/store/${r.id}`}
                                                             className="community-map__report-btn"
                                                             style={{ textDecoration: 'none', background: 'linear-gradient(135deg, #d4af37, #b8962e)', color: '#fff', whiteSpace: 'nowrap' }}
                                                         >
                                                             👑 專屬頁面
+                                                        </Link>
+                                                    ) : (
+                                                        <Link
+                                                            to={`/store/${r.id}`}
+                                                            className="community-map__report-btn"
+                                                            style={{ textDecoration: 'none', whiteSpace: 'nowrap' }}
+                                                        >
+                                                            🏪 店家頁
                                                         </Link>
                                                     )}
                                                     {!r.isClaimed && (

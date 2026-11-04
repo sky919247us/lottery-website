@@ -107,6 +107,7 @@ class Checkin(Base):
     city = Column(String(20), nullable=False, comment="縣市")
     amount = Column(BigInteger, nullable=False, comment="中獎金額")
     gameName = Column(String(100), default="", comment="款式名稱（選填）")
+    retailerId = Column(Integer, ForeignKey("retailers.id"), nullable=True, index=True, comment="在哪間店買的（選填）")
     createdAt = Column(DateTime, default=datetime.utcnow)
 
 
@@ -239,6 +240,23 @@ def _run_migrations():
                 conn.execute(text("ALTER TABLE users ADD COLUMN lastCheckinCity VARCHAR(20)"))
             conn.commit()
 
+            # 中獎打卡綁店家
+            result = conn.execute(text("PRAGMA table_info(checkins)"))
+            checkin_cols = {row[1] for row in result.fetchall()}
+            if checkin_cols and "retailerId" not in checkin_cols:
+                conn.execute(text("ALTER TABLE checkins ADD COLUMN retailerId INTEGER REFERENCES retailers(id)"))
+            conn.execute(text("CREATE INDEX IF NOT EXISTS ix_checkins_retailerId ON checkins(retailerId)"))
+            conn.commit()
+
+            # 頭獎紀錄綁店家
+            result = conn.execute(text("PRAGMA table_info(jackpot_stores)"))
+            jackpot_cols = {row[1] for row in result.fetchall()}
+            if jackpot_cols and "retailerId" not in jackpot_cols:
+                conn.execute(text("ALTER TABLE jackpot_stores ADD COLUMN retailerId INTEGER REFERENCES retailers(id)"))
+            if jackpot_cols:
+                conn.execute(text("CREATE INDEX IF NOT EXISTS ix_jackpot_stores_retailerId ON jackpot_stores(retailerId)"))
+            conn.commit()
+
             # 整本開箱：加速去重與查詢用的複合索引（表本身由 create_all 建立）
             conn.execute(text(
                 "CREATE INDEX IF NOT EXISTS ix_unboxing_books_game_serial "
@@ -263,6 +281,12 @@ def _run_migrations():
                 'ALTER TABLE merchant_claims ADD COLUMN IF NOT EXISTS "slpTradeOrderId" VARCHAR(64)',
                 'CREATE INDEX IF NOT EXISTS idx_merchant_claims_slp_trade ON merchant_claims ("slpTradeOrderId")',
                 'ALTER TABLE users ADD COLUMN IF NOT EXISTS "lastCheckinCity" VARCHAR(20)',
+                # 中獎打卡綁店家
+                'ALTER TABLE checkins ADD COLUMN IF NOT EXISTS "retailerId" INTEGER REFERENCES retailers(id)',
+                'CREATE INDEX IF NOT EXISTS "ix_checkins_retailerId" ON checkins ("retailerId")',
+                # 頭獎紀錄綁店家
+                'ALTER TABLE jackpot_stores ADD COLUMN IF NOT EXISTS "retailerId" INTEGER REFERENCES retailers(id)',
+                'CREATE INDEX IF NOT EXISTS "ix_jackpot_stores_retailerId" ON jackpot_stores ("retailerId")',
                 # 整本開箱：加速去重與查詢用的複合索引（表本身由 create_all 建立）
                 'CREATE INDEX IF NOT EXISTS ix_unboxing_books_game_serial ON unboxing_books ("gameId", "serialNo")',
                 'CREATE INDEX IF NOT EXISTS ix_unboxing_sessions_game_pub ON unboxing_sessions ("gameId", "isPublished")',

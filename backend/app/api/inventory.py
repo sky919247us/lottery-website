@@ -14,6 +14,7 @@ from app.model.database import get_db
 from app.model.retailer import Retailer
 from app.model.user import InventoryReport, User, get_level_info
 from app.schema.user import InventoryReportCreate, InventoryReportResponse, InventoryStatusResponse
+from app.service.auth_service import get_current_user
 from app.api.user import add_karma
 
 router = APIRouter(prefix="/api/inventory", tags=["庫存回報"])
@@ -50,19 +51,13 @@ def get_distance_factor(distance: float) -> float:
 @router.post("/report", response_model=InventoryReportResponse, status_code=201)
 def report_inventory(
     data: InventoryReportCreate,
+    user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
     """
-    回報庫存狀態
+    回報庫存狀態（需登入，回報者一律取自 Token，不信任 body）
     含 GPS 距離驗證與 Karma 獎勵
     """
-    # 驗證使用者
-    user = db.query(User).filter(User.id == data.userId).first()
-    if not user:
-        raise HTTPException(status_code=404, detail="使用者不存在")
-    if user.isBanned:
-        raise HTTPException(status_code=403, detail="帳號已被封禁")
-
     # 驗證店家
     retailer = db.query(Retailer).filter(Retailer.id == data.retailerId).first()
     if not retailer:
@@ -89,7 +84,7 @@ def report_inventory(
     # 建立回報
     report = InventoryReport(
         retailerId=data.retailerId,
-        userId=data.userId,
+        userId=user.id,
         item=data.item,
         status=data.status,
         lat=data.lat,
@@ -104,7 +99,7 @@ def report_inventory(
     # 給予 Karma 獎勵
     karma_points = 10 if distance_factor == 1.0 else 3
     add_karma(
-        db, data.userId, "report", karma_points,
+        db, user.id, "report", karma_points,
         f"回報 {retailer.name} 的 {data.item} 庫存",
         data.retailerId,
     )
