@@ -3,7 +3,8 @@
  *
  * 網站是 SPA，搜尋引擎抓 /store/:id 只會拿到空殼 index.html。這支腳本在 vite build 之後，
  * 以 dist/index.html 為模板，替 /api/stores/indexable 列出的店家各寫一份
- * dist/store/{id}/index.html：換上該店的 title、description、canonical、og、
+ * dist/store/{id}.html（Cloudflare Pages 會在 /store/{id} 直接送出；用資料夾 index.html
+ * 會被 308 轉到結尾帶斜線的網址，和 canonical 不一致）：換上該店的 title、description、canonical、og、
  * LocalBusiness JSON-LD，並在 #root 放一段可讀摘要（React 載入後 createRoot 會整個取代）。
  *
  * - 只產生有內容的店，與 sitemap 同一份清單（generate-sitemap.mjs）。
@@ -150,9 +151,9 @@ async function main() {
       const { id } = queue.shift()
       try {
         const data = await getJson(`/api/stores/${id}/public`)
-        const dir = resolve(DIST, 'store', String(id))
+        const dir = resolve(DIST, 'store')
         mkdirSync(dir, { recursive: true })
-        writeFileSync(resolve(dir, 'index.html'), renderPage(template, data), 'utf8')
+        writeFileSync(resolve(dir, `${id}.html`), renderPage(template, data), 'utf8')
         ok += 1
       } catch (err) {
         failed += 1
