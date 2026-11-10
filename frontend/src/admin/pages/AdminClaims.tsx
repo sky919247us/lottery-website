@@ -88,8 +88,8 @@ export default function AdminClaims() {
           <Button size="small" variant="outlined" endIcon={<Visibility />} onClick={() => openImage(params.row.licenseUrl, '經銷證照片')}>
             經銷證
           </Button>
-          <Button size="small" variant="outlined" endIcon={<Visibility />} onClick={() => openImage(params.row.idCardUrl, '負責人身分證')}>
-            身分證
+          <Button size="small" variant="outlined" endIcon={<Visibility />} onClick={() => openImage(params.row.idCardUrl, '代理人證照片')}>
+            代理人證
           </Button>
         </Stack>
       )
