@@ -414,6 +414,13 @@ def on_startup():
         id="daily_preview_crawler",
         replace_existing=True,
     )
+    # 台灣 11:00 (UTC 3:00) 補爬一次預告款，接住台彩較晚公布的情況
+    scheduler.add_job(
+        _run_preview_crawler_job,
+        trigger=CronTrigger(hour=3, minute=0),
+        id="daily_preview_crawler_late",
+        replace_existing=True,
+    )
     # 每天台灣 04:30 (UTC 20:30) 清理 90 天前的中獎打卡紀錄
     scheduler.add_job(
         _run_checkin_ttl_cleanup,

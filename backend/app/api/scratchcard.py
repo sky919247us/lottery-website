@@ -48,7 +48,9 @@ def get_scratchcard_list(
         f"scratchcards:list:{sort_by}:{order}:{price}:{high_win_only}:{is_preview}"
         f":{include_history}:{history_only}"
     )
-    cached = get_cache(cache_key, ttl=86400)
+    # 預告款筆數很少，直接查 DB；避免 API 以外的行程寫入後被 24h 快取卡住
+    use_cache = is_preview is not True
+    cached = get_cache(cache_key, ttl=86400) if use_cache else None
     if cached is not None:
         return cached
 
@@ -140,7 +142,8 @@ def get_scratchcard_list(
         result.append(d)
 
     # --- 存入快取 ---
-    set_cache(cache_key, [r.model_dump() for r in result])
+    if use_cache:
+        set_cache(cache_key, [r.model_dump() for r in result])
 
     return result
 
